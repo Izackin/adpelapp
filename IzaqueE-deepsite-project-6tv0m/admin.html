@@ -1,0 +1,904 @@
+<!DOCTYPE html>
+<html lang="pt-BR" class="scroll-smooth">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ADPEL Admin | Painel de Controle</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+  <link rel="stylesheet" href="style.css">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+  <script src="https://cdn.tailwindcss.com"></script>
+  
+  <script>
+    tailwind.config = {
+      theme: { 
+        extend: { 
+          colors: { 
+            adpel: { 50: '#eff6ff', 100: '#dbeafe', 200: '#bfdbfe', 300: '#93c5fd', 400: '#60a5fa', 500: '#3b82f6', 600: '#2563eb', 700: '#1d4ed8', 800: '#1e40af', 900: '#1e3a8a', 950: '#172554' }, 
+            neon: { blue: '#06b6d4', red: '#f43f5e', purple: '#8b5cf6', cyan: '#22d3ee' },
+            surface: { DEFAULT: '#0f172a', light: '#1e293b', dark: '#020617' },
+            sidebar: '#020617', 
+            gold: { 500: '#d97706', 600: '#b45309', 700: '#92400e' }, 
+            blue: { 500: '#3b82f6', 600: '#2563eb', 700: '#1d4ed8' }, 
+            purple: { 500: '#8b5cf6', 600: '#7c3aed', 700: '#6d28d9' }, 
+            red: { 500: '#ef4444', 600: '#dc2626', 700: '#b91c1c' }, 
+            green: { 500: '#22c55e', 600: '#16a34a', 700: '#15803d' }, 
+            yellow: { 500: '#eab308', 600: '#ca8a04', 700: '#a16207' } 
+          } 
+        } 
+      }
+    }
+  </script>
+  
+  <style>
+    body { font-family: 'Inter', sans-serif; background-color: #020617; color: #e2e8f0; }
+    .pb-safe { padding-bottom: env(safe-area-inset-bottom, 20px); }
+    .empty-state { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 4rem 1rem; text-align: center; background: rgba(15,23,42,0.6); border-radius: 1rem; border: 1px solid rgba(6,182,212,0.2); box-shadow: 0 0 20px rgba(6,182,212,0.05); backdrop-filter: blur(10px); }
+    .empty-state-icon { width: 6rem; height: 6rem; background: linear-gradient(135deg, #2563eb, #dc2626); color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin-bottom: 1.5rem; box-shadow: 0 0 15px rgba(37,99,235,0.4); }
+    .empty-state h3 { font-size: 1.25rem; font-weight: 600; color: #f8fafc; margin-bottom: 0.5rem; }
+    .empty-state p { color: #94a3b8; margin-bottom: 2rem; }
+    @keyframes fadeInUp { from { opacity: 0; transform: translateY(20px) scale(0.95); } to { opacity: 1; transform: translateY(0) scale(1); } }
+    .animate-fade-in { animation: fadeInUp 0.4s ease-out forwards; }
+    /* Futuristic Overrides */
+    .bg-white { background-color: rgba(15,23,42,0.7) !important; backdrop-filter: blur(12px); border: 1px solid rgba(30,41,59,0.6); }
+    .text-gray-900 { color: #f1f5f9 !important; }
+    .text-gray-800 { color: #e2e8f0 !important; }
+    .text-gray-700 { color: #cbd5e1 !important; }
+    .text-gray-600 { color: #94a3b8 !important; }
+    .text-gray-500 { color: #64748b !important; }
+    .text-gray-400 { color: #475569 !important; }
+    .border-gray-200 { border-color: rgba(30,41,59,0.8) !important; }
+    .border-gray-100 { border-color: rgba(30,41,59,0.6) !important; }
+    .bg-gray-50 { background-color: rgba(30,41,59,0.5) !important; }
+    .bg-gray-100 { background-color: rgba(30,41,59,0.6) !important; }
+    .hover\:bg-gray-50:hover { background-color: rgba(30,41,59,0.8) !important; }
+    .hover\:bg-gray-100:hover { background-color: rgba(30,41,59,0.9) !important; }
+    input, select, textarea { background-color: #0f172a !important; color: #e2e8f0 !important; border-color: rgba(30,41,59,0.8) !important; font-size: 16px !important; }
+    input::placeholder, textarea::placeholder { color: #475569 !important; }
+    @media (max-width: 640px) {
+      .animate-fade-in { animation-duration: 0.25s; }
+    }
+    @media (max-width: 768px) {
+      main, #sidebar { -webkit-overflow-scrolling: touch; }
+    }
+    #sidebar { background-color: #020617 !important; border-color: rgba(6,182,212,0.2) !important; }
+    main { background-color: #020617 !important; }
+    .shadow-sm { box-shadow: 0 1px 2px 0 rgba(6,182,212,0.05) !important; }
+    .shadow-lg { box-shadow: 0 0 25px rgba(37,99,235,0.15) !important; }
+    /* Fix: mobile admin add-forms looked faded due to global translucent bg-white override */
+    [id$="-form-container"] {
+      background-color: #0f172a !important;
+      backdrop-filter: none !important;
+      -webkit-backdrop-filter: none !important;
+      border-color: rgba(30,41,59,0.8) !important;
+    }
+    /* Fix: sidebar visível no desktop — #sidebar.hidden do style.css sobrepõe md:block */
+    @media (min-width: 768px) {
+      #sidebar.hidden { display: block !important; }
+    }
+  </style>
+</head>
+<body class="antialiased h-[100dvh] flex flex-col overflow-hidden relative">
+  
+  <!-- GATE DE PROTEÇÃO: SOMENTE MASTER -->
+  <div id="admin-gate" class="hidden fixed inset-0 z-[100] bg-sidebar flex flex-col items-center justify-center text-center p-6">
+    <div class="max-w-md px-4">
+      <div class="w-16 h-16 md:w-20 md:h-20 rounded-full flex items-center justify-center mx-auto mb-6 shadow-[0_0_30px_rgba(37,99,235,0.3)] overflow-hidden bg-white">
+        <img src="https://huggingface.co/spaces/IzaqueE/deepsite-project-6tv0m/resolve/main/images/adpel.logo.png" alt="ADPEL Logo" class="w-full h-full object-cover">
+      </div>
+      <h1 class="text-2xl md:text-4xl font-bold text-white mb-4">Acesso Restrito</h1>
+      <p class="text-base md:text-lg text-gray-300 italic mb-2">"A seara é grande, mas poucos são os ceifeiros"</p>
+      <p class="text-sm text-gray-400 mb-8">Mateus 9:37-38</p>
+      <button onclick="window.location.href='index.html'" class="w-full md:w-auto px-6 py-3 bg-adpel-600 hover:bg-adpel-700 active:bg-adpel-800 text-white rounded-xl font-semibold transition min-h-[44px]">
+        Voltar ao Início
+      </button>
+    </div>
+  </div>
+
+  <div id="admin-app" class="flex flex-1 h-full overflow-hidden hidden">
+    <!-- SIDEBAR -->
+    <aside id="sidebar" class="hidden md:block fixed inset-y-0 left-0 w-64 bg-sidebar text-white z-50 p-4 overflow-y-auto border-r border-gray-800 shadow-[0_0_40px_rgba(0,0,0,0.6)]">
+      <div class="flex items-center gap-3 mb-8 pt-2">
+        <div class="w-8 h-8 rounded-lg flex items-center justify-center overflow-hidden bg-white shadow-lg shadow-adpel-600/20">
+          <img src="https://huggingface.co/spaces/IzaqueE/deepsite-project-6tv0m/resolve/main/images/adpel.logo.png" alt="ADPEL Logo" class="w-full h-full object-cover">
+        </div>
+        <span class="font-bold text-xl tracking-tight">ADPEL Admin</span>
+      </div>
+
+      <div class="text-xs font-semibold text-gray-500 uppercase tracking-wider px-3 mb-3">Gerenciamento</div>
+      <nav class="space-y-1.5">
+        <button onclick="adminNavigateTo('home')" class="w-full flex items-center px-3 py-3 rounded-lg hover:bg-gray-800 active:bg-gray-700 transition group text-gray-300 hover:text-white min-h-[44px]">
+          <i class="fas fa-home w-5 text-center text-lg transition group-hover:text-adpel-400"></i><span class="ml-3 font-medium">Gerenciar Home</span>
+        </button>
+        <button onclick="adminNavigateTo('courses')" class="w-full flex items-center px-3 py-3 rounded-lg hover:bg-gray-800 active:bg-gray-700 transition group text-gray-300 hover:text-white min-h-[44px]">
+          <i class="fas fa-graduation-cap w-5 text-center text-lg transition group-hover:text-blue-400"></i><span class="ml-3 font-medium">Gerenciar Cursos</span>
+        </button>
+        <button onclick="adminNavigateTo('studies')" class="w-full flex items-center px-3 py-3 rounded-lg hover:bg-gray-800 active:bg-gray-700 transition group text-gray-300 hover:text-white min-h-[44px]">
+          <i class="fas fa-book-open w-5 text-center text-lg transition group-hover:text-amber-400"></i><span class="ml-3 font-medium">Gerenciar Estudos</span>
+        </button>
+        <button onclick="adminNavigateTo('library')" class="w-full flex items-center px-3 py-3 rounded-lg hover:bg-gray-800 active:bg-gray-700 transition group text-gray-300 hover:text-white min-h-[44px]">
+          <i class="fas fa-book w-5 text-center text-lg transition group-hover:text-cyan-400"></i><span class="ml-3 font-medium">Gerenciar Biblioteca</span>
+        </button>
+        <button onclick="adminNavigateTo('certificates')" class="w-full flex items-center px-3 py-3 rounded-lg hover:bg-gray-800 active:bg-gray-700 transition group text-gray-300 hover:text-white min-h-[44px]">
+          <i class="fas fa-certificate w-5 text-center text-lg transition group-hover:text-yellow-400"></i><span class="ml-3 font-medium">Gerenciar Certificados</span>
+        </button>
+        <button onclick="adminNavigateTo('avisos')" class="w-full flex items-center px-3 py-3 rounded-lg hover:bg-gray-800 active:bg-gray-700 transition group text-gray-300 hover:text-white min-h-[44px]">
+          <i class="fas fa-bullhorn w-5 text-center text-lg transition group-hover:text-red-400"></i><span class="ml-3 font-medium">Gerenciar Avisos</span>
+        </button>
+        <button onclick="adminNavigateTo('agenda')" class="w-full flex items-center px-3 py-3 rounded-lg hover:bg-gray-800 active:bg-gray-700 transition group text-gray-300 hover:text-white min-h-[44px]">
+          <i class="fas fa-calendar-alt w-5 text-center text-lg transition group-hover:text-purple-400"></i><span class="ml-3 font-medium">Gerenciar Agenda</span>
+        </button>
+        <button onclick="adminNavigateTo('cofres')" class="w-full flex items-center px-3 py-3 rounded-lg hover:bg-gray-800 active:bg-gray-700 transition group text-gray-300 hover:text-white min-h-[44px]">
+          <i class="fas fa-piggy-bank w-5 text-center text-lg transition group-hover:text-green-400"></i><span class="ml-3 font-medium">Gerenciar Cofres</span>
+        </button>
+        <button onclick="adminNavigateTo('notifications')" class="w-full flex items-center px-3 py-3 rounded-lg hover:bg-gray-800 active:bg-gray-700 transition group text-gray-300 hover:text-white min-h-[44px]">
+          <i class="fas fa-bell w-5 text-center text-lg transition group-hover:text-red-400"></i><span class="ml-3 font-medium">Notificações Push</span>
+        </button>
+      </nav>
+      <div class="mt-6 pt-4 border-t border-gray-800">
+        <button onclick="window.location.href='index.html'" class="w-full flex items-center justify-center px-4 py-3 text-sm text-gray-400 hover:text-white hover:bg-gray-800 rounded-lg transition min-h-[44px]">
+          <i class="fas fa-arrow-left mr-2"></i> Voltar ao Site
+        </button>
+      </div>
+    </aside>
+
+    <!-- Mobile Header for Admin -->
+    <header class="md:hidden bg-sidebar/95 backdrop-blur-md text-white h-16 flex items-center px-4 justify-between fixed top-0 w-full z-40 border-b border-gray-800 shadow-lg">
+      <div class="flex items-center gap-3">
+        <div class="w-8 h-8 rounded-lg flex items-center justify-center overflow-hidden bg-white">
+          <img src="https://huggingface.co/spaces/IzaqueE/deepsite-project-6tv0m/resolve/main/images/adpel.logo.png" alt="ADPEL Logo" class="w-full h-full object-cover">
+        </div>
+        <h1 class="font-bold text-lg">ADPEL Admin</h1>
+      </div>
+      <button onclick="toggleSidebar()" class="p-2.5 rounded-lg hover:bg-gray-800 active:bg-gray-700 transition min-w-[44px] min-h-[44px] flex items-center justify-center">
+        <i class="fas fa-bars text-lg"></i>
+      </button>
+    </header>
+
+    <!-- MAIN CONTENT -->
+    <!-- Backdrop Mobile -->
+    <div id="admin-backdrop" onclick="toggleSidebar()" class="hidden fixed inset-0 bg-transparent z-30 md:hidden transition-opacity duration-300"></div>
+    <main class="flex-1 md:ml-64 p-4 md:p-6 pt-20 md:pt-6 pb-24 md:pb-6 overflow-y-auto touch-pan-y min-h-0">
+      <!-- DASHBOARD HOME -->
+      <div id="admin-view-home" class="space-y-6 animate-fade-in">
+        <h2 class="text-xl md:text-2xl font-bold text-gray-800">Painel de Controle</h2>
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
+          <div class="bg-adpel-50 p-4 md:p-6 rounded-xl border border-adpel-100 cursor-pointer hover:bg-adpel-100 active:scale-[0.98] transition select-none" onclick="adminNavigateTo('courses')">
+            <h3 class="font-semibold text-adpel-800 mb-2 md:mb-4 flex items-center gap-2 text-sm md:text-base"><i class="fas fa-graduation-cap"></i> Cursos</h3>
+            <div class="text-2xl md:text-3xl font-bold text-adpel-700" id="stat-courses">0</div>
+            <p class="text-xs md:text-sm text-gray-500 mt-1">Cursos criados</p>
+          </div>
+          <div class="bg-amber-50 p-4 md:p-6 rounded-xl border border-amber-100 cursor-pointer hover:bg-amber-100 active:scale-[0.98] transition select-none" onclick="adminNavigateTo('studies')">
+            <h3 class="font-semibold text-amber-800 mb-2 md:mb-4 flex items-center gap-2 text-sm md:text-base"><i class="fas fa-book-open"></i> Estudos</h3>
+            <div class="text-2xl md:text-3xl font-bold text-amber-700" id="stat-studies">0</div>
+            <p class="text-xs md:text-sm text-gray-500 mt-1">Materiais publicados</p>
+          </div>
+          <div class="bg-blue-50 p-4 md:p-6 rounded-xl border border-blue-100 cursor-pointer hover:bg-blue-100 active:scale-[0.98] transition select-none" onclick="adminNavigateTo('library')">
+            <h3 class="font-semibold text-blue-800 mb-2 md:mb-4 flex items-center gap-2 text-sm md:text-base"><i class="fas fa-book"></i> Biblioteca</h3>
+            <div class="text-2xl md:text-3xl font-bold text-blue-700" id="stat-library">0</div>
+            <p class="text-xs md:text-sm text-gray-500 mt-1">Livros cadastrados</p>
+          </div>
+          <div class="bg-green-50 p-4 md:p-6 rounded-xl border border-green-100 cursor-pointer hover:bg-green-100 active:scale-[0.98] transition select-none" onclick="adminNavigateTo('cofres')">
+            <h3 class="font-semibold text-green-800 mb-2 md:mb-4 flex items-center gap-2 text-sm md:text-base"><i class="fas fa-piggy-bank"></i> Cofres</h3>
+            <div class="text-2xl md:text-3xl font-bold text-green-700" id="stat-cofres">0</div>
+            <p class="text-xs md:text-sm text-gray-500 mt-1">Cofres ativos</p>
+          </div>
+        </div>
+        <div class="bg-white p-4 md:p-6 rounded-xl shadow-sm border border-gray-200 mt-6">
+          <h3 class="font-bold text-gray-800 mb-4">Recentes</h3>
+          <div id="recent-activity" class="space-y-3">
+            <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+              <div class="text-sm text-gray-600">Nenhum dado recente encontrado</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Versículos do Dia -->
+        <div class="bg-white p-4 md:p-6 rounded-xl shadow-sm border border-gray-200 mt-6">
+          <div class="flex items-center justify-between mb-4">
+            <h3 class="font-bold text-gray-800">Versículos do Dia</h3>
+            <button onclick="showVerseForm()" class="bg-adpel-600 text-white px-3 py-1.5 rounded-lg text-sm font-medium hover:bg-adpel-700 active:bg-adpel-800 transition flex items-center gap-2 min-h-[36px]">
+              <i class="fas fa-plus"></i> Novo Versículo
+            </button>
+          </div>
+          <div id="verse-form-container" class="hidden bg-white rounded-xl shadow-sm border border-gray-200 p-4 md:p-6 mb-4">
+            <h4 id="verse-form-title" class="font-bold text-gray-800 mb-3">Novo Versículo</h4>
+            <form id="verse-form">
+              <input type="hidden" id="verse-id">
+              <div class="grid grid-cols-1 gap-4">
+                <div>
+                  <label class="block text-sm font-medium text-gray-700 mb-1">Referência <span class="text-red-500">*</span></label>
+                  <input type="text" id="verse-reference" required placeholder="Ex: João 3:16" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-adpel-500 outline-none">
+                </div>
+                <div>
+                  <label class="block text-sm font-medium text-gray-700 mb-1">Texto <span class="text-red-500">*</span></label>
+                  <textarea id="verse-text-input" rows="3" required placeholder="Porque Deus amou o mundo de tal maneira..." class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-adpel-500 outline-none"></textarea>
+                </div>
+              </div>
+              <div class="mt-4 flex justify-end gap-2">
+                <button type="button" onclick="hideVerseForm()" class="px-4 py-2 border border-gray-300 rounded-lg text-sm hover:bg-gray-50 min-h-[44px]">Cancelar</button>
+                <button type="submit" class="px-4 py-2 bg-adpel-600 text-white rounded-lg text-sm font-medium hover:bg-adpel-700 transition min-h-[44px]">Salvar Versículo</button>
+              </div>
+            </form>
+          </div>
+          <div id="admin-verses-list" class="space-y-2 max-h-80 overflow-y-auto pr-1"></div>
+        </div>
+      </div>
+
+      <!-- COURSES MANAGEMENT -->
+      <div id="admin-view-courses" class="hidden space-y-6 animate-fade-in">
+        <div class="flex flex-col md:flex-row md:items-center justify-between gap-3 md:gap-4">
+          <div>
+            <h2 class="text-xl md:text-2xl font-bold text-gray-800">Gerenciar Cursos</h2>
+            <p class="text-xs md:text-sm text-gray-500 mt-1">Adicione, edite ou remova cursos.</p>
+          </div>
+          <button onclick="showCourseForm()" class="bg-adpel-600 text-white px-4 md:px-5 py-2.5 rounded-lg text-sm font-medium hover:bg-adpel-700 active:bg-adpel-800 transition flex items-center justify-center gap-2 min-h-[44px]">
+            <i class="fas fa-plus"></i> Novo Curso
+          </button>
+        </div>
+
+        <div id="course-form-container" class="hidden bg-white rounded-xl shadow-sm border border-gray-200 p-4 md:p-6">
+          <h3 id="course-form-title" class="font-bold text-gray-800 mb-4">Novo Curso</h3>
+          <form id="course-form">
+            <input type="hidden" id="course-id">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Título <span class="text-red-500">*</span></label>
+                <input type="text" id="course-title" required class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-adpel-500 focus:border-transparent outline-none">
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Professor</label>
+                <input type="text" id="course-teacher" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-adpel-500 outline-none">
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Categoria</label>
+                <select id="course-category" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-adpel-500 outline-none">
+                  <option value="Discipulado">Discipulado</option>
+                  <option value="Estudos Bíblicos">Estudos Bíblicos</option>
+                  <option value="Teologia">Teologia</option>
+                  <option value="Culto">Culto</option>
+                </select>
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Duração (horas)</label>
+                <input type="number" id="course-duration" min="0" placeholder="Ex: 20" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-adpel-500 outline-none">
+              </div>
+              <div class="md:col-span-2">
+                <label class="block text-sm font-medium text-gray-700 mb-1">Descrição</label>
+                <textarea id="course-description" rows="3" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-adpel-500 outline-none"></textarea>
+              </div>
+              <div class="md:col-span-2">
+                <label class="block text-sm font-medium text-gray-700 mb-1">URL da Capa (opcional)</label>
+                <input type="url" id="course-thumbnail" placeholder="https://exemplo.com/capa.jpg" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-adpel-500 outline-none">
+              </div>
+              <div class="md:col-span-2 mt-2">
+                <label class="block text-sm font-medium text-gray-700 mb-1">Aulas (YouTube)</label>
+                <div id="course-lessons-list" class="space-y-2 mb-2"></div>
+                <button type="button" onclick="addLessonField()" class="text-sm text-adpel-600 hover:underline font-medium">+ Adicionar Aula</button>
+              </div>
+              <div class="md:col-span-2 flex gap-4 mt-2">
+                <label class="inline-flex items-center">
+                  <input type="checkbox" id="course-featured" class="rounded text-adpel-600 focus:ring-adpel-500">
+                  <span class="ml-2 text-sm text-gray-700">Destaque (Home)</span>
+                </label>
+                <label class="inline-flex items-center">
+                  <input type="checkbox" id="course-published" checked class="rounded text-adpel-600 focus:ring-adpel-500">
+                  <span class="ml-2 text-sm text-gray-700">Publicado</span>
+                </label>
+              </div>
+              <div class="md:col-span-2 mt-4 pt-4 border-t border-gray-200">
+                <h4 class="text-sm font-semibold text-gray-800 mb-3 flex items-center gap-2">
+                  <i class="fas fa-certificate text-adpel-600"></i> Certificado do Curso
+                </h4>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Título no Certificado</label>
+                    <input type="text" id="course-cert-title" placeholder="Ex: Certificado de Conclusão em Teologia" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-adpel-500 outline-none">
+                  </div>
+                  <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Descrição no Certificado</label>
+                    <input type="text" id="course-cert-desc" placeholder="Ex: Aprovado no curso de Discipulado" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-adpel-500 outline-none">
+                  </div>
+                </div>
+                <p class="text-xs text-gray-500 mt-2">Deixe em branco para usar os textos padrão.</p>
+              </div>
+            </div>
+            <div class="mt-6 flex flex-col sm:flex-row justify-end gap-2">
+              <button type="button" onclick="hideCourseForm()" class="px-4 py-3 border border-gray-300 rounded-lg text-sm hover:bg-gray-50 min-h-[44px]">Cancelar</button>
+              <button type="submit" class="px-4 py-3 bg-adpel-600 text-white rounded-lg text-sm font-medium hover:bg-adpel-700 transition min-h-[44px]">Salvar Curso</button>
+            </div>
+          </form>
+        </div>
+
+        <div id="admin-courses-list" class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden space-y-3 p-3 md:p-4">
+        </div>
+      </div>
+
+      <!-- STUDIES MANAGEMENT -->
+      <div id="admin-view-studies" class="hidden space-y-6 animate-fade-in">
+        <div class="flex flex-col md:flex-row md:items-center justify-between gap-3 md:gap-4">
+          <div>
+            <h2 class="text-xl md:text-2xl font-bold text-gray-800">Gerenciar Estudos Bíblicos</h2>
+            <p class="text-xs md:text-sm text-gray-500 mt-1">Crie e publique estudos devocionais e sistemáticos.</p>
+          </div>
+          <button onclick="showStudyForm()" class="bg-amber-600 text-white px-4 md:px-5 py-2.5 rounded-lg text-sm font-medium hover:bg-amber-700 active:bg-amber-800 transition flex items-center justify-center gap-2 min-h-[44px]">
+            <i class="fas fa-plus"></i> Novo Estudo
+          </button>
+        </div>
+
+        <div id="study-form-container" class="hidden bg-white rounded-xl shadow-sm border border-gray-200 p-4 md:p-6">
+          <h3 id="study-form-title" class="font-bold text-gray-800 mb-4">Novo Estudo</h3>
+          <form id="study-form">
+            <input type="hidden" id="study-id">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Título <span class="text-red-500">*</span></label>
+                <input type="text" id="study-title" required class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 outline-none">
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Categoria</label>
+                <select id="study-category" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 outline-none">
+                  <option value="Devocional">Devocional</option>
+                  <option value="Estudo Sistemático">Estudo Sistemático</option>
+                  <option value="Série">Série</option>
+                </select>
+              </div>
+              <div class="md:col-span-2">
+                <label class="block text-sm font-medium text-gray-700 mb-1">Descrição</label>
+                <textarea id="study-description" rows="2" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 outline-none"></textarea>
+              </div>
+              <div class="md:col-span-2">
+                <label class="block text-sm font-medium text-gray-700 mb-1">Conteúdo (HTML ou texto)</label>
+                <textarea id="study-content" rows="5" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 outline-none font-mono text-sm"></textarea>
+              </div>
+              <div class="md:col-span-2">
+                <label class="block text-sm font-medium text-gray-700 mb-1">URL da Capa</label>
+                <input type="url" id="study-cover" placeholder="https://exemplo.com/capa.jpg" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 outline-none">
+              </div>
+              <div class="md:col-span-2 mt-2">
+                <label class="block text-sm font-medium text-gray-700 mb-1">Aulas/Vídeos (YouTube)</label>
+                <div id="study-lessons-list" class="space-y-2 mb-2"></div>
+                <button type="button" onclick="addStudyLessonField()" class="text-sm text-amber-600 hover:underline font-medium">+ Adicionar Aula/Vídeo</button>
+              </div>
+              <div class="md:col-span-2">
+                <label class="block text-sm font-medium text-gray-700 mb-1">Arquivo de Estudo (PDF, DOC, DOCX)</label>
+                <input type="file" id="study-file" accept=".pdf,.doc,.docx" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 outline-none file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-amber-50 file:text-amber-700 hover:file:bg-amber-100">
+                <input type="hidden" id="study-existing-file">
+                <p class="text-xs text-gray-500 mt-1" id="study-file-status">Nenhum arquivo selecionado.</p>
+              </div>
+              <div class="md:col-span-2 flex gap-4 mt-2">
+                <label class="inline-flex items-center">
+                  <input type="checkbox" id="study-featured" class="rounded text-amber-600 focus:ring-amber-500">
+                  <span class="ml-2 text-sm text-gray-700">Destaque na Home</span>
+                </label>
+                <label class="inline-flex items-center">
+                  <input type="checkbox" id="study-published" checked class="rounded text-amber-600 focus:ring-amber-500">
+                  <span class="ml-2 text-sm text-gray-700">Publicado</span>
+                </label>
+              </div>
+            </div>
+            <div class="mt-6 flex flex-col sm:flex-row justify-end gap-2">
+              <button type="button" onclick="hideStudyForm()" class="px-4 py-3 border border-gray-300 rounded-lg text-sm hover:bg-gray-50 min-h-[44px]">Cancelar</button>
+              <button type="submit" class="px-4 py-3 bg-amber-600 text-white rounded-lg text-sm font-medium hover:bg-amber-700 transition min-h-[44px]">Salvar Estudo</button>
+            </div>
+          </form>
+        </div>
+
+        <div id="admin-studies-list" class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden space-y-3 p-3 md:p-4">
+        </div>
+      </div>
+
+      <!-- LIBRARY MANAGEMENT -->
+      <div id="admin-view-library" class="hidden space-y-6 animate-fade-in">
+        <div class="flex flex-col md:flex-row md:items-center justify-between gap-3 md:gap-4">
+          <div>
+            <h2 class="text-xl md:text-2xl font-bold text-gray-800">Gerenciar Biblioteca Digital</h2>
+            <p class="text-xs md:text-sm text-gray-500 mt-1">Gerencie livros, revistas e materiais de leitura.</p>
+          </div>
+          <button onclick="showLibraryForm()" class="bg-blue-600 text-white px-4 md:px-5 py-2.5 rounded-lg text-sm font-medium hover:bg-blue-700 active:bg-blue-800 transition flex items-center justify-center gap-2 min-h-[44px]">
+            <i class="fas fa-plus"></i> Novo Livro
+          </button>
+        </div>
+
+        <div id="library-form-container" class="hidden bg-white rounded-xl shadow-sm border border-gray-200 p-4 md:p-6">
+          <h3 id="library-form-title" class="font-bold text-gray-800 mb-4">Novo Livro</h3>
+          <form id="library-form">
+            <input type="hidden" id="library-id">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Título <span class="text-red-500">*</span></label>
+                <input type="text" id="library-title" required class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none">
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Autor</label>
+                <input type="text" id="library-author" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none">
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Categoria</label>
+                <input type="text" id="library-category" placeholder="Ex: Devocional" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none">
+              </div>
+              <div class="md:col-span-2">
+                <label class="block text-sm font-medium text-gray-700 mb-1">URL da Capa</label>
+                <input type="url" id="library-image" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none">
+              </div>
+              <div class="md:col-span-2">
+                <label class="block text-sm font-medium text-gray-700 mb-1">Nota (opcional)</label>
+                <textarea id="library-description" rows="2" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"></textarea>
+              </div>
+              <div class="md:col-span-2">
+                <label class="block text-sm font-medium text-gray-700 mb-1">Arquivo do Livro (PDF, DOC, DOCX)</label>
+                <input type="file" id="library-file" accept=".pdf,.doc,.docx" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100">
+                <input type="hidden" id="library-existing-file">
+                <p class="text-xs text-gray-500 mt-1" id="library-file-status">Nenhum arquivo selecionado.</p>
+              </div>
+              <div class="md:col-span-2 flex gap-4 mt-2">
+                <label class="inline-flex items-center">
+                  <input type="checkbox" id="library-featured" class="rounded text-blue-600 focus:ring-blue-500">
+                  <span class="ml-2 text-sm text-gray-700">Destaque</span>
+                </label>
+                <label class="inline-flex items-center">
+                  <input type="checkbox" id="library-published" checked class="rounded text-blue-600 focus:ring-blue-500">
+                  <span class="ml-2 text-sm text-gray-700">Publicado</span>
+                </label>
+              </div>
+            </div>
+            <div class="mt-6 flex flex-col sm:flex-row justify-end gap-2">
+              <button type="button" onclick="hideLibraryForm()" class="px-4 py-3 border border-gray-300 rounded-lg text-sm hover:bg-gray-50 min-h-[44px]">Cancelar</button>
+              <button type="submit" class="px-4 py-3 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition min-h-[44px]">Salvar Livro</button>
+            </div>
+          </form>
+        </div>
+
+        <div id="admin-library-list" class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden space-y-3 p-3 md:p-4">
+        </div>
+      </div>
+
+      <!-- CERTIFICATES MANAGEMENT -->
+      <div id="admin-view-certificates" class="hidden space-y-6 animate-fade-in">
+        <div class="flex flex-col md:flex-row md:items-center justify-between gap-3 md:gap-4">
+          <div>
+            <h2 class="text-xl md:text-2xl font-bold text-gray-800">Gerenciar Certificados</h2>
+            <p class="text-xs md:text-sm text-gray-500 mt-1">Crie certificados para os membros.</p>
+          </div>
+          <button onclick="showCertificateForm()" class="bg-yellow-600 text-white px-4 md:px-5 py-2.5 rounded-lg text-sm font-medium hover:bg-yellow-700 active:bg-yellow-800 transition flex items-center justify-center gap-2 min-h-[44px]">
+            <i class="fas fa-plus"></i> Novo Certificado
+          </button>
+        </div>
+
+        <div id="certificate-form-container" class="hidden bg-white rounded-xl shadow-sm border border-gray-200 p-4 md:p-6">
+          <h3 id="certificate-form-title" class="font-bold text-gray-800 mb-4">Novo Certificado</h3>
+          <form id="certificate-form">
+            <input type="hidden" id="certificate-id">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div class="md:col-span-2">
+                <label class="block text-sm font-medium text-gray-700 mb-1">Usuário <span class="text-red-500">*</span></label>
+                <select id="cert-user" required class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500 outline-none bg-white">
+                  <option value="">Carregando usuários...</option>
+                </select>
+              </div>
+              <div class="md:col-span-2">
+                <label class="block text-sm font-medium text-gray-700 mb-1">Título <span class="text-red-500">*</span></label>
+                <input type="text" id="cert-title" required class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500 outline-none" placeholder="Ex: Certificado de Conclusão">
+              </div>
+              <div class="md:col-span-2">
+                <label class="block text-sm font-medium text-gray-700 mb-1">Descrição</label>
+                <textarea id="cert-description" rows="2" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500 outline-none" placeholder="Descrição opcional"></textarea>
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Data de Conclusão</label>
+                <input type="date" id="cert-completed" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500 outline-none">
+              </div>
+            </div>
+            <div class="mt-6 flex flex-col sm:flex-row justify-end gap-2">
+              <button type="button" onclick="hideCertificateForm()" class="px-4 py-3 border border-gray-300 rounded-lg text-sm hover:bg-gray-50 min-h-[44px]">Cancelar</button>
+              <button type="submit" class="px-4 py-3 bg-yellow-600 text-white rounded-lg text-sm font-medium hover:bg-yellow-700 transition min-h-[44px]">Salvar Certificado</button>
+            </div>
+          </form>
+        </div>
+
+        <div id="admin-certificates-list" class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden space-y-3 p-3 md:p-4">
+        </div>
+      </div>
+
+      <!-- AVISOS MANAGEMENT -->
+      <div id="admin-view-avisos" class="hidden space-y-6 animate-fade-in">
+        <div class="flex flex-col md:flex-row md:items-center justify-between gap-3 md:gap-4">
+          <div>
+            <h2 class="text-xl md:text-2xl font-bold text-gray-800">Gerenciar Avisos & Comunicados</h2>
+            <p class="text-xs md:text-sm text-gray-500 mt-1">Publicar mensagens na home.</p>
+          </div>
+          <button onclick="showAvisoForm()" class="bg-red-600 text-white px-4 md:px-5 py-2.5 rounded-lg text-sm font-medium hover:bg-red-700 active:bg-red-800 transition flex items-center justify-center gap-2 min-h-[44px]">
+            <i class="fas fa-plus"></i> Novo Aviso
+          </button>
+        </div>
+
+        <div id="aviso-form-container" class="hidden bg-white rounded-xl shadow-sm border border-gray-200 p-4 md:p-6">
+          <h3 id="aviso-form-title" class="font-bold text-gray-800 mb-4">Novo Aviso</h3>
+          <form id="aviso-form">
+            <input type="hidden" id="aviso-id">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Título <span class="text-red-500">*</span></label>
+                <input type="text" id="aviso-title" required class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 outline-none" placeholder="Título do aviso">
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Prioridade</label>
+                <select id="aviso-priority" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 outline-none">
+                  <option value="normal">Normal</option>
+                  <option value="urgent">Urgente</option>
+                </select>
+              </div>
+              <div class="md:col-span-2">
+                <label class="block text-sm font-medium text-gray-700 mb-1">Mensagem <span class="text-red-500">*</span></label>
+                <textarea id="aviso-message" rows="3" required class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 outline-none" placeholder="Conteúdo do aviso"></textarea>
+              </div>
+              <div class="md:col-span-2">
+                <label class="block text-sm font-medium text-gray-700 mb-1">Link (opcional)</label>
+                <input type="url" id="aviso-link" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 outline-none" placeholder="https://...">
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Data de Validade</label>
+                <input type="date" id="aviso-expiry" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 outline-none">
+              </div>
+              <div class="flex items-center mt-6">
+                <label class="inline-flex items-center">
+                  <input type="checkbox" id="aviso-published" checked class="rounded text-red-600 focus:ring-red-500">
+                  <span class="ml-2 text-sm text-gray-700">Publicado</span>
+                </label>
+              </div>
+            </div>
+            <div class="mt-6 flex flex-col sm:flex-row justify-end gap-2">
+              <button type="button" onclick="hideAvisoForm()" class="px-4 py-3 border border-gray-300 rounded-lg text-sm hover:bg-gray-50 min-h-[44px]">Cancelar</button>
+              <button type="submit" class="px-4 py-3 bg-red-600 text-white rounded-lg text-sm font-medium hover:bg-red-700 transition min-h-[44px]">Salvar Aviso</button>
+            </div>
+          </form>
+        </div>
+
+        <div id="admin-avisos-list" class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden space-y-3 p-3 md:p-4">
+        </div>
+      </div>
+      
+      <!-- AGENDA MANAGEMENT -->
+      <div id="admin-view-agenda" class="hidden space-y-6 animate-fade-in">
+        <div class="flex flex-col md:flex-row md:items-center justify-between gap-3 md:gap-4">
+          <div>
+            <h2 class="text-xl md:text-2xl font-bold text-gray-800">Gerenciar Agenda de Eventos</h2>
+            <p class="text-xs md:text-sm text-gray-500 mt-1">Agende cultos, estudos e reuniões.</p>
+          </div>
+          <button onclick="showAgendaForm()" class="bg-purple-600 text-white px-4 md:px-5 py-2.5 rounded-lg text-sm font-medium hover:bg-purple-700 active:bg-purple-800 transition flex items-center justify-center gap-2 min-h-[44px]">
+            <i class="fas fa-calendar-plus"></i> Novo Evento
+          </button>
+        </div>
+
+        <div id="agenda-form-container" class="hidden bg-white rounded-xl shadow-sm border border-gray-200 p-4 md:p-6">
+          <h3 id="agenda-form-title" class="font-bold text-gray-800 mb-4">Novo Evento</h3>
+          <form id="agenda-form">
+            <input type="hidden" id="agenda-id">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Título <span class="text-red-500">*</span></label>
+                <input type="text" id="agenda-title" required class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 outline-none" placeholder="Nome do evento">
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Categoria</label>
+                <select id="agenda-category" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 outline-none">
+                  <option value="culto">Culto</option>
+                  <option value="estudo">Estudo</option>
+                  <option value="reuniao">Reunião</option>
+                  <option value="evento">Evento Especial</option>
+                </select>
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Data <span class="text-red-500">*</span></label>
+                <input type="date" id="agenda-date" required class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 outline-none">
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Horário</label>
+                <input type="time" id="agenda-time" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 outline-none">
+              </div>
+              <div class="md:col-span-2">
+                <label class="block text-sm font-medium text-gray-700 mb-1">Local</label>
+                <input type="text" id="agenda-location" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 outline-none" placeholder="Local do evento">
+              </div>
+              <div class="md:col-span-2">
+                <label class="block text-sm font-medium text-gray-700 mb-1">Link do Google Maps</label>
+                <input type="url" id="agenda-maps-url" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 outline-none" placeholder="https://maps.google.com/...">
+              </div>
+              <div class="md:col-span-2">
+                <label class="block text-sm font-medium text-gray-700 mb-1">Descrição</label>
+                <textarea id="agenda-description" rows="2" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 outline-none" placeholder="Descrição opcional"></textarea>
+              </div>
+              <div class="flex items-center mt-6">
+                <label class="inline-flex items-center">
+                  <input type="checkbox" id="agenda-published" checked class="rounded text-purple-600 focus:ring-purple-500">
+                  <span class="ml-2 text-sm text-gray-700">Publicado</span>
+                </label>
+              </div>
+            </div>
+            <div class="mt-6 flex flex-col sm:flex-row justify-end gap-2">
+              <button type="button" onclick="hideAgendaForm()" class="px-4 py-3 border border-gray-300 rounded-lg text-sm hover:bg-gray-50 min-h-[44px]">Cancelar</button>
+              <button type="submit" class="px-4 py-3 bg-purple-600 text-white rounded-lg text-sm font-medium hover:bg-purple-700 transition min-h-[44px]">Salvar Evento</button>
+            </div>
+          </form>
+        </div>
+
+        <div id="admin-agenda-list" class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden space-y-3 p-3 md:p-4">
+        </div>
+      </div>
+
+      <!-- COFRES MANAGEMENT -->
+      <div id="admin-view-cofres" class="hidden space-y-6 animate-fade-in">
+        <div class="flex flex-col md:flex-row md:items-center justify-between gap-3 md:gap-4">
+          <div>
+            <h2 class="text-xl md:text-2xl font-bold text-gray-800">Gerenciar Cofres de Objetivos</h2>
+            <p class="text-xs md:text-sm text-gray-500 mt-1">Crie cofres para arrecadação destinada.</p>
+          </div>
+          <button onclick="showCofreForm()" class="bg-green-600 text-white px-4 md:px-5 py-2.5 rounded-lg text-sm font-medium hover:bg-green-700 active:bg-green-800 transition flex items-center justify-center gap-2 min-h-[44px]">
+            <i class="fas fa-plus"></i> Criar Cofre
+          </button>
+        </div>
+
+        <div id="cofre-form-container" class="hidden bg-white rounded-xl shadow-sm border border-gray-200 p-4 md:p-6">
+          <h3 id="cofre-form-title" class="font-bold text-gray-800 mb-4">Novo Cofre</h3>
+          <form id="cofre-form">
+            <input type="hidden" id="cofre-id">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Nome do Cofre <span class="text-red-500">*</span></label>
+                <input type="text" id="cofre-name" required placeholder="Ex: Pintura da Igreja" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 outline-none">
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Meta Financeira (R$) <span class="text-red-500">*</span></label>
+                <input type="number" id="cofre-target" required min="1" step="0.01" placeholder="Ex: 5000" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 outline-none">
+              </div>
+              <div class="md:col-span-2">
+                <label class="block text-sm font-medium text-gray-700 mb-1">Descrição</label>
+                <textarea id="cofre-description" rows="2" placeholder="Descreva o objetivo deste cofre..." class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 outline-none"></textarea>
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">URL da Imagem (opcional)</label>
+                <input type="url" id="cofre-image" placeholder="https://exemplo.com/imagem.jpg" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 outline-none">
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Data Final (opcional)</label>
+                <input type="date" id="cofre-end-date" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 outline-none">
+              </div>
+              <div class="md:col-span-2 flex gap-4 mt-2">
+                <label class="inline-flex items-center">
+                  <input type="checkbox" id="cofre-active" checked class="rounded text-green-600 focus:ring-green-500">
+                  <span class="ml-2 text-sm text-gray-700">Ativo</span>
+                </label>
+              </div>
+            </div>
+            <div class="mt-6 flex flex-col sm:flex-row justify-end gap-2">
+              <button type="button" onclick="hideCofreForm()" class="px-4 py-3 border border-gray-300 rounded-lg text-sm hover:bg-gray-50 min-h-[44px]">Cancelar</button>
+              <button type="submit" class="px-4 py-3 bg-green-600 text-white rounded-lg text-sm font-medium hover:bg-green-700 transition min-h-[44px]">Salvar Cofre</button>
+            </div>
+          </form>
+        </div>
+
+        <div id="admin-cofres-list" class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden space-y-3 p-3 md:p-4">
+        </div>
+      </div>
+
+      <!-- NOTIFICATIONS MANAGEMENT -->
+      <div id="admin-view-notifications" class="hidden space-y-6 animate-fade-in">
+        <div class="flex flex-col md:flex-row md:items-center justify-between gap-3 md:gap-4">
+          <div>
+            <h2 class="text-xl md:text-2xl font-bold text-gray-800">Notificações Push</h2>
+            <p class="text-xs md:text-sm text-gray-500 mt-1">Envie mensagens nativas para todos os dispositivos com o app instalado.</p>
+          </div>
+        </div>
+
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-4 md:p-6">
+          <h3 class="font-bold text-gray-800 mb-4">Enviar Notificação</h3>
+          <form id="notification-form" class="space-y-4">
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Título <span class="text-red-500">*</span></label>
+              <input type="text" id="notif-title" required placeholder="Ex: Culto Especial Amanhã!" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-adpel-500 outline-none">
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Mensagem <span class="text-red-500">*</span></label>
+              <textarea id="notif-body" rows="3" required placeholder="Conteúdo da notificação..." class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-adpel-500 outline-none"></textarea>
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Link ao clicar (opcional)</label>
+              <input type="url" id="notif-url" placeholder="https://..." class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-adpel-500 outline-none">
+            </div>
+            <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 pt-2">
+              <p id="notif-subscriber-count" class="text-xs text-gray-500">Carregando inscritos...</p>
+              <button type="submit" class="w-full sm:w-auto px-5 py-2.5 bg-adpel-600 text-white rounded-lg text-sm font-medium hover:bg-adpel-700 transition flex items-center justify-center gap-2 min-h-[44px]">
+                <i class="fas fa-paper-plane"></i> Enviar para Todos
+              </button>
+            </div>
+          </form>
+        </div>
+
+        <div class="bg-yellow-50/80 border border-yellow-200 rounded-xl p-4 md:p-5">
+          <h4 class="font-bold text-yellow-800 text-sm mb-2"><i class="fas fa-info-circle mr-1"></i> Requisitos para funcionar</h4>
+          <ul class="text-xs text-yellow-700 space-y-1.5 list-disc list-inside">
+            <li>Gere seu par de chaves VAPID com: <code class="bg-yellow-100 px-1 rounded">npx web-push generate-vapid-keys</code> (Node necessário).</li>
+            <li>Substitua <code class="bg-yellow-100 px-1 rounded">YOUR_VAPID_PUBLIC_KEY_HERE</code> no arquivo <code class="bg-yellow-100 px-1 rounded">notifications.js</code>.</li>
+            <li>Crie a Edge Function <code class="bg-yellow-100 px-1 rounded">send-notification</code> no Supabase (código fornecido abaixo).</li>
+            <li>Defina as variáveis de ambiente <code class="bg-yellow-100 px-1 rounded">VAPID_PRIVATE_KEY</code> e <code class="bg-yellow-100 px-1 rounded">VAPID_PUBLIC_KEY</code> no painel do Supabase (Edge Functions → Secrets).</li>
+          </ul>
+        </div>
+      </div>
+
+    </main>
+  </div>
+
+  <!-- FUNÇÕES UTILITÁRIAS GLOBAIS (devem vir primeiro!) -->
+  <script>
+    // escapeHtml - usado por vários scripts
+    function escapeHtml(value) {
+      if (!value) return '';
+      return String(value)
+        .replaceAll('&', '&amp;')
+        .replaceAll('<', '&lt;')
+        .replaceAll('>', '&gt;')
+        .replaceAll('"', '&quot;')
+        .replaceAll("'", '&#039;');
+    }
+    
+    // formatDate
+    function formatDate(dateString) {
+      if (!dateString || dateString === 'null' || dateString === 'undefined') return '';
+      const parts = String(dateString).split('-');
+      const year = parts[0] || '';
+      const month = parts[1] || '';
+      const day = parts[2] || '';
+      if (!year || year === 'undefined' || year === 'null') return '';
+      return `${day}/${month}/${year}`;
+    }
+    
+    // getMonthName
+    function getMonthName(monthStr) {
+      if (!monthStr || monthStr === 'null' || monthStr === 'undefined') return '';
+      const months = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
+      const idx = parseInt(monthStr, 10) - 1;
+      if (isNaN(idx) || idx < 0 || idx >= months.length) return '';
+      return months[idx];
+    }
+    
+    // slugify
+    function slugify(value) {
+      if (!value) return '';
+      return value
+        .toLowerCase()
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/^-+|-+$/g, '');
+    }
+    
+    console.log('✅ Funções utilitárias carregadas');
+  </script>
+  
+  <!-- Scripts externos - carregados na ordem correta -->
+  <script src="utils-notifications.js"></script>
+  <script src="supabase.js"></script>
+  <script>
+    // Verificar se Supabase carregou
+    if (typeof window.supabase !== 'undefined' && window.supabase !== null) {
+      console.log('✅ Supabase carregado');
+    } else {
+      console.warn('⚠️ Supabase não disponível.');
+      if (typeof showToast === 'function') {
+        showToast('Erro: Supabase não carregou. Verifique sua conexão.', 'error');
+      }
+    }
+  </script>
+  <script src="admin.js"></script>
+  <script src="admin/crud-courses.js"></script>
+  <script src="admin/crud-studies.js"></script>
+  <script src="admin/crud-library.js"></script>
+  <script src="admin/crud-certificates.js"></script>
+  <script src="admin/crud-avisos.js"></script>
+  <script src="admin/crud-agenda.js"></script>
+  <script src="admin/crud-verses.js"></script>
+  <script src="admin/crud-cofres.js"></script>
+  <script src="admin-notifications.js"></script>
+  
+  <script>
+    // Verificar se supabase.js inicializou corretamente
+    console.log('🔍 Verificando window.supabaseClient:', !!window.supabaseClient);
+    if (!window.supabaseClient) {
+      console.error('❌ window.supabaseClient não está disponível. Verifique se supabase.js foi carregado antes de admin.js.');
+    }
+    
+    // Verificar se admin.js carregou (agora com esperar 3s para garantir)
+    setTimeout(() => {
+      if (typeof adminNavigateTo !== 'undefined') {
+        console.log('✅ AdminJS carregou com sucesso!');
+      } else {
+        console.error('❌ AdminJS falhou ao carregar');
+        var errDiv = document.getElementById('admin-load-error');
+        if (!errDiv) {
+          errDiv = document.createElement('div');
+          errDiv.id = 'admin-load-error';
+          errDiv.className = 'fixed bottom-4 left-4 right-4 md:left-auto md:right-4 md:w-96 bg-red-900/90 text-white p-4 rounded-xl shadow-2xl z-[200] text-sm';
+          errDiv.innerHTML = '<p class="font-bold mb-1">⚠️ AdminJS falhou ao carregar</p><p class="text-red-200">Tente recarregar a página. Se o problema persistir, verifique o console.</p><button onclick="location.reload()" class="mt-2 px-4 py-1.5 bg-red-600 rounded-lg text-xs font-semibold hover:bg-red-700">Recarregar</button>';
+          document.body.appendChild(errDiv);
+        }
+      }
+    }, 3000);
+    
+    // Carregar dados do Supabase ao iniciar
+    document.addEventListener('DOMContentLoaded', () => {
+      setTimeout(() => {
+        if (typeof loadAllData === 'function') {
+          loadAllData();
+        } else {
+          console.warn('loadAllData ainda não disponível, tentando novamente em 1s...');
+          setTimeout(() => {
+            if (typeof loadAllData === 'function') loadAllData();
+          }, 1000);
+        }
+      }, 500);
+    });
+  </script>
+
+  <!-- PROTEÇÃO DE ACESSO ADMIN -->
+  <script>
+    (async function protectAdmin() {
+      const gate = document.getElementById('admin-gate');
+      const app = document.getElementById('admin-app');
+      
+      function showGate() {
+        if (gate) gate.classList.remove('hidden');
+        if (app) app.classList.add('hidden');
+      }
+      
+      function showApp() {
+        if (gate) gate.classList.add('hidden');
+        if (app) app.classList.remove('hidden');
+      }
+
+      // Aguardar inicialização do Supabase (máx 2s)
+      let attempts = 0;
+      while (!window.supabaseClient && attempts < 20) {
+        await new Promise(r => setTimeout(r, 100));
+        attempts++;
+      }
+      
+      if (!window.supabaseClient) {
+        showGate();
+        return;
+      }
+      
+      try {
+        const { data: { session } } = await window.supabaseClient.auth.getSession();
+        if (!session || !session.user) {
+          showGate();
+          return;
+        }
+        
+        // Verificar perfil master
+        const { data: profile, error } = await window.supabaseClient
+          .from('profiles')
+          .select('role')
+          .eq('id', session.user.id)
+          .single();
+        
+        const isMaster = (session.user.email?.toLowerCase() === 'master@adpel.com') || (profile?.role === 'master');
+        
+        if (!isMaster) {
+          showGate();
+          return;
+        }
+        
+        showApp();
+      } catch (e) {
+        console.error('Erro na verificação de acesso admin:', e);
+        console.error('Mensagem:', e.message);
+        console.error('Stack:', e.stack);
+        showGate();
+      }
+    })();
+  </script>
+</body>
+</html>

@@ -1,0 +1,1214 @@
+<!DOCTYPE html>
+<html lang="pt-BR" class="scroll-smooth">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ADPEL Digital | Plataforma de Discipulado</title>
+  <meta name="description" content="Plataforma digital da Assembleia de Deus - Campo Pedro Ludovico.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Playfair+Display:wght@400;700&display=swap" rel="stylesheet">
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js" defer></script>
+  <script src="supabase.js" defer></script>
+  <script src="utils-notifications.js" defer></script>
+  <script src="auth.js" defer></script>
+  <script src="script.js" defer></script>
+  <script src="fundraising.js" defer></script>
+  <script src="notifications.js" defer></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+  <link rel="stylesheet" href="style.css">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://www.youtube.com/iframe_api"></script>
+
+  <!-- PWA Manifest -->
+  <link rel="manifest" href="manifest.json">
+  <!-- Global Helper Functions (loaded immediately to prevent onclick errors) -->
+  <script>
+    window.openModal = function(modalId) {
+      var modal = document.getElementById(modalId);
+      if (modal) {
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+        document.body.style.overflow = 'hidden';
+        console.log('✅ Modal aberto:', modalId);
+      } else {
+        console.error('❌ Modal não encontrado:', modalId);
+      }
+    };
+    window.closeModal = function(modalId) {
+      var modal = document.getElementById(modalId);
+      if (modal) {
+        modal.classList.add('hidden');
+        document.body.classList.add('overflow-hidden'); // restaura a classe original
+        document.body.style.overflow = '';
+      }
+    };
+    window.toggleSidebar = function() {
+      var sidebar = document.getElementById('sidebar');
+      if (sidebar) sidebar.classList.toggle('hidden');
+    };
+    window.showToast = function(message, type) {
+      if (typeof window._showToast === 'function') {
+        window._showToast(message, type);
+      } else {
+        alert(message);
+      }
+    };
+    window.openLogin = function() {
+      var modal = document.getElementById('login-modal');
+      if (modal) {
+        // Mover para filho direto do body (escapa containers limitadores)
+        if (modal.parentElement !== document.body) {
+          document.body.appendChild(modal);
+        }
+        modal.classList.remove('hidden');
+        document.body.style.overflow = 'hidden';
+        console.log('✅ Modal de login aberto via openLogin()');
+      } else {
+        console.error('❌ Modal #login-modal não encontrado');
+      }
+    };
+    window.login = async function() {
+      var email = (document.getElementById('login-email')?.value || '').replace(/undefined|null/gi, '').trim();
+      var password = (document.getElementById('login-password')?.value || '').replace(/undefined|null/gi, '');
+      if (!email || !password) {
+        alert('Preencha todos os campos.');
+        return;
+      }
+      if (!window.supabaseClient) {
+        alert('Cliente não inicializado. Recarregue a página.');
+        return;
+      }
+      try {
+        const { data, error } = await window.supabaseClient.auth.signInWithPassword({ email, password });
+        if (error) {
+          alert('Erro ao fazer login: ' + (error.message || 'Erro desconhecido'));
+          return;
+        }
+        window.location.reload();
+      } catch (e) {
+        alert('Erro ao fazer login. Tente novamente.');
+      }
+    };
+    // Mover modais para filho direto do body ao carregar
+    document.addEventListener('DOMContentLoaded', function() {
+      // Login modal
+      var loginModal = document.getElementById('login-modal');
+      if (loginModal && loginModal.parentElement !== document.body) {
+        document.body.appendChild(loginModal);
+        console.log('✅ #login-modal movido para filho direto do body');
+      }
+      
+      // Oferta modal: reestruturar (pix e sucesso para fora de etapa-valor) e mover para body
+      var ofertaModal = document.getElementById('oferta-modal');
+      if (ofertaModal) {
+        var etapaValor = document.getElementById('oferta-etapa-valor');
+        var pixContainer = document.getElementById('oferta-pix-container');
+        var sucessoContainer = document.getElementById('oferta-sucesso');
+        var parentDiv = etapaValor ? etapaValor.parentNode : null;
+        
+        if (parentDiv && etapaValor) {
+          // Mover pix-container para após etapaValor (transforma em sibling)
+          if (pixContainer && etapaValor.contains(pixContainer)) {
+            parentDiv.insertBefore(pixContainer, etapaValor.nextSibling);
+          }
+          // Mover sucesso para após pixContainer
+          if (sucessoContainer && etapaValor.contains(sucessoContainer)) {
+            var refNode = (pixContainer && pixContainer.parentElement === parentDiv)
+              ? pixContainer.nextSibling
+              : etapaValor.nextSibling;
+            parentDiv.insertBefore(sucessoContainer, refNode);
+          }
+        }
+        
+        // Mover modal para filho direto do body (escapa containers limitadores)
+        if (ofertaModal.parentElement !== document.body) {
+          document.body.appendChild(ofertaModal);
+        }
+        console.log('✅ #oferta-modal reestruturado e movido para filho direto do body');
+      }
+    });
+    console.log('✅ Funções globais carregadas (openModal, closeModal, toggleSidebar, login)');
+  </script>
+  <meta name="theme-color" content="#2563eb">
+  <meta name="description" content="Plataforma de Discipulado da Assembleia de Deus - Campo Pedro Ludovico">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="ADPEL">
+  
+  <script>
+    tailwind.config = {
+      theme: { extend: { colors: { 
+        adpel: { 50: '#eff6ff', 100: '#dbeafe', 200: '#bfdbfe', 300: '#93c5fd', 400: '#60a5fa', 500: '#3b82f6', 600: '#2563eb', 700: '#1d4ed8', 800: '#1e40af', 900: '#1e3a8a', 950: '#172554' }, 
+        neon: { blue: '#06b6d4', red: '#f43f5e', purple: '#8b5cf6', cyan: '#22d3ee' },
+        surface: { DEFAULT: '#0f172a', light: '#1e293b', dark: '#020617' },
+        sidebar: '#020617', 
+        gold: '#d97706' 
+      }, fontFamily: { sans: ['Inter', 'sans-serif'] } } }
+    }
+  </script>
+  
+  <style>
+    body { font-family: 'Inter', sans-serif; background-color: #020617; color: #e2e8f0; }
+    .pb-safe { padding-bottom: env(safe-area-inset-bottom, 20px); }
+    /* Placeholder Styles */
+    .empty-state { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 4rem 1rem; text-align: center; background: rgba(15,23,42,0.6); border-radius: 1rem; border: 1px solid rgba(6,182,212,0.2); box-shadow: 0 0 20px rgba(6,182,212,0.05); backdrop-filter: blur(10px); }
+    .empty-state-icon { width: 6rem; height: 6rem; background: linear-gradient(135deg, #2563eb, #dc2626); color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin-bottom: 1.5rem; box-shadow: 0 0 15px rgba(37,99,235,0.4); }
+    .empty-state h3 { font-size: 1.25rem; font-weight: 600; color: #f8fafc; margin-bottom: 0.5rem; }
+    .empty-state p { color: #94a3b8; margin-bottom: 2rem; }
+    /* Blur lock for non-logged users */
+    .blur-overlay { position: relative; filter: blur(5px); user-select: none; pointer-events: none; }
+    .blur-overlay::after { content: '🔒 Faça login para visualizar'; position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; background: rgba(2,6,23,0.85); backdrop-filter: blur(2px); font-weight: 700; color: #e2e8f0; z-index: 10; border-radius: inherit; font-size: 0.875rem; text-align: center; padding: 1rem; border: 1px solid rgba(244,63,94,0.3); }
+    /* Futuristic Overrides */
+    .bg-white { background-color: rgba(15,23,42,0.7) !important; backdrop-filter: blur(12px); border: 1px solid rgba(30,41,59,0.6); }
+    .text-gray-900 { color: #f1f5f9 !important; }
+    .text-gray-800 { color: #e2e8f0 !important; }
+    .text-gray-700 { color: #cbd5e1 !important; }
+    .text-gray-600 { color: #94a3b8 !important; }
+    .text-gray-500 { color: #64748b !important; }
+    .text-gray-400 { color: #475569 !important; }
+    .border-gray-200 { border-color: rgba(30,41,59,0.8) !important; }
+    .border-gray-100 { border-color: rgba(30,41,59,0.6) !important; }
+    .bg-gray-50 { background-color: rgba(30,41,59,0.5) !important; }
+    .bg-gray-100 { background-color: rgba(30,41,59,0.6) !important; }
+    .bg-adpel-50 { background: linear-gradient(135deg, rgba(37,99,235,0.15), rgba(225,29,72,0.15)) !important; border: 1px solid rgba(37,99,235,0.2) !important; }
+    .bg-blue-50 { background: rgba(37,99,235,0.15) !important; }
+    .bg-yellow-50 { background: rgba(234,179,8,0.15) !important; }
+    .bg-green-50 { background: rgba(34,197,94,0.15) !important; }
+    .bg-red-50 { background: rgba(244,63,94,0.15) !important; }
+    .bg-purple-50 { background: rgba(139,92,246,0.15) !important; }
+    .text-adpel-700 { color: #60a5fa !important; }
+    .text-adpel-800 { color: #93c5fd !important; }
+    .text-yellow-700 { color: #fde047 !important; }
+    .text-blue-700 { color: #60a5fa !important; }
+    .text-red-700 { color: #fb7185 !important; }
+    header, footer { background-color: rgba(15,23,42,0.85) !important; backdrop-filter: blur(16px); border-color: rgba(30,41,59,0.8) !important; }
+    aside#sidebar { background-color: rgba(2,6,23,0.95) !important; border-color: rgba(6,182,212,0.2) !important; }
+    nav#mobile-nav { background-color: rgba(15,23,42,0.95) !important; border-color: rgba(30,41,59,0.8) !important; }
+    #course-modal .bg-white, #register-modal .bg-white { background-color: #0f172a !important; border: 1px solid rgba(6,182,212,0.2); }
+    #login-modal #login-modal-content {
+      background-color: #ffffff !important;
+      color: #0f172a !important;
+      border: 1px solid #cbd5e1 !important;
+    }
+    #login-modal label { color: #334155 !important; }
+    #login-modal input { background-color: #f8fafc !important; color: #0f172a !important; border-color: #cbd5e1 !important; }
+    /* Oferta modal: fundo opaco e cores corretas */
+    #oferta-modal .bg-white {
+      background-color: #ffffff !important;
+      backdrop-filter: none !important;
+      -webkit-backdrop-filter: none !important;
+      border: 1px solid #e2e8f0 !important;
+    }
+    #oferta-modal .text-gray-900,
+    #oferta-modal .text-gray-800,
+    #oferta-modal .text-gray-700,
+    #oferta-modal .text-gray-600,
+    #oferta-modal .text-gray-500 {
+      color: #1e293b !important;
+    }
+    #oferta-modal .text-gray-400,
+    #oferta-modal .text-gray-300 {
+      color: #475569 !important;
+    }
+    #oferta-modal input, #oferta-modal textarea {
+      background-color: #f8fafc !important;
+      color: #0f172a !important;
+      border-color: #cbd5e1 !important;
+    }
+    input, select, textarea { background-color: #0f172a !important; color: #e2e8f0 !important; border-color: rgba(30,41,59,0.8) !important; }
+    input::placeholder, textarea::placeholder { color: #475569 !important; }
+    .shadow-sm { box-shadow: 0 1px 2px 0 rgba(6,182,212,0.05) !important; }
+    .shadow-lg { box-shadow: 0 0 25px rgba(37,99,235,0.15) !important; }
+    .hover\:shadow-lg:hover { box-shadow: 0 0 30px rgba(37,99,235,0.25) !important; }
+    .hover\:bg-gray-50:hover { background-color: rgba(30,41,59,0.8) !important; }
+    .hover\:bg-gray-100:hover { background-color: rgba(30,41,59,0.9) !important; }
+    /* PWA Install Banner */
+    #pwa-install-banner { will-change: transform; }
+    /* Horizontal carousel hide scrollbar */
+    .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+    .scrollbar-hide::-webkit-scrollbar { display: none; }
+    /* Bible Cover & Book Effects */
+    .bible-book { perspective: 1000px; transform-style: preserve-3d; }
+    @keyframes bibleOpen {
+      0% { transform: rotateY(0deg) scale(1); opacity: 1; }
+      40% { transform: rotateY(-20deg) scale(1.05); opacity: 1; }
+      100% { transform: rotateY(-90deg) scale(0.8); opacity: 0; }
+    }
+    .bible-opening { animation: bibleOpen 0.8s ease-in forwards; }
+    .chapter-btn { min-width: 2.5rem; height: 2.5rem; display: inline-flex; align-items: center; justify-content: center; border-radius: 0.5rem; font-size: 0.875rem; font-weight: 600; transition: all 0.2s; background-color: rgba(30,41,59,0.6); border: 1px solid rgba(255,255,255,0.1); color: #e2e8f0; cursor: pointer; }
+    .chapter-btn:hover { background-color: rgba(59,130,246,0.2); border-color: rgba(59,130,246,0.4); color: #60a5fa; }
+    .chapter-btn.active { background-color: #2563eb; color: white; border-color: #2563eb; }
+    .verse-num { color: #92400e; font-weight: 700; font-size: 0.75em; vertical-align: super; margin-right: 0.3rem; font-family: 'Inter', sans-serif; }
+    #bible-verses-content p { margin-bottom: 0.6rem; text-indent: 0; }
+    @media (min-width: 768px) {
+      #bible-verses-content { columns: 2; column-gap: 2.5rem; }
+      #bible-verses-content p { break-inside: avoid; }
+    }
+  </style>
+<style>
+  /* Garantir que o modal de login fique acima de tudo quando visível */
+  #login-modal:not(.hidden) {
+    display: flex !important;
+    position: fixed !important;
+    inset: 0 !important;
+    z-index: 999999 !important;
+  }
+  #login-modal-content {
+    background-color: #ffffff !important;
+    color: #1e293b !important;
+  }
+  #oferta-modal:not(.hidden) {
+    display: flex !important;
+    position: fixed !important;
+    inset: 0 !important;
+    z-index: 999998 !important;
+  }
+</style>
+</head>
+<body class="antialiased min-h-screen flex flex-col overflow-x-hidden relative">
+
+  <!-- PWA Install Banner -->
+  <div id="pwa-install-banner" class="fixed top-20 left-0 right-0 z-50 bg-adpel-600 text-white px-4 py-3 shadow-lg transition-transform duration-500 -translate-y-[200%] flex items-center justify-between max-w-3xl mx-auto rounded-b-xl border border-adpel-500 border-t-0">
+    <div class="flex items-center gap-3">
+      <div class="w-10 h-10 rounded-lg bg-white/20 flex items-center justify-center flex-shrink-0">
+        <img src="https://huggingface.co/spaces/IzaqueE/deepsite-project-6tv0m/resolve/main/images/adpel.logo.png" alt="ADPEL" class="w-6 h-6 object-contain">
+      </div>
+      <div>
+        <p class="font-semibold text-sm">Instale o App ADPEL</p>
+        <p class="text-xs text-adpel-100 opacity-90">Acesso rápido e offline.</p>
+      </div>
+    </div>
+    <div class="flex items-center gap-2">
+      <button id="pwa-install-btn" class="bg-white text-adpel-700 px-3 py-1.5 rounded-lg text-sm font-bold hover:bg-gray-100 transition shadow-sm whitespace-nowrap">Instalar</button>
+      <button id="pwa-dismiss-btn" class="text-white/80 hover:text-white px-2 py-1 text-xl leading-none">&times;</button>
+    </div>
+  </div>
+
+  <!-- HEADER (MAIN) -->
+  <header class="bg-white border-b border-gray-200 sticky top-0 z-40">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex justify-between h-20">
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 rounded-lg flex items-center justify-center overflow-hidden bg-white">
+            <img src="https://huggingface.co/spaces/IzaqueE/deepsite-project-6tv0m/resolve/main/images/adpel.logo.png" alt="ADPEL Logo" class="w-full h-full object-cover">
+          </div>
+          <span class="font-bold text-xl text-sidebar hidden sm:block">ADPEL Digital</span>
+        </div>
+        <nav class="hidden md:flex items-center space-x-1">
+          <a href="#home" onclick="navigateTo('home'); return false;" class="text-gray-900 px-3 py-2 rounded-md text-sm font-medium cursor-pointer">Início</a>
+
+          <div class="relative group">
+            <button class="text-gray-600 px-3 py-2 rounded-md text-sm font-medium hover:text-adpel-700 transition cursor-pointer flex items-center gap-1">
+              🎓 Aprender <i class="fas fa-chevron-down text-[10px]"></i>
+            </button>
+            <div class="absolute left-0 top-full mt-1 w-48 bg-[#0f172a] border border-gray-700 rounded-lg shadow-2xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50 overflow-hidden">
+              <a href="#courses" onclick="navigateTo('courses'); return false;" class="block px-4 py-2 text-sm text-gray-300 hover:bg-adpel-600/20 hover:text-white transition">Cursos</a>
+              <a href="#studies" onclick="navigateTo('studies'); return false;" class="block px-4 py-2 text-sm text-gray-300 hover:bg-adpel-600/20 hover:text-white transition">Estudos</a>
+              <a href="#library" onclick="navigateTo('library'); return false;" class="block px-4 py-2 text-sm text-gray-300 hover:bg-adpel-600/20 hover:text-white transition">Biblioteca</a>
+              <a href="#certificate" onclick="navigateTo('certificate'); return false;" class="block px-4 py-2 text-sm text-gray-300 hover:bg-adpel-600/20 hover:text-white transition">Certificados</a>
+            </div>
+          </div>
+
+          <div class="relative group">
+            <button class="text-gray-600 px-3 py-2 rounded-md text-sm font-medium hover:text-adpel-700 transition cursor-pointer flex items-center gap-1">
+              📖 Culto <i class="fas fa-chevron-down text-[10px]"></i>
+            </button>
+            <div class="absolute left-0 top-full mt-1 w-48 bg-[#0f172a] border border-gray-700 rounded-lg shadow-2xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50 overflow-hidden">
+              <a href="bible.html" class="block px-4 py-2 text-sm text-gray-300 hover:bg-adpel-600/20 hover:text-white transition">Bíblia</a>
+              <a href="harpa.html" class="block px-4 py-2 text-sm text-gray-300 hover:bg-adpel-600/20 hover:text-white transition">Harpa</a>
+              <a href="#cofres" onclick="navigateTo('cofres'); return false;" class="block px-4 py-2 text-sm text-gray-300 hover:bg-adpel-600/20 hover:text-white transition">🐷 Cofres</a>
+            </div>
+          </div>
+        </nav>
+        <div class="flex items-center gap-3">
+          <button onclick="openLogin()" id="auth-buttons" class="px-4 py-2 bg-adpel-600 text-white rounded-lg text-sm font-medium hover:bg-adpel-700 transition cursor-pointer">
+            <i class="fas fa-sign-in-alt mr-1"></i> Entrar
+          </button>
+          <div class="hidden" id="user-menu">
+            <div class="flex items-center gap-3">
+              <span class="text-sm text-gray-600" id="user-name">Usuário</span>
+              <button onclick="requestPushPermission()" title="Ativar notificações" class="text-gray-400 hover:text-adpel-600 transition p-1">
+                <i class="fas fa-bell"></i>
+              </button>
+              <button onclick="window.location.href='admin.html'" class="px-3 py-1 bg-gray-100 text-gray-700 rounded-lg text-sm hover:bg-gray-200 transition hidden" id="admin-link">
+                <i class="fas fa-cog"></i>
+              </button>
+              <button id="logout-btn" class="px-3 py-1 bg-red-50 text-red-600 rounded-lg text-sm hover:bg-red-100 transition">
+                <i class="fas fa-sign-out-alt"></i>
+              </button>
+            </div>
+          </div>
+          <button onclick="toggleSidebar()" class="text-gray-600 hover:text-adpel-700 focus:outline-none ml-2">
+            <i class="fas fa-bars text-2xl"></i>
+          </button>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- MOBILE NAV -->
+  <nav id="mobile-nav" class="md:hidden fixed inset-x-0 bottom-0 z-50 bg-white border-t border-gray-200 pb-safe shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.1)]">
+    <div class="flex justify-around items-center h-16 px-1 relative">
+      <button onclick="navigateTo('home'); closeMobileSubmenus()" data-section="home" data-group="home" class="mobile-nav-btn flex flex-col items-center text-adpel-600 flex-1 py-1 bg-transparent border-none cursor-pointer">
+        <i class="fas fa-home text-lg mb-1 pointer-events-none"></i>
+        <span class="text-[10px] font-medium pointer-events-none">Início</span>
+      </button>
+      <button onclick="toggleMobileMenu('menu-aprender')" data-group="aprender" class="mobile-nav-btn flex flex-col items-center text-gray-600 hover:text-adpel-600 flex-1 py-1 bg-transparent border-none cursor-pointer">
+        <i class="fas fa-graduation-cap text-lg mb-1 pointer-events-none"></i>
+        <span class="text-[10px] font-medium pointer-events-none">Aprender</span>
+      </button>
+      <button onclick="toggleMobileMenu('menu-culto')" data-group="culto" class="mobile-nav-btn flex flex-col items-center text-gray-600 hover:text-adpel-600 flex-1 py-1 bg-transparent border-none cursor-pointer">
+        <i class="fas fa-book-open text-lg mb-1 pointer-events-none"></i>
+        <span class="text-[10px] font-medium pointer-events-none">Culto</span>
+      </button>
+
+      <!-- Submenu Aprender -->
+      <div id="menu-aprender" class="hidden absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-56 bg-[#0f172a] border border-gray-700 rounded-xl shadow-2xl overflow-hidden z-50">
+        <div class="p-2 space-y-1">
+          <a href="#courses" onclick="navigateTo('courses'); closeMobileSubmenus(); return false;" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-gray-300 hover:bg-adpel-600/20 hover:text-white transition">
+            <i class="fas fa-graduation-cap w-5 text-center"></i> Cursos
+          </a>
+          <a href="#studies" onclick="navigateTo('studies'); closeMobileSubmenus(); return false;" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-gray-300 hover:bg-adpel-600/20 hover:text-white transition">
+            <i class="fas fa-book-open w-5 text-center"></i> Estudos
+          </a>
+          <a href="#library" onclick="navigateTo('library'); closeMobileSubmenus(); return false;" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-gray-300 hover:bg-adpel-600/20 hover:text-white transition">
+            <i class="fas fa-book w-5 text-center"></i> Biblioteca
+          </a>
+          <a href="#certificate" onclick="navigateTo('certificate'); closeMobileSubmenus(); return false;" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-gray-300 hover:bg-adpel-600/20 hover:text-white transition">
+            <i class="fas fa-certificate w-5 text-center"></i> Certificados
+          </a>
+        </div>
+      </div>
+
+      <!-- Submenu Culto -->
+      <div id="menu-culto" class="hidden absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-56 bg-[#0f172a] border border-gray-700 rounded-xl shadow-2xl overflow-hidden z-50">
+        <div class="p-2 space-y-1">
+          <a href="bible.html" onclick="closeMobileSubmenus()" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-gray-300 hover:bg-adpel-600/20 hover:text-white transition">
+            <i class="fas fa-bible w-5 text-center"></i> Bíblia
+          </a>
+          <a href="harpa.html" onclick="closeMobileSubmenus()" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-gray-300 hover:bg-adpel-600/20 hover:text-white transition">
+            <i class="fas fa-music w-5 text-center"></i> Harpa
+          </a>
+          <a href="#cofres" onclick="navigateTo('cofres'); closeMobileSubmenus(); return false;" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-gray-300 hover:bg-adpel-600/20 hover:text-white transition">
+            <i class="fas fa-piggy-bank w-5 text-center"></i> Cofres
+          </a>
+        </div>
+      </div>
+    </div>
+  </nav>
+
+  <!-- MAIN APP LAYOUT -->
+  <main id="app-container" class="flex-1 relative">
+    <!-- SIDEBAR (Desktop) -->
+    <aside id="sidebar" class="hidden md:block fixed left-0 top-0 h-screen w-64 bg-white border-r border-gray-200 z-50 p-6 overflow-y-auto">
+      <div class="flex items-center gap-3 mb-10">
+        <div class="w-8 h-8 rounded flex items-center justify-center overflow-hidden bg-white">
+          <img src="https://huggingface.co/spaces/IzaqueE/deepsite-project-6tv0m/resolve/main/images/adpel.logo.png" alt="ADPEL Logo" class="w-full h-full object-cover">
+        </div>
+        <h1 class="font-bold text-xl text-sidebar">ADPEL</h1>
+      </div>
+
+      <div class="space-y-1">
+        <button onclick="navigateTo('home')" class="w-full flex items-center px-3 py-2 rounded-md text-gray-900 hover:bg-adpel-50 transition"> <i class="fas fa-home w-5 text-center text-sm mr-3"></i> Início </button>
+
+        <div class="sidebar-group">
+          <button onclick="toggleSidebarGroup('sidebar-aprender')" class="w-full flex items-center px-3 py-2 rounded-md text-gray-600 hover:text-adpel-700 hover:bg-adpel-50 transition"> <i class="fas fa-graduation-cap w-5 text-center text-sm mr-3"></i> 🎓 Aprender <i class="fas fa-chevron-down ml-auto text-xs transition-transform" id="sidebar-aprender-icon"></i></button>
+          <div id="sidebar-aprender" class="hidden pl-4 space-y-1 mt-1">
+            <button onclick="navigateTo('courses')" class="w-full flex items-center px-3 py-2 rounded-md text-gray-600 hover:text-adpel-700 hover:bg-adpel-50 transition text-sm"> <i class="fas fa-graduation-cap w-5 text-center text-xs mr-3"></i> Cursos </button>
+            <button onclick="navigateTo('studies')" class="w-full flex items-center px-3 py-2 rounded-md text-gray-600 hover:text-adpel-700 hover:bg-adpel-50 transition text-sm"> <i class="fas fa-book-open w-5 text-center text-xs mr-3"></i> Estudos </button>
+            <button onclick="navigateTo('library')" class="w-full flex items-center px-3 py-2 rounded-md text-gray-600 hover:text-adpel-700 hover:bg-adpel-50 transition text-sm"> <i class="fas fa-book w-5 text-center text-xs mr-3"></i> Biblioteca </button>
+          </div>
+        </div>
+
+        <div class="sidebar-group">
+          <button onclick="toggleSidebarGroup('sidebar-culto')" class="w-full flex items-center px-3 py-2 rounded-md text-gray-600 hover:text-adpel-700 hover:bg-adpel-50 transition"> <i class="fas fa-church w-5 text-center text-sm mr-3"></i> 📖 Culto <i class="fas fa-chevron-down ml-auto text-xs transition-transform" id="sidebar-culto-icon"></i></button>
+          <div id="sidebar-culto" class="hidden pl-4 space-y-1 mt-1">
+            <a href="bible.html" class="w-full flex items-center px-3 py-2 rounded-md text-gray-600 hover:text-adpel-700 hover:bg-adpel-50 transition text-sm"> <i class="fas fa-bible w-5 text-center text-xs mr-3"></i> Bíblia </a>
+            <a href="harpa.html" class="w-full flex items-center px-3 py-2 rounded-md text-gray-600 hover:text-adpel-700 hover:bg-adpel-50 transition text-sm"> <i class="fas fa-music w-5 text-center text-xs mr-3"></i> Harpa </a>
+            <button onclick="navigateTo('cofres')" class="w-full flex items-center px-3 py-2 rounded-md text-gray-600 hover:text-adpel-700 hover:bg-adpel-50 transition text-sm"> <i class="fas fa-piggy-bank w-5 text-center text-xs mr-3"></i> Cofres </button>
+          </div>
+        </div>
+      </div>
+      
+      <div class="mt-8 pt-8 border-t border-gray-200">
+        <p class="text-xs text-gray-500 uppercase font-semibold mb-4 px-3">Minha Conta</p>
+        <button onclick="navigateTo('profile')" class="w-full flex items-center px-3 py-2 rounded-md text-gray-600 hover:text-adpel-700 hover:bg-adpel-50 transition"> <i class="fas fa-user-circle w-5 text-center text-sm mr-3"></i> Meu Perfil </button>
+        <button onclick="navigateTo('certificate')" class="w-full flex items-center px-3 py-2 rounded-md text-gray-600 hover:text-adpel-700 hover:bg-adpel-50 transition"> <i class="fas fa-certificate w-5 text-center text-sm mr-3"></i> Certificados </button>
+      </div>
+    </aside>
+
+    <!-- CONTENT AREA -->
+    <div class="md:ml-64 p-4 md:p-8 pb-24 md:pb-8 max-w-7xl mx-auto w-full">
+      
+      <!-- SECT: HOME -->
+      <div id="home" class="space-y-8">
+        <!-- Versículo do Dia -->
+        <div class="bg-gradient-to-br from-adpel-800 to-adpel-700 rounded-2xl p-6 md:p-8 text-white relative overflow-hidden shadow-lg border border-white/10">
+          <div class="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -translate-y-1/2 translate-x-1/2"></div>
+          <div class="relative z-10 text-center max-w-2xl mx-auto">
+            <p class="text-xs uppercase tracking-widest text-adpel-200 mb-3 font-medium">Versículo do Dia</p>
+            <blockquote class="text-xl md:text-2xl font-serif leading-relaxed mb-4">
+              "<span id="verse-text" class="italic">Carregando...</span>"
+            </blockquote>
+            <p id="verse-ref" class="text-sm font-bold text-adpel-200 uppercase tracking-wide">— ...</p>
+          </div>
+        </div>
+
+        <!-- Continuar (cursos em andamento) -->
+        <div id="continue-section" class="hidden">
+          <div class="flex items-center justify-between mb-4">
+            <h2 class="text-xl font-bold text-gray-900">Continue de onde parou</h2>
+            <button onclick="navigateTo('courses')" class="text-adpel-600 text-sm font-medium hover:underline">Ver todos</button>
+          </div>
+          <div id="continue-grid" class="flex gap-4 overflow-x-auto pb-4 snap-x snap-mandatory scrollbar-hide scroll-smooth"></div>
+        </div>
+
+        <!-- Agenda / Eventos (só aparece se houver) -->
+        <div id="home-events-section" class="hidden space-y-4">
+          <div class="flex items-center justify-between">
+            <h2 class="text-xl font-bold text-gray-900">Próximos Eventos</h2>
+            <div class="hidden md:flex gap-2">
+              <button onclick="scrollContainer('home-events-container', -320)" class="p-2 rounded-lg bg-gray-800 hover:bg-gray-700 text-white transition border border-gray-700 shadow-sm"><i class="fas fa-chevron-left text-sm"></i></button>
+              <button onclick="scrollContainer('home-events-container', 320)" class="p-2 rounded-lg bg-gray-800 hover:bg-gray-700 text-white transition border border-gray-700 shadow-sm"><i class="fas fa-chevron-right text-sm"></i></button>
+            </div>
+          </div>
+          <div id="home-events-container" class="flex gap-4 overflow-x-auto pb-4 snap-x snap-mandatory scrollbar-hide scroll-smooth"></div>
+        </div>
+
+        <!-- Avisos / Comunicados -->
+        <div id="home-announcements-section" class="hidden space-y-4">
+          <div class="flex items-center justify-between">
+            <h2 class="text-xl font-bold text-gray-900">Avisos</h2>
+          </div>
+          <div id="news-container" class="flex gap-4 overflow-x-auto pb-4 snap-x snap-mandatory scrollbar-hide scroll-smooth"></div>
+        </div>
+
+        <!-- Card de Oferta (visível para todos) -->
+        <div class="mt-12 mb-10">
+          <div onclick="openOfertaModal()" class="group cursor-pointer bg-gradient-to-br from-green-600 to-emerald-500 rounded-2xl p-8 text-white relative overflow-hidden shadow-lg hover:shadow-2xl transition-all duration-300 hover:scale-[1.02] border border-white/10">
+            <div class="relative z-10 flex items-center justify-between flex-wrap gap-4">
+              <div>
+                <div class="flex items-center gap-3 mb-2">
+                  <div class="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center">
+                    <i class="fas fa-hand-holding-heart text-2xl"></i>
+                  </div>
+                  <h2 class="text-2xl md:text-3xl font-bold">Faça sua Oferta</h2>
+                </div>
+                <p class="text-green-100 text-sm md:text-base max-w-md">Escolha entre oferta livre ou destinada a um objetivo específico.</p>
+              </div>
+              <div class="bg-white text-green-700 px-6 py-3 rounded-xl font-bold text-lg shadow-md group-hover:bg-green-50 transition flex items-center gap-2">
+                <i class="fas fa-heart"></i> Ofertar Agora
+              </div>
+            </div>
+            <div class="absolute -right-10 -bottom-10 w-40 h-40 bg-white opacity-5 rounded-full"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- SECT: COURSES -->
+      <div id="courses" class="hidden space-y-8">
+        <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div>
+            <h2 class="text-3xl font-bold text-gray-800">Meus Cursos</h2>
+            <p class="text-gray-500 mt-1">Acompanhe seu progresso e continue aprendendo.</p>
+          </div>
+        </div>
+
+        <!-- Search Bar -->
+        <div class="relative">
+          <i class="fas fa-search absolute left-4 top-3.5 text-gray-400"></i>
+          <input type="text" placeholder="Buscar cursos por nome, categoria..." class="w-full md:w-96 pl-11 pr-4 py-3 bg-white border border-gray-200 rounded-xl focus:ring-2 focus:ring-adpel-500 focus:border-transparent outline-none shadow-sm">
+        </div>
+
+        <!-- Carrosséis de Cursos -->
+        <div id="courses-carousels" class="space-y-10 hidden">
+          <!-- Concluídos -->
+          <div id="courses-completed-section">
+            <h3 class="text-lg font-semibold text-gray-800 mb-3 flex items-center gap-2">
+              <span class="w-2 h-2 rounded-full bg-green-500"></span>
+              Concluídos
+            </h3>
+            <div id="courses-completed" class="flex gap-4 overflow-x-auto pb-4 snap-x snap-mandatory scrollbar-hide scroll-smooth"></div>
+          </div>
+
+          <!-- Continuar Assistindo -->
+          <div id="courses-inprogress-section">
+            <h3 class="text-lg font-semibold text-gray-800 mb-3 flex items-center gap-2">
+              <span class="w-2 h-2 rounded-full bg-amber-500"></span>
+              Continuar Assistindo
+            </h3>
+            <div id="courses-inprogress" class="flex gap-4 overflow-x-auto pb-4 snap-x snap-mandatory scrollbar-hide scroll-smooth"></div>
+          </div>
+
+          <!-- Não Iniciados -->
+          <div id="courses-notstarted-section">
+            <h3 class="text-lg font-semibold text-gray-800 mb-3 flex items-center gap-2">
+              <span class="w-2 h-2 rounded-full bg-blue-500"></span>
+              Não Iniciados
+            </h3>
+            <div id="courses-notstarted" class="flex gap-4 overflow-x-auto pb-4 snap-x snap-mandatory scrollbar-hide scroll-smooth"></div>
+          </div>
+        </div>
+
+        <!-- Empty State (sem cursos) -->
+        <div id="courses-empty" class="bg-white rounded-xl shadow-sm overflow-hidden hidden">
+          <div class="p-8 text-center empty-state">
+            <div class="empty-state-icon"><i class="fas fa-graduation-cap text-3xl"></i></div>
+            <h3>Nenhum curso disponível</h3>
+            <p>Não há cursos publicados no momento.</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- SECT: STUDIES -->
+      <div id="studies" class="hidden space-y-8">
+        <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div>
+            <h2 class="text-3xl font-bold text-gray-800">Centro de Estudos</h2>
+            <p class="text-gray-500 mt-1">Materiais para crescimento doctrinário e espiritual.</p>
+          </div>
+        </div>
+
+        <!-- Categories & Search -->
+        <div class="flex flex-col sm:flex-row gap-4">
+          <div class="relative flex-1">
+            <i class="fas fa-search absolute left-4 top-3.5 text-gray-400"></i>
+            <input type="text" placeholder="Buscar estudos..." class="w-full pl-11 pr-4 py-3 bg-white border border-gray-200 rounded-xl focus:ring-2 focus:ring-adpel-500 outline-none">
+          </div>
+          <div class="flex gap-2 overflow-x-auto pb-2">
+            <button class="px-4 py-2 bg-adpel-600 text-white rounded-lg text-sm font-medium whitespace-nowrap">Todos</button>
+            <button class="px-4 py-2 bg-white text-gray-600 border border-gray-200 rounded-lg text-sm font-medium whitespace-nowrap hover:bg-gray-50">Devocionais</button>
+            <button class="px-4 py-2 bg-white text-gray-600 border border-gray-200 rounded-lg text-sm font-medium whitespace-nowrap hover:bg-gray-50">Estudos Sistemáticos</button>
+          </div>
+        </div>
+
+        <!-- Study List -->
+        <div id="studies-list" class="flex gap-6 overflow-x-auto pb-4 snap-x snap-mandatory scrollbar-hide"></div>
+      </div>
+
+      <!-- SECT: LIBRARY -->
+      <div id="library" class="hidden space-y-8">
+        <div class="flex items-center justify-between">
+          <div>
+            <h2 class="text-3xl font-bold text-gray-800">Sua Biblioteca Digital</h2>
+            <p class="text-gray-500 mt-1">Livros, revistas e materiais de leitura.</p>
+          </div>
+        </div>
+
+        <!-- Category Navigation -->
+        <div class="flex gap-3 overflow-x-auto pb-2">
+          <button class="px-4 py-2 bg-adpel-600 text-white rounded-lg text-sm font-medium whitespace-nowrap">Todos</button>
+          <button class="px-4 py-2 bg-white text-gray-600 border border-gray-200 rounded-lg text-sm font-medium whitespace-nowrap hover:bg-gray-50">Evangélicos</button>
+          <button class="px-4 py-2 bg-white text-gray-600 border border-gray-200 rounded-lg text-sm font-medium whitespace-nowrap hover:bg-gray-50">Devocionais</button>
+          <button class="px-4 py-2 bg-white text-gray-600 border border-gray-200 rounded-lg text-sm font-medium whitespace-nowrap hover:bg-gray-50">História</button>
+        </div>
+
+        <!-- Books Grid -->
+        <div id="books-grid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-6">
+        </div>
+      </div>
+
+      <!-- SECT: COFRES -->
+      <div id="cofres" class="hidden space-y-8">
+        <div class="text-center mb-8">
+          <div class="inline-block p-4 bg-green-50/10 rounded-full mb-4 border border-green-500/20">
+            <i class="fas fa-piggy-bank text-4xl text-green-400"></i>
+          </div>
+          <h2 class="text-3xl md:text-4xl font-bold text-gray-800">Cofres de Objetivos</h2>
+          <p class="text-gray-500 mt-2 max-w-xl mx-auto">Contribua para objetivos específicos da igreja. Cada cofre é uma meta com propósito.</p>
+        </div>
+        <div id="cofres-list" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        </div>
+      </div>
+
+      <!-- SECT: CERTIFICATES -->
+      <div id="certificate" class="hidden space-y-8">
+        <div class="text-center mb-12">
+          <div class="inline-block p-4 bg-yellow-50 rounded-full mb-4">
+            <i class="fas fa-certificate text-4xl text-yellow-500"></i>
+          </div>
+          <h2 class="text-3xl md:text-4xl font-bold text-gray-800">Meus Certificados</h2>
+          <p class="text-gray-500 mt-2 max-w-xl mx-auto">Reconhecimento das suas conquistas e conclusões de cursos.</p>
+        </div>
+
+        <!-- Certificates Grid -->
+        <div id="certificates-list" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        </div>
+      </div>
+
+      <!-- SECT: BIBLE -->
+      <div id="bible" class="hidden space-y-6 h-[calc(100dvh-5rem)] md:h-auto flex flex-col">
+        <!-- BIBLE COVER (Initial View) -->
+        <div id="bible-cover" class="flex-1 flex flex-col items-center justify-center min-h-[50vh] cursor-pointer group select-none transition-all duration-700" onclick="abrirBiblia()">
+          <div class="bible-book relative w-64 h-80 md:w-80 md:h-96 rounded-r-2xl rounded-l-sm shadow-2xl transform transition-transform duration-700 group-hover:scale-105 flex flex-col items-center justify-center p-8 text-center border-l-8 border-yellow-700/30" style="background: linear-gradient(135deg, #3e1c00 0%, #5c2e0a 40%, #4a2508 100%); box-shadow: -10px 10px 30px rgba(0,0,0,0.5), inset 2px 0 10px rgba(0,0,0,0.3);">
+            <div class="absolute inset-3 border-2 border-yellow-600/60 rounded-r-xl rounded-l-sm pointer-events-none"></div>
+            <div class="absolute inset-5 border border-yellow-500/30 rounded-r-lg rounded-l-sm pointer-events-none"></div>
+            <div class="mb-6 text-yellow-500/80 text-5xl md:text-6xl font-serif">&#10013;</div>
+            <h1 class="text-yellow-400 font-serif text-2xl md:text-3xl font-bold tracking-wider uppercase mb-2 drop-shadow-lg" style="font-family: 'Playfair Display', serif;">Bíblia Sagrada</h1>
+            <div class="w-16 h-0.5 bg-yellow-500/60 mb-3"></div>
+            <p class="text-yellow-500/70 text-sm md:text-base font-medium tracking-widest uppercase">ADPEL Santo André</p>
+            <p class="text-yellow-600/50 text-xs mt-8 tracking-wide animate-pulse">Clique para abrir</p>
+          </div>
+        </div>
+
+        <!-- BIBLE READER -->
+        <div id="bible-reader" class="hidden flex flex-col h-full flex-1 animate-fade-in">
+          <!-- Toolbar -->
+          <div class="flex flex-col md:flex-row md:items-center justify-between gap-3 mb-4 bg-white/5 p-4 rounded-xl border border-white/10 backdrop-blur-sm">
+            <div class="flex items-center gap-3 flex-wrap">
+              <select id="bible-book-select" onchange="mudarLivroBiblia(this.value)" class="bg-[#0f172a] border border-gray-700 text-white text-sm rounded-lg px-3 py-2 focus:ring-2 focus:ring-adpel-500 outline-none min-w-[160px]">
+                <option value="">Selecione o Livro</option>
+              </select>
+              <div id="bible-chapter-selector" class="flex items-center gap-1 flex-wrap max-h-24 overflow-y-auto pr-1"></div>
+            </div>
+            <div class="flex items-center gap-2">
+              <div class="relative">
+                <i class="fas fa-search absolute left-3 top-2.5 text-gray-500 text-xs"></i>
+                <input type="text" id="bible-search-input" placeholder="Ex: João 3:16 ou amor..." class="pl-8 pr-3 py-2 bg-[#0f172a] border border-gray-700 rounded-lg text-sm text-white placeholder-gray-500 focus:ring-2 focus:ring-adpel-500 outline-none w-full md:w-56">
+              </div>
+              <button onclick="buscarBiblia()" class="px-3 py-2 bg-adpel-600 hover:bg-adpel-700 text-white rounded-lg text-sm transition"><i class="fas fa-search"></i></button>
+            </div>
+          </div>
+
+          <!-- Search Results Section -->
+          <div id="bible-search-results" class="hidden flex-1 bg-[#fdf6e3] rounded-xl border-2 border-[#d4c5a9] shadow-inner p-4 md:p-6 overflow-y-auto">
+            <!-- Search Header -->
+            <div class="flex items-center justify-between mb-4 pb-4 border-b-2 border-[#d4c5a9]">
+              <div>
+                <h3 id="bible-search-title" class="text-lg font-bold text-[#2c1810] font-serif">Resultados</h3>
+                <p id="bible-search-count" class="text-sm text-[#8c7a6a]"></p>
+              </div>
+              <button onclick="voltarLeituraBiblia()" class="px-3 py-1.5 bg-amber-100 hover:bg-amber-200 text-amber-800 rounded-lg text-xs font-medium transition flex items-center gap-1">
+                <i class="fas fa-arrow-left"></i> Voltar
+              </button>
+            </div>
+            
+            <!-- Loading State -->
+            <div id="bible-loading" class="hidden flex flex-col items-center justify-center py-12">
+              <div class="w-10 h-10 border-3 border-[#5c2e0a] border-t-transparent rounded-full animate-spin mb-3"></div>
+              <p class="text-[#5c2e0a] text-sm font-serif">Buscando versículos...</p>
+            </div>
+            
+            <!-- Error State -->
+            <div id="bible-error" class="hidden text-center py-12">
+              <div class="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <i class="fas fa-exclamation-triangle text-2xl text-red-600"></i>
+              </div>
+              <p id="bible-error-text" class="text-red-700 font-medium"></p>
+              <button onclick="buscarBiblia()" class="mt-4 px-4 py-2 bg-red-600 text-white rounded-lg text-sm hover:bg-red-700 transition">Tentar novamente</button>
+            </div>
+            
+            <!-- Empty State -->
+            <div id="bible-empty" class="hidden text-center py-12">
+              <div class="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <i class="fas fa-search text-2xl text-gray-400"></i>
+              </div>
+              <p class="text-[#8c7a6a] font-medium mb-1">Nenhum versículo encontrado</p>
+              <p class="text-sm text-[#8c7a6a]/70">Tente outro termo de busca ou referência bíblica.</p>
+            </div>
+            
+            <!-- Results Container -->
+            <div id="bible-results" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <!-- Versículos serão inseridos aqui -->
+            </div>
+          </div>
+
+          <!-- Page (Leitura normal) -->
+          <div id="bible-page" class="hidden flex-1 bg-[#fdf6e3] rounded-xl border-2 border-[#d4c5a9] shadow-inner p-6 md:p-10 overflow-y-auto relative">
+            <div class="text-center mb-6 border-b-2 border-[#d4c5a9] pb-4">
+              <h2 id="bible-current-book" class="text-2xl md:text-3xl font-bold text-[#2c1810] font-serif uppercase tracking-wide">Selecione um Livro</h2>
+              <p id="bible-current-chapter" class="text-lg text-[#5c4a3a] font-serif mt-1">e um Capítulo</p>
+            </div>
+            <div id="bible-search-status" class="hidden mb-4 p-3 bg-amber-50 border border-amber-200 rounded-lg text-amber-900 text-sm flex items-center justify-between">
+              <span id="bible-search-status-text">Resultados da busca</span>
+              <button onclick="voltarLeituraBiblia()" class="text-xs font-bold underline hover:text-amber-950">Voltar à leitura</button>
+            </div>
+            <div id="bible-verses-content" class="text-[#2c1810] font-serif text-lg leading-loose space-y-1">
+              <p class="text-center text-[#8c7a6a] italic mt-8">Clique na capa ou selecione um livro e capítulo para começar a leitura.</p>
+            </div>
+            <div id="bible-page-loading" class="hidden absolute inset-0 bg-[#fdf6e3] flex flex-col items-center justify-center z-10">
+              <div class="w-8 h-8 border-2 border-[#5c2e0a] border-t-transparent rounded-full animate-spin mb-2"></div>
+              <p class="text-[#5c2e0a] text-sm font-serif">Carregando...</p>
+            </div>
+          </div>
+
+          <!-- Footer Nav -->
+          <div class="flex items-center justify-between mt-4 px-2">
+            <button onclick="capituloAnterior()" id="btn-capitulo-ant" class="px-4 py-2 bg-white/10 hover:bg-white/20 text-white rounded-lg text-sm font-medium transition flex items-center gap-2 disabled:opacity-30 disabled:cursor-not-allowed">
+              <i class="fas fa-chevron-left"></i> Anterior
+            </button>
+            <button onclick="voltarCapaBiblia()" class="px-4 py-2 bg-yellow-600/20 hover:bg-yellow-600/30 text-yellow-200 rounded-lg text-sm font-medium transition flex items-center gap-2">
+              <i class="fas fa-book"></i> Capa
+            </button>
+            <button onclick="proximoCapitulo()" id="btn-capitulo-prox" class="px-4 py-2 bg-white/10 hover:bg-white/20 text-white rounded-lg text-sm font-medium transition flex items-center gap-2 disabled:opacity-30 disabled:cursor-not-allowed">
+              Próximo <i class="fas fa-chevron-right"></i>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- SECT: PROFILE -->
+      <div id="profile" class="hidden space-y-8">
+         <div id="profile-content">
+            <h2 class="text-2xl font-bold text-gray-800 mb-6">Meu Perfil</h2>
+            <div class="flex flex-col items-center mb-8">
+               <div class="w-32 h-32 bg-adpel-100 rounded-full flex items-center justify-center text-adpel-700 mb-4 text-4xl">
+                 <i class="fas fa-user-circle"></i>
+               </div>
+               <h3 class="text-xl font-bold text-gray-800">Visitante</h3>
+               <p class="text-gray-500">visitante@adpel.org.br</p>
+               <p class="text-xs text-gray-400 mt-1">Membro desde 2023</p>
+            </div>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
+              <div class="text-center p-4 bg-gray-50 rounded-xl">
+                <p class="text-2xl font-bold text-gray-700">0</p>
+                <p class="text-sm text-gray-500">Cursos Concluídos</p>
+              </div>
+              <div class="text-center p-4 bg-gray-50 rounded-xl">
+                <p class="text-2xl font-bold text-gray-700">0h</p>
+                <p class="text-sm text-gray-500">Horas de Estudo</p>
+              </div>
+            </div>
+         </div>
+      </div>
+      
+    </div>
+  </main>
+
+  <!-- COURSE MODAL -->
+  <div id="course-modal" class="hidden fixed inset-0 z-50 flex items-start sm:items-center justify-center bg-black/50 backdrop-blur-sm overflow-y-auto py-4 sm:py-10 px-4">
+    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-3xl mx-4 overflow-hidden animate-fade-in my-auto relative">
+      <div class="bg-gradient-to-r from-adpel-800 to-adpel-700 p-6 text-white flex justify-between items-start gap-4">
+        <div class="min-w-0">
+          <h2 id="course-modal-title" class="text-2xl font-bold truncate">Título do Curso</h2>
+          <p id="course-modal-teacher" class="text-adpel-100 text-sm mt-1">Professor</p>
+        </div>
+        <div class="flex items-center gap-2 flex-shrink-0">
+          <button id="course-cert-btn" onclick="downloadCertificate()" class="hidden bg-white/20 hover:bg-white/30 text-white px-3 py-1.5 rounded-lg text-sm font-medium transition backdrop-blur-sm border border-white/30 items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed">
+            <i class="fas fa-award"></i> <span>Certificado</span>
+          </button>
+          <button onclick="closeCourseModal()" class="text-white/80 hover:text-white transition p-1"><i class="fas fa-times text-xl"></i></button>
+        </div>
+      </div>
+      <div class="p-6 space-y-6">
+        <p id="course-modal-description" class="text-gray-600 text-sm leading-relaxed"></p>
+        
+        <div id="course-video-wrapper" class="hidden aspect-video bg-black rounded-xl overflow-hidden shadow-lg">
+          <div id="yt-player" class="w-full h-full"></div>
+        </div>
+        
+        <div>
+          <h3 class="font-bold text-gray-800 mb-3 flex items-center gap-2"><i class="fas fa-list-ul text-adpel-600"></i> Aulas do Curso</h3>
+          <div id="course-lessons-container" class="space-y-2">
+            <!-- Lessons -->
+          </div>
+          <p id="course-no-lessons" class="hidden text-sm text-gray-500 italic mt-2">Nenhuma aula foi cadastrada para este curso.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- OFERTA MODAL -->
+  <div id="oferta-modal" class="hidden fixed inset-0 z-50 flex items-start sm:items-center justify-center bg-black/50 backdrop-blur-sm overflow-y-auto py-4 sm:py-10 px-4">
+    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-lg mx-4 overflow-hidden animate-fade-in my-auto relative">
+      <div class="bg-gradient-to-r from-green-600 to-emerald-500 p-6 text-white text-center">
+        <div class="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center mx-auto mb-4">
+          <i class="fas fa-hand-holding-heart text-3xl"></i>
+        </div>
+        <h2 class="text-2xl font-bold">Oferta Voluntária</h2>
+        <p class="text-green-100 text-sm mt-1">Sua contribuição abençoa vidas</p>
+      </div>
+      <div class="p-6 space-y-6">
+        <!-- ETAPA 1: Escolher Tipo de Oferta -->
+        <div id="oferta-etapa-tipo" class="space-y-4">
+          <p class="text-gray-600 text-sm text-center">Escolha o tipo de oferta:</p>
+          <button onclick="selecionarTipoOferta('livre')" class="w-full p-4 border-2 border-gray-200 rounded-xl text-left hover:border-green-500 hover:bg-green-50 transition group">
+            <div class="flex items-center gap-3">
+              <div class="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center text-green-600"><i class="fas fa-hand-holding-heart"></i></div>
+              <div>
+                <p class="font-bold text-gray-800">Oferta Livre</p>
+                <p class="text-xs text-gray-500">Contribua com qualquer valor para a igreja.</p>
+              </div>
+            </div>
+          </button>
+          <button onclick="selecionarTipoOferta('destinada')" class="w-full p-4 border-2 border-gray-200 rounded-xl text-left hover:border-green-500 hover:bg-green-50 transition group">
+            <div class="flex items-center gap-3">
+              <div class="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center text-green-600"><i class="fas fa-piggy-bank"></i></div>
+              <div>
+                <p class="font-bold text-gray-800">Oferta Destinada</p>
+                <p class="text-xs text-gray-500">Escolha um cofre/objetivo específico para ofertar.</p>
+              </div>
+            </div>
+          </button>
+        </div>
+
+        <!-- ETAPA 2: Escolher Cofre (se destinada) -->
+        <div id="oferta-etapa-cofres" class="hidden space-y-4">
+          <div class="flex items-center gap-2 mb-2">
+            <button onclick="voltarEtapaTipo()" class="text-sm text-gray-500 hover:text-gray-700"><i class="fas fa-arrow-left mr-1"></i> Voltar</button>
+            <h3 class="font-semibold text-gray-800">Escolha o Cofre</h3>
+          </div>
+          <div id="oferta-cofres-lista" class="space-y-2 max-h-60 overflow-y-auto">
+            <!-- Carregado dinamicamente -->
+          </div>
+        </div>
+
+        <!-- ETAPA 3: Escolher Valor (aparece após selecionar tipo/cofre) -->
+        <div id="oferta-etapa-valor" class="hidden space-y-6">
+          <p class="text-gray-600 text-sm text-center">Escolha um valor ou digite o quanto desejar.</p>
+          
+          <!-- Valores fixos -->
+          <div class="grid grid-cols-3 sm:grid-cols-5 gap-3" id="oferta-valores-fixos">
+          <button onclick="selectOfertaValor(2)" data-valor="2" class="oferta-valor-btn py-3 px-4 border-2 border-gray-200 rounded-xl text-lg font-bold text-gray-700 hover:border-green-500 hover:bg-green-50 transition-all duration-200">R$2</button>
+          <button onclick="selectOfertaValor(5)" data-valor="5" class="oferta-valor-btn py-3 px-4 border-2 border-gray-200 rounded-xl text-lg font-bold text-gray-700 hover:border-green-500 hover:bg-green-50 transition-all duration-200">R$5</button>
+          <button onclick="selectOfertaValor(10)" data-valor="10" class="oferta-valor-btn py-3 px-4 border-2 border-gray-200 rounded-xl text-lg font-bold text-gray-700 hover:border-green-500 hover:bg-green-50 transition-all duration-200">R$10</button>
+          <button onclick="selectOfertaValor(15)" data-valor="15" class="oferta-valor-btn py-3 px-4 border-2 border-gray-200 rounded-xl text-lg font-bold text-gray-700 hover:border-green-500 hover:bg-green-50 transition-all duration-200">R$15</button>
+          <button onclick="selectOfertaValor(20)" data-valor="20" class="oferta-valor-btn py-3 px-4 border-2 border-gray-200 rounded-xl text-lg font-bold text-gray-700 hover:border-green-500 hover:bg-green-50 transition-all duration-200">R$20</button>
+        </div>
+
+        <!-- Campo personalizado -->
+        <div class="relative">
+          <label class="block text-sm font-medium text-gray-700 mb-2">Outro valor (R$)</label>
+          <div class="relative">
+            <span class="absolute left-4 top-3 text-gray-500 font-medium">R$</span>
+            <input type="number" id="oferta-personalizado" min="1" step="0.01" placeholder="0,00" class="w-full pl-12 pr-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none text-lg font-bold text-gray-800" oninput="onOfertaPersonalizadoChange()">
+          </div>
+        </div>
+
+        <!-- Valor selecionado display -->
+        <div id="oferta-valor-selecionado" class="hidden bg-green-50 border border-green-200 rounded-xl p-4 text-center">
+          <p class="text-sm text-green-600 font-medium">Valor escolhido:</p>
+          <p class="text-3xl font-bold text-green-700" id="oferta-valor-display">R$ 0,00</p>
+        </div>
+
+        <!-- Botão de pagamento -->
+        <button id="oferta-pagar-btn" onclick="processarOferta()" disabled class="w-full py-4 bg-gray-300 text-gray-500 rounded-xl font-bold text-lg transition-all duration-300 cursor-not-allowed">
+          <i class="fas fa-lock mr-2"></i> Selecione um valor
+        </button>
+
+        <!-- Área PIX (QR Code + Código) -->
+        <div id="oferta-pix-container" class="hidden space-y-4">
+          <div class="bg-green-50 border border-green-200 rounded-xl p-4 text-center">
+            <p class="text-sm text-green-700 font-medium mb-1">PIX para ADPEL</p>
+            <p class="text-2xl font-bold text-green-800" id="pix-valor-display">0,00</p>
+          </div>
+          
+          <div class="flex justify-center">
+            <img id="pix-qrcode" src="" alt="QR Code PIX" class="w-64 h-64 bg-white border-2 border-gray-200 rounded-xl shadow-sm object-cover" style="image-rendering: crisp-edges;">
+          </div>
+          
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Código PIX (Copia e Cola)</label>
+            <textarea id="pix-codigo" readonly rows="3" class="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-xs text-gray-700 font-mono break-all resize-none select-all"></textarea>
+          </div>
+          
+          <button onclick="copiarPix()" class="w-full py-3 bg-green-600 text-white rounded-xl font-bold hover:bg-green-700 transition flex items-center justify-center gap-2">
+            <i class="fas fa-copy"></i> Copiar Código PIX
+          </button>
+          
+          <button onclick="confirmarPagamento()" class="w-full py-3 bg-green-700 text-white rounded-xl font-bold hover:bg-green-800 transition flex items-center justify-center gap-2 mt-2">
+            <i class="fas fa-check-circle"></i> Já realizei o pagamento
+          </button>
+          
+          <p class="text-xs text-gray-500 text-center">Abra seu app bancário, escolha PIX Copia e Cola e cole o código acima.</p>
+        </div>
+
+        <!-- Área de sucesso após confirmação do pagamento -->
+        <div id="oferta-sucesso" class="hidden text-center py-6 space-y-4">
+          <div class="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto">
+            <i class="fas fa-heart text-4xl text-green-600"></i>
+          </div>
+          <p class="text-xl font-bold text-gray-800">Oferta Registrada!</p>
+          <p class="text-gray-600 italic">“Senhor, eu devolvo, porque sei que o Senhor me deu primeiro”</p>
+          <p class="text-xs text-gray-500 mt-2">Deus abençoe sua generosidade.</p>
+          <button onclick="closeOfertaModal()" class="mt-4 px-6 py-2 bg-green-600 text-white rounded-xl font-medium hover:bg-green-700 transition">Amém</button>
+        </div>
+      </div>
+      <div class="px-6 pb-6">
+        <button onclick="closeOfertaModal()" class="w-full py-2 border border-gray-300 text-gray-600 rounded-xl hover:bg-gray-50 transition">
+          Cancelar
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- STUDY MODAL -->
+  <div id="study-modal" class="hidden fixed inset-0 z-50 flex items-start sm:items-center justify-center bg-black/50 backdrop-blur-sm overflow-y-auto py-4 sm:py-10 px-4">
+    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-3xl mx-4 overflow-hidden animate-fade-in my-auto relative">
+      <div class="bg-gradient-to-r from-amber-800 to-amber-600 p-6 text-white flex justify-between items-start gap-4">
+        <div class="min-w-0">
+          <span id="study-modal-category" class="text-xs font-bold bg-white/20 px-2 py-1 rounded mb-2 inline-block">Estudo</span>
+          <h2 id="study-modal-title" class="text-2xl font-bold truncate">Título do Estudo</h2>
+        </div>
+        <button onclick="closeStudyModal()" class="text-white/80 hover:text-white transition p-1 flex-shrink-0"><i class="fas fa-times text-xl"></i></button>
+      </div>
+      <div class="p-6 space-y-6">
+        <p id="study-modal-description" class="text-gray-600 text-sm leading-relaxed"></p>
+        
+        <div id="study-video-wrapper" class="hidden aspect-video bg-black rounded-xl overflow-hidden shadow-lg">
+          <div id="study-yt-player" class="w-full h-full"></div>
+        </div>
+
+        <div id="study-file-section" class="hidden">
+          <a id="study-file-link" href="#" target="_blank" class="inline-flex items-center gap-2 px-4 py-2 bg-amber-50 text-amber-700 rounded-lg text-sm font-medium hover:bg-amber-100 transition border border-amber-200">
+            <i class="fas fa-file-download"></i> Baixar Material de Apoio
+          </a>
+        </div>
+
+        <div id="study-content-section" class="hidden">
+          <h3 class="font-bold text-gray-800 mb-3 flex items-center gap-2"><i class="fas fa-align-left text-amber-600"></i> Conteúdo</h3>
+          <div id="study-modal-content" class="prose prose-sm max-w-none text-gray-600 bg-gray-50 p-4 rounded-lg border border-gray-100"></div>
+        </div>
+
+        <div id="study-lessons-section" class="hidden">
+          <h3 class="font-bold text-gray-800 mb-3 flex items-center gap-2"><i class="fas fa-list-ul text-amber-600"></i> Aulas/Vídeos</h3>
+          <div id="study-lessons-container" class="space-y-2"></div>
+          <p id="study-no-lessons" class="hidden text-sm text-gray-500 italic mt-2">Nenhuma aula cadastrada.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- CONTRIBUTION MODAL (Cofres) -->
+  <div id="contribution-modal" class="hidden fixed inset-0 z-50 flex items-start sm:items-center justify-center bg-black/50 backdrop-blur-sm overflow-y-auto py-4 sm:py-10 px-4">
+    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md mx-4 overflow-hidden animate-fade-in my-auto relative">
+      <div class="bg-gradient-to-r from-green-600 to-emerald-500 p-6 text-white text-center">
+        <div class="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center mx-auto mb-4">
+          <i class="fas fa-heart text-3xl"></i>
+        </div>
+        <h2 class="text-2xl font-bold">Contribuir</h2>
+        <p class="text-green-100 text-sm mt-1 font-medium" id="contribution-goal-name">Cofre</p>
+        <p class="text-xs text-green-200 mt-1">Meta: R$ <span id="contribution-target-display">0,00</span></p>
+      </div>
+      <form id="contribution-form" class="p-6 space-y-4">
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Valor da Contribuição (R$) <span class="text-red-500">*</span></label>
+          <div class="relative">
+            <span class="absolute left-4 top-3 text-gray-500 font-medium">R$</span>
+            <input type="number" id="contribution-amount" min="1" step="0.01" required placeholder="0,00" class="w-full pl-12 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none text-lg font-bold">
+          </div>
+        </div>
+        <label class="inline-flex items-center gap-2 cursor-pointer">
+          <input type="checkbox" id="contribution-anonymous" class="rounded text-green-600 focus:ring-green-500">
+          <span class="text-sm text-gray-600">Contribuição anônima</span>
+        </label>
+        <button type="submit" class="w-full py-3 bg-green-600 text-white rounded-xl font-bold hover:bg-green-700 transition shadow-sm">
+          <i class="fas fa-heart mr-2"></i> Registrar Contribuição
+        </button>
+      </form>
+      <div class="px-6 pb-6">
+        <button type="button" onclick="closeContributionModal()" class="w-full py-2 border border-gray-300 text-gray-600 rounded-xl hover:bg-gray-50 transition">Cancelar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- CERTIFICATE VIEW MODAL -->
+  <div id="certificate-view-modal" class="hidden fixed inset-0 z-50 flex items-start sm:items-center justify-center bg-black/70 backdrop-blur-sm overflow-y-auto py-4 sm:py-8 px-4">
+    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-5xl mx-auto overflow-hidden animate-fade-in my-auto relative flex flex-col max-h-[90vh]">
+      <div class="bg-gradient-to-r from-[#1e3a8a] to-[#d97706] p-4 flex justify-between items-center">
+        <h3 class="text-white font-bold text-lg flex items-center gap-2"><i class="fas fa-certificate"></i> Certificado</h3>
+        <button onclick="closeCertificateViewModal()" class="text-white/80 hover:text-white transition p-1"><i class="fas fa-times text-xl"></i></button>
+      </div>
+      <div class="flex-1 overflow-auto p-0 bg-gray-100 flex justify-center">
+        <iframe id="certificate-iframe" class="w-full min-h-[600px] border-none" title="Certificado"></iframe>
+      </div>
+      <div class="p-4 bg-white border-t border-gray-200 flex justify-center gap-3">
+        <button onclick="printCurrentCertificate()" class="px-5 py-2.5 bg-[#1e3a8a] text-white rounded-xl font-medium hover:bg-[#172554] transition flex items-center gap-2 text-sm">
+          <i class="fas fa-print"></i> Imprimir / Salvar PDF
+        </button>
+        <button onclick="closeCertificateViewModal()" class="px-5 py-2.5 border border-gray-300 text-gray-700 rounded-xl hover:bg-gray-50 transition text-sm">
+          Fechar
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- LOGIN MODAL -->
+  <div id="login-modal" class="hidden fixed inset-0 z-[999999] items-center justify-center bg-black/70 backdrop-blur-sm">
+    <div id="login-modal-content" class="bg-white rounded-2xl shadow-2xl w-full max-w-md mx-4 overflow-hidden animate-fade-in">
+      <div class="bg-gradient-to-r from-adpel-800 to-adpel-700 p-6 text-white text-center" style="background: linear-gradient(to right, #1e3a8a, #1d4ed8) !important; color: white !important;">
+        <div class="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center mx-auto mb-4">
+          <i class="fas fa-church text-3xl"></i>
+        </div>
+        <h2 class="text-2xl font-bold">Entrar</h2>
+        <p class="text-adpel-100 text-sm mt-1">Acesse sua conta ADPEL</p>
+      </div>
+      <form id="login-form" class="p-6 space-y-4" style="background-color: #ffffff !important;">
+        <div>
+          <label class="block text-sm font-medium mb-1" style="color: #334155 !important;">E-mail</label>
+          <input type="email" id="login-email" required class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-adpel-500 focus:border-transparent outline-none" placeholder="seu@email.com" style="background-color: #f8fafc !important; color: #0f172a !important; border-color: #cbd5e1 !important;">
+        </div>
+        <div>
+          <label class="block text-sm font-medium mb-1" style="color: #334155 !important;">Senha</label>
+          <input type="password" id="login-password" required class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-adpel-500 focus:border-transparent outline-none" placeholder="••••••••" style="background-color: #f8fafc !important; color: #0f172a !important; border-color: #cbd5e1 !important;">
+        </div>
+        <div class="flex items-center justify-between">
+          <span></span>
+          <button type="button" onclick="toggleResetPassword(true)" class="text-sm text-adpel-600 hover:underline font-medium">Esqueceu a senha?</button>
+        </div>
+        <div id="login-message-area" class="hidden text-sm text-center p-3 rounded-lg"></div>
+        <div id="reset-password-box" class="hidden space-y-3">
+          <p class="text-sm text-gray-600">Informe seu email para receber o link de redefinição:</p>
+          <input type="email" id="reset-email" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-adpel-500 outline-none text-sm" placeholder="seu@email.com" style="background-color: #f8fafc !important; color: #0f172a !important;">
+          <button type="button" onclick="sendPasswordReset()" class="w-full py-2 bg-adpel-100 text-adpel-700 rounded-lg text-sm font-bold hover:bg-adpel-200 transition">Enviar link</button>
+          <button type="button" onclick="toggleResetPassword(false)" class="w-full py-1 text-xs text-gray-500 hover:text-gray-700">Voltar ao login</button>
+        </div>
+        <button type="button" id="login-submit-btn" onclick="login()" class="w-full py-3 bg-adpel-600 text-white rounded-xl font-bold hover:bg-adpel-700 transition">
+          Entrar
+        </button>
+        <p id="login-register-text" class="text-center text-sm text-gray-500">
+          Não tem conta? <button type="button" onclick="closeModal('login-modal');openModal('register-modal')" class="text-adpel-600 font-semibold hover:underline">Cadastre-se</button>
+        </p>
+      </form>
+      <div class="px-6 pb-6">
+        <button type="button" onclick="closeModal('login-modal')" class="w-full py-2 border border-gray-300 text-gray-600 rounded-xl hover:bg-gray-50 transition">
+          Cancelar
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- REGISTER MODAL -->
+  <div id="register-modal" class="hidden fixed inset-0 z-50 items-start sm:items-center justify-center bg-black/50 backdrop-blur-sm overflow-y-auto py-4 sm:py-0">
+    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md mx-4 overflow-hidden animate-fade-in" style="background-color: #ffffff !important; color: #1e293b !important;">
+      <div class="bg-gradient-to-r from-green-600 to-green-500 p-6 text-white text-center" style="background: linear-gradient(to right, #16a34a, #22c55e) !important; color: white !important;">
+        <div class="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center mx-auto mb-4">
+          <i class="fas fa-user-plus text-3xl"></i>
+        </div>
+        <h2 class="text-2xl font-bold">Criar Conta</h2>
+        <p class="text-green-100 text-sm mt-1">Junte-se à família ADPEL</p>
+      </div>
+      <form id="register-form" class="p-6 space-y-4" style="background-color: #ffffff !important;">
+        <div>
+          <label class="block text-sm font-medium mb-1" style="color: #334155 !important;">Nome Completo</label>
+          <input type="text" id="register-name" required class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none" placeholder="Seu nome" style="background-color: #f8fafc !important; color: #0f172a !important; border-color: #cbd5e1 !important;">
+        </div>
+        <div>
+          <label class="block text-sm font-medium mb-1" style="color: #334155 !important;">E-mail</label>
+          <input type="email" id="register-email" required class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none" placeholder="seu@email.com" style="background-color: #f8fafc !important; color: #0f172a !important; border-color: #cbd5e1 !important;">
+        </div>
+        <div>
+          <label class="block text-sm font-medium mb-1" style="color: #334155 !important;">Senha</label>
+          <input type="password" id="register-password" required minlength="6" class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none" placeholder="Mínimo 6 caracteres" style="background-color: #f8fafc !important; color: #0f172a !important; border-color: #cbd5e1 !important;">
+        </div>
+        <div>
+          <label class="block text-sm font-medium mb-1" style="color: #334155 !important;">Confirmar Senha</label>
+          <input type="password" id="register-confirm" required class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none" placeholder="Repita a senha" style="background-color: #f8fafc !important; color: #0f172a !important; border-color: #cbd5e1 !important;">
+        </div>
+        <button type="submit" class="w-full py-3 bg-green-600 text-white rounded-xl font-bold hover:bg-green-700 transition">
+          Criar Conta
+        </button>
+        <p class="text-center text-sm text-gray-500">
+          Já tem conta? <button type="button" onclick="closeModal('register-modal');openModal('login-modal')" class="text-green-600 font-semibold hover:underline">Faça login</button>
+        </p>
+      </form>
+      <div class="px-6 pb-6">
+        <button type="button" onclick="closeModal('register-modal')" class="w-full py-2 border border-gray-300 text-gray-600 rounded-xl hover:bg-gray-50 transition">
+          Cancelar
+        </button>
+      </div>
+    </div>
+  </div>
+
+  
+  <footer class="bg-white border-t border-gray-200 mt-auto">
+    <div class="max-w-7xl mx-auto px-4 py-6 sm:px-6 lg:px-8">
+      <div class="flex flex-col md:flex-row justify-between items-center">
+        <div class="flex items-center gap-2 mb-4 md:mb-0">
+          <i class="fas fa-church text-adpel-600"></i>
+          <span class="font-bold text-gray-900">ADPEL Digital</span>
+        </div>
+        <p class="text-sm text-gray-500">© 2023 Assembleia de Deus - Campo Pedro Ludovico.</p>
+      </div>
+    </div>
+  </footer>
+
+  <!-- PWA Install Prompt Logic -->
+  <script>
+    let deferredPrompt;
+    const pwaBanner = document.getElementById('pwa-install-banner');
+    const pwaInstallBtn = document.getElementById('pwa-install-btn');
+    const pwaDismissBtn = document.getElementById('pwa-dismiss-btn');
+
+    function showPwaBanner() {
+      if (!pwaBanner) return;
+      pwaBanner.classList.remove('-translate-y-[200%]');
+      pwaBanner.classList.add('translate-y-0');
+    }
+
+    function hidePwaBanner() {
+      if (!pwaBanner) return;
+      pwaBanner.classList.remove('translate-y-0');
+      pwaBanner.classList.add('-translate-y-[200%]');
+    }
+
+    // Registrar Service Worker (obrigatório para funcionar como PWA)
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('sw.js').then(reg => {
+          console.log('SW registered:', reg.scope);
+        }).catch(err => {
+          console.log('SW registration failed:', err);
+        });
+      });
+    }
+
+    // Capturar o evento nativo de instalação (Chrome/Edge/Android)
+    window.addEventListener('beforeinstallprompt', (e) => {
+      e.preventDefault();
+      deferredPrompt = e;
+      showPwaBanner();
+    });
+
+    // Se já estiver instalado, esconde completamente
+    if (window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true) {
+      if (pwaBanner) pwaBanner.style.display = 'none';
+    } else {
+      // Sempre mostra após 3 segundos, mesmo se o beforeinstallprompt não disparar ainda
+      setTimeout(() => {
+        if (pwaBanner && pwaBanner.style.display !== 'none') showPwaBanner();
+      }, 3000);
+    }
+
+    // Recarrega automaticamente quando um novo Service Worker assumir o controle
+    let refreshing = false;
+    navigator.serviceWorker.addEventListener('controllerchange', () => {
+      if (!refreshing) {
+        refreshing = true;
+        window.location.reload();
+      }
+    });
+
+    if (pwaInstallBtn) {
+      pwaInstallBtn.addEventListener('click', async () => {
+        if (!deferredPrompt) {
+          showToast('Para instalar: use o menu do navegador e selecione "Adicionar à Tela Inicial"', 'info');
+          return;
+        }
+        deferredPrompt.prompt();
+        const { outcome } = await deferredPrompt.userChoice;
+        if (outcome === 'accepted') {
+          hidePwaBanner();
+        }
+        deferredPrompt = null;
+      });
+    }
+
+    if (pwaDismissBtn) {
+      pwaDismissBtn.addEventListener('click', () => {
+        hidePwaBanner();
+        // Reaparece após 5 minutos na mesma sessão (na próxima visita ele já volta sozinho)
+        setTimeout(showPwaBanner, 300000);
+      });
+    }
+
+    // Se o app for instalado, remove o banner
+    window.addEventListener('appinstalled', () => {
+      if (pwaBanner) pwaBanner.style.display = 'none';
+      deferredPrompt = null;
+    });
+  </script>
+
+  
