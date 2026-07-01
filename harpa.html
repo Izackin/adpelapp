@@ -1,0 +1,440 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="theme-color" content="#2563eb">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="ADPEL Harpa">
+  <title>Harpa Cristã | ADPEL Digital</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="manifest" href="manifest.json">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Playfair+Display:wght@400;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+  <script src="supabase.js"></script>
+
+  <style>
+    body { font-family: 'Inter', sans-serif; background-color: #020617; color: #e2e8f0; }
+    .hymn-index-row { display: flex; align-items: center; gap: 0.75rem; padding: 1rem 1.25rem; border-radius: 0.5rem; transition: all 0.15s; border: 1px solid transparent; background: rgba(15,23,42,0.4); cursor: pointer; text-align: left; width: 100%; }
+    .hymn-index-row:hover { background: rgba(30,41,59,0.6); border-color: rgba(217,119,6,0.25); }
+    .hymn-index-num { font-family: 'Playfair Display', serif; font-size: 1.1rem; font-weight: 700; color: #f59e0b; min-width: 2.2rem; text-align: right; }
+    .hymn-index-title { flex: 1; font-size: 0.95rem; font-weight: 500; color: #f1f5f9; text-align: left; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .coro-box { background: rgba(217,119,6,0.10); border-left: 3px solid rgba(217,119,6,0.5); border-radius: 0 0.75rem 0.75rem 0; padding: 1.25rem 1.5rem; margin: 1.5rem 0; }
+    mark { background: rgba(217,119,6,0.35); color: #fef3c7; border-radius: 0.25rem; padding: 0 0.25rem; }
+
+    .hymn-sheet { width: 100%; max-width: 100%; margin: 0 auto; background: rgba(15,23,42,0.45); border: 1px solid rgba(255,255,255,0.06); border-radius: 1rem; padding: 2rem 1.5rem; --font-scale: 1; }
+    .hymn-header { text-align: center; border-bottom: 1px solid rgba(255,255,255,0.08); padding-bottom: 1.75rem; margin-bottom: 2.25rem; }
+    .hymn-number { font-family: 'Playfair Display', serif; font-size: calc(3rem * var(--font-scale)); line-height: 1; color: #f59e0b; opacity: 0.85; margin-bottom: 0.25rem; }
+    .hymn-title { font-family: 'Playfair Display', serif; font-size: calc(1.6rem * var(--font-scale)); line-height: 1.3; color: #f8fafc; font-weight: 700; }
+    .stanza { margin-bottom: 2.2rem; }
+    .stanza-number { display: inline-flex; align-items: center; justify-content: center; width: 1.6rem; height: 1.6rem; border-radius: 50%; background: rgba(217,119,6,0.18); color: #fbbf24; font-size: 0.7rem; font-weight: 800; margin-right: 0.6rem; font-family: 'Inter', sans-serif; flex-shrink: 0; }
+    .stanza-body { display: flex; align-items: flex-start; gap: 0.5rem; }
+    .stanza-text { font-family: 'Playfair Display', serif; font-size: calc(1.15rem * var(--font-scale)); line-height: 2; color: #e2e8f0; white-space: pre-line; }
+    .chorus-label { font-size: calc(0.7rem * var(--font-scale)); letter-spacing: 0.18em; text-transform: uppercase; color: #fbbf24; font-weight: 700; margin-bottom: 0.35rem; }
+    .chorus-text { font-family: 'Playfair Display', serif; font-size: calc(1.15rem * var(--font-scale)); line-height: 2; color: #fde68a; font-style: italic; white-space: pre-line; }
+    .empty-hymn { text-align: center; color: #94a3b8; font-style: italic; margin-top: 2rem; }
+    .error-hymn { text-align: center; color: #f87171; margin-top: 2rem; }
+
+    @media (min-width: 768px) {
+      .hymn-sheet { padding: 2.5rem 3rem; }
+    }
+    @media (min-width: 1024px) {
+      .hymn-sheet { padding: 3rem 4rem; }
+      .stanza-text, .chorus-text { font-size: calc(1.25rem * var(--font-scale)); line-height: 2.1; }
+    }
+    @media (max-width: 640px) {
+      .stanza-text, .chorus-text { font-size: calc(1.05rem * var(--font-scale)); line-height: 1.95; }
+      .hymn-number { font-size: calc(2.2rem * var(--font-scale)); }
+      .hymn-title { font-size: calc(1.3rem * var(--font-scale)); }
+      .hymn-sheet { padding: 1.5rem 1.25rem; }
+    }
+  </style>
+</head>
+<body class="antialiased min-h-screen flex flex-col">
+
+  <header class="bg-[#0f172a]/90 backdrop-blur border-b border-gray-800 sticky top-0 z-40 px-4 py-3 flex items-center justify-between">
+    <div class="flex items-center gap-3">
+      <a href="index.html" class="text-gray-400 hover:text-white transition"><i class="fas fa-arrow-left"></i></a>
+      <h1 class="font-bold text-lg text-white tracking-wide">ADPEL <span class="text-yellow-500 font-serif">Harpa Cristã</span></h1>
+    </div>
+  </header>
+
+  <main class="flex-1 p-4 md:p-8 max-w-6xl mx-auto w-full flex flex-col gap-6">
+    <div class="flex flex-col md:flex-row md:items-center justify-between gap-3 bg-[#0f172a]/60 p-5 rounded-xl border border-white/10 backdrop-blur-sm">
+      <div class="relative flex-1">
+        <i class="fas fa-search absolute left-3 top-2.5 text-gray-500 text-xs"></i>
+        <input type="text" id="harpa-search" placeholder="Buscar por número, título ou trecho..." class="pl-8 pr-3 py-2 bg-[#0f172a] border border-gray-700 rounded-lg text-sm text-white placeholder-gray-500 focus:ring-2 focus:ring-yellow-500 outline-none w-full" onkeydown="if(event.key==='Enter')searchHymns()">
+      </div>
+      <button onclick="searchHymns()" class="px-3 py-2 bg-yellow-600 hover:bg-yellow-700 text-white rounded-lg text-sm transition"><i class="fas fa-search"></i></button>
+    </div>
+
+    <div id="harpa-loading" class="hidden flex flex-col items-center justify-center py-12">
+      <div class="w-10 h-10 border-4 border-yellow-700 border-t-transparent rounded-full animate-spin mb-3"></div>
+      <p class="text-yellow-500 text-sm font-medium">Carregando hinos...</p>
+    </div>
+
+    <div id="harpa-empty" class="hidden flex flex-col items-center justify-center py-12">
+      <div class="w-16 h-16 bg-gray-800 rounded-full flex items-center justify-center mx-auto mb-4">
+        <i class="fas fa-music text-2xl text-gray-500"></i>
+      </div>
+      <p class="text-gray-400 font-medium mb-1">Nenhum hino encontrado</p>
+      <p class="text-sm text-gray-500">Tente buscar por número, título ou trecho do hino.</p>
+    </div>
+
+    <div id="harpa-list-view" class="flex-1 flex flex-col gap-2">
+      <div id="harpa-results" class="grid grid-cols-1 gap-2"></div>
+    </div>
+
+    <div id="harpa-detail-view" class="hidden flex-1 flex flex-col overflow-y-auto animate-fade-in">
+      <div class="hymn-sheet py-6 px-4 md:px-8">
+        <div class="flex items-center justify-between mb-6">
+          <button onclick="backToList()" class="text-sm text-yellow-500 hover:text-yellow-400 flex items-center gap-2 w-fit transition font-medium">
+            <i class="fas fa-arrow-left"></i> Voltar à lista
+          </button>
+          <div class="flex items-center gap-2">
+            <button onclick="ajustarFonte(-0.1)" class="w-9 h-9 rounded-lg bg-gray-800 hover:bg-gray-700 text-yellow-500 border border-gray-700 flex items-center justify-center transition text-xs font-bold" title="Diminuir fonte">A-</button>
+            <button onclick="ajustarFonte(0.1)" class="w-9 h-9 rounded-lg bg-gray-800 hover:bg-gray-700 text-yellow-500 border border-gray-700 flex items-center justify-center transition text-lg font-bold leading-none" title="Aumentar fonte">A+</button>
+          </div>
+        </div>
+
+        <div class="hymn-header text-center">
+          <div class="hymn-number mb-2" id="harpa-detail-number"></div>
+          <h2 class="hymn-title" id="harpa-detail-title"></h2>
+        </div>
+
+        <div id="harpa-detail-coro" class="coro-box p-4 md:p-5 mb-6 hidden"></div>
+
+        <div id="harpa-detail-verses"></div>
+      </div>
+    </div>
+  </main>
+
+  <script>
+    const HARPA_URL = 'https://piqlrjzlepcpqootpyvq.supabase.co/storage/v1/object/public/harpa/harpa.json';
+    const CACHE_KEY = 'harpaCache_v5';
+    const CACHE_TIME_KEY = 'harpaCacheTime_v5';
+    const CACHE_TTL = 24 * 60 * 60 * 1000;
+
+    let allHymns = [];
+    let escalaFonteHino = 1;
+
+    function ajustarFonte(delta) {
+      escalaFonteHino = Math.max(0.8, Math.min(1.5, escalaFonteHino + delta));
+      const sheet = document.querySelector('.hymn-sheet');
+      if (sheet) sheet.style.setProperty('--font-scale', escalaFonteHino);
+    }
+
+    function escapeHtml(value) {
+      if (value == null) return '';
+      return String(value)
+        .replaceAll('&', '&amp;')
+        .replaceAll('<', '&lt;')
+        .replaceAll('>', '&gt;')
+        .replaceAll('"', '&quot;')
+        .replaceAll("'", '&#039;');
+    }
+
+    function sanitizeHymnText(text) {
+      if (text == null) return '';
+      let str = String(text);
+      // Remove artefatos de dados corrompidos/concatenados
+      str = str.replace(/undefinednull/gi, '');
+      str = str.replace(/\bundefined\b/gi, '');
+      str = str.replace(/\bnull\b/gi, '');
+      // Converte <br>, <br/>, <br /> (case insensitive) em quebras reais
+      str = str.replace(/<br\s*\/?>/gi, '\n');
+      // Limpa quebras excessivas
+      str = str.replace(/\n{3,}/g, '\n\n').trim();
+      return str;
+    }
+
+    function showLoading(show) {
+      const el = document.getElementById('harpa-loading');
+      if (el) el.classList.toggle('hidden', !show);
+      const list = document.getElementById('harpa-list-view');
+      if (list) list.classList.toggle('hidden', show);
+    }
+
+    function showEmpty(show) {
+      const el = document.getElementById('harpa-empty');
+      if (el) el.classList.toggle('hidden', !show);
+      const results = document.getElementById('harpa-results');
+      if (results) results.classList.toggle('hidden', show);
+    }
+
+    function normalizarHino(raw, id) {
+      const hino = { id: String(id || ''), hino: '', coro: '', verses: {} };
+      if (raw == null) return hino;
+
+      if (typeof raw === 'string') {
+        hino.verses['1'] = raw;
+        return hino;
+      }
+
+      const titulo = raw.hino || raw.titulo || raw.title || raw.nome || raw.name || raw.hymn || raw.song || raw.hymn_title || raw.song_title || '';
+      hino.hino = sanitizeHymnText(typeof titulo === 'string' ? titulo : String(titulo));
+
+      const coro = raw.coro || raw.chorus || raw.refrão || raw.refrain || raw.chorus_text || raw.coro_texto || raw.refrain_text || '';
+      hino.coro = sanitizeHymnText(typeof coro === 'string' ? coro : String(coro));
+
+      let rawVerses = raw.verses || raw.estrofes || raw.stanzas || raw.versos || raw.lyrics || raw.texto || raw.text || raw.body || raw.content || null;
+
+      if (rawVerses) {
+        if (typeof rawVerses === 'string') {
+          const clean = sanitizeHymnText(rawVerses);
+          const parts = clean.split(/\n\s*\n/).filter(Boolean);
+          if (parts.length > 1) {
+            parts.forEach((p, i) => { hino.verses[String(i + 1)] = p.trim(); });
+          } else {
+            hino.verses['1'] = clean;
+          }
+        } else if (Array.isArray(rawVerses)) {
+          rawVerses.forEach((v, i) => {
+            const num = String(i + 1);
+            if (typeof v === 'string') {
+              hino.verses[num] = sanitizeHymnText(v);
+            } else if (v && typeof v === 'object') {
+              const txt = v.text || v.verse || v.content || v.lyric || v.string || v.verso || v.body || JSON.stringify(v);
+              hino.verses[String(v.number || v.id || num)] = sanitizeHymnText(String(txt));
+            }
+          });
+        } else if (typeof rawVerses === 'object') {
+          Object.entries(rawVerses).forEach(([k, v]) => {
+            if (typeof v === 'string') {
+              hino.verses[k] = sanitizeHymnText(v);
+            } else if (v && typeof v === 'object') {
+              hino.verses[k] = sanitizeHymnText(v.text || v.verse || v.content || v.lyric || v.string || v.verso || v.body || JSON.stringify(v));
+            }
+          });
+        }
+      }
+
+      if (Object.keys(hino.verses).length === 0) {
+        Object.keys(raw).forEach(key => {
+          if (/^\d+$/.test(key)) {
+            const val = raw[key];
+            if (typeof val === 'string') {
+              hino.verses[key] = sanitizeHymnText(val);
+            } else if (val && typeof val === 'object') {
+              hino.verses[key] = sanitizeHymnText(val.text || val.verse || val.content || val.lyric || val.string || val.verso || val.body || JSON.stringify(val));
+            }
+          }
+        });
+      }
+
+      if (Object.keys(hino.verses).length === 0 && hino.hino && hino.hino.includes('\n')) {
+        hino.verses['1'] = hino.hino;
+        hino.hino = '';
+      }
+
+      // Última limpeza de segurança em todos os versos
+      Object.keys(hino.verses).forEach(k => {
+        hino.verses[k] = sanitizeHymnText(hino.verses[k]);
+      });
+
+      return hino;
+    }
+
+    async function carregarHarpa() {
+      try {
+        let hinos = [];
+        const cache = localStorage.getItem(CACHE_KEY);
+        const cacheTime = localStorage.getItem(CACHE_TIME_KEY);
+        const agora = Date.now();
+
+        if (cache && cacheTime && (agora - Number(cacheTime) < CACHE_TTL)) {
+          console.log('[Harpa] Usando cache local');
+          hinos = JSON.parse(cache);
+        } else {
+          console.log('[Harpa] Baixando do Storage...');
+          const response = await fetch(HARPA_URL);
+          if (!response.ok) throw new Error('HTTP ' + response.status);
+          const data = await response.json();
+
+          console.log('[Harpa] Tipo do JSON:', Array.isArray(data) ? 'array' : typeof data);
+          if (!Array.isArray(data) && typeof data === 'object') {
+            console.log('[Harpa] Primeiras chaves:', Object.keys(data).slice(0, 10));
+          }
+
+          let entries = [];
+          if (Array.isArray(data)) {
+            entries = data.map((item, idx) => [String(idx + 1), item]);
+          } else if (data && typeof data === 'object') {
+            entries = Object.entries(data).filter(([key]) => key !== '-1' && key !== 'meta');
+          }
+
+          hinos = entries.map(([id, raw]) => normalizarHino(raw, id)).filter(h => {
+            const temTitulo = (h.hino || '').trim().length > 0;
+            const temVersos = Object.keys(h.verses).length > 0;
+            return temTitulo || temVersos;
+          });
+
+          console.log('[Harpa] Hinos carregados:', hinos.length);
+          if (hinos.length > 0) {
+            console.log('[Harpa] Exemplo do primeiro hino:', hinos[0]);
+          }
+
+          try {
+            localStorage.setItem(CACHE_KEY, JSON.stringify(hinos));
+            localStorage.setItem(CACHE_TIME_KEY, String(agora));
+          } catch (e) {
+            console.warn('[Harpa] Cache localStorage falhou:', e);
+          }
+        }
+
+        return hinos;
+      } catch (error) {
+        console.error('[Harpa] Erro ao carregar:', error);
+        return [];
+      }
+    }
+
+    function truncate(str, n) {
+      if (!str) return '';
+      return str.length > n ? str.substring(0, n - 1) + '...' : str;
+    }
+
+    function escapeRegExp(string) {
+      return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    }
+
+    function renderHymnList(list, highlightTerm) {
+      const container = document.getElementById('harpa-results');
+      if (!container) return;
+
+      if (!list || !list.length) {
+        container.innerHTML = '';
+        showEmpty(true);
+        return;
+      }
+
+      showEmpty(false);
+
+      container.innerHTML = list.map(h => {
+        const titulo = sanitizeHymnText(h.hino || 'Hino sem título').trim();
+        const coroPreview = sanitizeHymnText(h.coro || '').trim();
+        let titleHtml = escapeHtml(titulo);
+        if (highlightTerm) {
+          const re = new RegExp('(' + escapeRegExp(highlightTerm) + ')', 'gi');
+          titleHtml = titleHtml.replace(re, '<mark>$1</mark>');
+        }
+        return '<button onclick="openHymn(\'' + escapeHtml(h.id) + '\')" class="hymn-index-row" type="button">' +
+          '<span class="hymn-index-num">' + escapeHtml(h.id) + '</span>' +
+          '<span class="hymn-index-title">' + titleHtml + '</span>' +
+          '<i class="fas fa-chevron-right text-gray-500 text-xs ml-2"></i>' +
+          '</button>';
+      }).join('');
+    }
+
+    function buscarHinos(hinos, busca) {
+      busca = busca.toLowerCase().trim();
+      if (!busca) return hinos;
+      return hinos.filter(item => {
+        const versos = Object.values(item.verses || {}).join(' ').toLowerCase();
+        return (
+          item.id === busca ||
+          (item.hino && item.hino.toLowerCase().includes(busca)) ||
+          versos.includes(busca) ||
+          (item.coro && item.coro.toLowerCase().includes(busca))
+        );
+      });
+    }
+
+    function searchHymns() {
+      const input = document.getElementById('harpa-search');
+      const term = input ? input.value.trim() : '';
+      if (!term) {
+        renderHymnList(allHymns);
+        return;
+      }
+
+      const results = buscarHinos(allHymns, term);
+      renderHymnList(results, term);
+
+      if (/^\d+$/.test(term) && results.length === 1) {
+        openHymn(results[0].id);
+      }
+    }
+
+    function openHymn(id) {
+      const hymn = allHymns.find(h => h.id === id);
+      if (!hymn) {
+        console.warn('Hino não encontrado para id:', id);
+        const detailView = document.getElementById('harpa-detail-view');
+        const versesBox = document.getElementById('harpa-detail-verses');
+        if (detailView) detailView.classList.remove('hidden');
+        const listView = document.getElementById('harpa-list-view');
+        if (listView) listView.classList.add('hidden');
+        if (versesBox) versesBox.innerHTML = '<p class="error-hymn">Não foi possível abrir o hino ' + escapeHtml(id) + '.<br>Tente recarregar a página.</p>';
+        return;
+      }
+
+      const listView = document.getElementById('harpa-list-view');
+      const detailView = document.getElementById('harpa-detail-view');
+      if (listView) listView.classList.add('hidden');
+      if (detailView) detailView.classList.remove('hidden');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+
+      const numEl = document.getElementById('harpa-detail-number');
+      const titleEl = document.getElementById('harpa-detail-title');
+      const coroBox = document.getElementById('harpa-detail-coro');
+      const versesBox = document.getElementById('harpa-detail-verses');
+
+      const tituloSeguro = sanitizeHymnText(hymn.hino || 'Hino sem título').trim();
+      const coroSeguro = sanitizeHymnText(hymn.coro || '').trim();
+
+      if (numEl) numEl.textContent = String(hymn.id || '');
+      if (titleEl) titleEl.textContent = tituloSeguro;
+
+      if (coroBox) {
+        if (coroSeguro) {
+          coroBox.classList.remove('hidden');
+          coroBox.innerHTML = '<div class="chorus-label">Coro</div><div class="chorus-text">' + escapeHtml(coroSeguro) + '</div>';
+        } else {
+          coroBox.classList.add('hidden');
+          coroBox.innerHTML = '';
+        }
+      }
+
+      if (versesBox) {
+        const chaves = Object.keys(hymn.verses || {});
+        if (chaves.length > 0) {
+          const entradas = chaves
+            .map(function(k) { return [k, sanitizeHymnText(String(hymn.verses[k] || '')).trim()]; })
+            .filter(function(item) { return item[1].length > 0; })
+            .sort(function(a, b) {
+              var na = parseInt(a[0], 10);
+              var nb = parseInt(b[0], 10);
+              return (isNaN(na) ? 9999 : na) - (isNaN(nb) ? 9999 : nb);
+            });
+
+          versesBox.innerHTML = entradas.map(function(item) {
+            return '<div class="stanza"><div class="stanza-body"><span class="stanza-number">' + item[0] + '</span><div class="stanza-text">' + escapeHtml(item[1]) + '</div></div></div>';
+          }).join('');
+        } else {
+          versesBox.innerHTML = '<p class="empty-hymn">Nenhum verso disponível para este hino.</p>';
+        }
+      }
+    }
+
+    function backToList() {
+      const listView = document.getElementById('harpa-list-view');
+      const detailView = document.getElementById('harpa-detail-view');
+      if (listView) listView.classList.remove('hidden');
+      if (detailView) detailView.classList.add('hidden');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    document.addEventListener('DOMContentLoaded', async function() {
+      showLoading(true);
+      allHymns = await carregarHarpa();
+      showLoading(false);
+      renderHymnList(allHymns);
+    });
+  </script>
+</body>
+</html>

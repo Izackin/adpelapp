@@ -1,0 +1,86 @@
+/* ADPEL Digital Platform - Global Styles v2.0.0 */
+/* Custom Animations & Utilities */
+
+body {
+    font-family: 'Inter', sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+
+/* Sidebar Transition */
+#sidebar {
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    position: fixed;
+    height: 100vh;
+    left: 0;
+    top: 0;
+    z-index: 40;
+    box-shadow: 5px 0 15px rgba(0,0,0,0.1);
+}
+#sidebar.hidden {
+    display: none;
+}
+
+/* Scrollbar Styling for Webkit */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+
+/* Safe Bottom Area for Mobile Navigation */
+.pb-safe { padding-bottom: env(safe-area-inset-bottom, 20px); }
+
+/* Placeholder Enhanced Styles */
+.empty-state { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 4rem 1rem; text-align: center; background-color: white; border-radius: 1rem; box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1); transition: all 0.3s ease; }
+.empty-state:hover { transform: translateY(-2px); box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1); }
+
+/* Modal Animations */
+@keyframes fadeInUp {
+    from { opacity: 0; transform: translateY(20px) scale(0.95); }
+    to { opacity: 1; transform: translateY(0) scale(1); }
+}
+.animate-fade-in { animation: fadeInUp 0.4s ease-out forwards; }
+
+/* Readers Mode Presets */
+.prose p { line-height: 1.75; margin-bottom: 1rem; }
+.prose h2 { font-size: 1.75rem; margin-top: 2rem; margin-bottom: 1rem; font-weight: 700; color: #1e3a8a; border-bottom: 1px solid #e2e8f0; padding-bottom: 0.5rem; }
+.prose ul { list-style-type: disc; padding-left: 1.5rem; margin-bottom: 1.5rem; }
+.prose li { margin-bottom: 0.5rem; }
+
+/* General Utilities */
+.shadow-card { box-shadow: 0 4px 6px -1px rgba(6, 182, 212, 0.1), 0 2px 4px -1px rgba(37, 99, 235, 0.08); }
+.shadow-soft { box-shadow: 0 10px 15px -3px rgba(6, 182, 212, 0.15); }
+.transition-all { transition: all 0.3s ease; }
+img { max-width: 100%; height: auto; }
+
+/* Futuristic Neon Effects */
+.glass { background: rgba(15, 23, 42, 0.6); backdrop-filter: blur(12px); border: 1px solid rgba(6, 182, 212, 0.15); }
+.neon-glow { box-shadow: 0 0 20px rgba(6, 182, 212, 0.3), 0 0 40px rgba(37, 99, 235, 0.1); }
+.neon-text { text-shadow: 0 0 10px rgba(6, 182, 212, 0.6), 0 0 20px rgba(37, 99, 235, 0.4); }
+.gradient-text { background: linear-gradient(90deg, #22d3ee, #f43f5e); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+.border-glow { border: 1px solid rgba(6, 182, 212, 0.3); box-shadow: inset 0 0 20px rgba(6, 182, 212, 0.05); }
+
+/* Oferta Modal Enhancements */
+#oferta-modal .oferta-valor-btn.selected {
+  border-color: #22c55e;
+  background-color: #f0fdf4;
+  color: #15803d;
+}
+
+/* Animated Background Grid for Hero */
+@keyframes gridMove {
+  0% { background-position: 0 0; }
+  100% { background-position: 50px 50px; }
+}
+.grid-bg {
+  background-image: linear-gradient(rgba(6, 182, 212, 0.05) 1px, transparent 1px),
+                    linear-gradient(90deg, rgba(6, 182, 212, 0.05) 1px, transparent 1px);
+  background-size: 50px 50px;
+  animation: gridMove 20s linear infinite;
+}
+
+@media (max-width: 640px) {
+  .empty-state { padding: 2rem 1rem; }
+  .empty-state-icon { width: 4rem; height: 4rem; margin-bottom: 1rem; }
+  .empty-state h3 { font-size: 1.1rem; }
+}
