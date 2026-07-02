@@ -14,6 +14,7 @@
   <script src="utils-notifications.js" defer></script>
   <script src="auth.js" defer></script>
   <script src="utils/date-utils.js" defer></script>
+  <script src="spiritual-progress.js" defer></script>
   <script src="script.js" defer></script>
   <script src="fundraising.js" defer></script>
   <script src="notifications.js" defer></script>
@@ -320,7 +321,8 @@
             <div class="absolute left-0 top-full mt-1 w-48 bg-[#0f172a] border border-gray-700 rounded-lg shadow-2xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50 overflow-hidden">
               <a href="bible.html" class="block px-4 py-2 text-sm text-gray-300 hover:bg-adpel-600/20 hover:text-white transition">Bíblia</a>
               <a href="harpa.html" class="block px-4 py-2 text-sm text-gray-300 hover:bg-adpel-600/20 hover:text-white transition">Harpa</a>
-              <a href="#cofres" onclick="navigateTo('cofres'); return false;" class="block px-4 py-2 text-sm text-gray-300 hover:bg-adpel-600/20 hover:text-white transition">🐷 Cofres</a>
+          <a href="#cofres" onclick="navigateTo('cofres'); return false;" class="block px-4 py-2 text-sm text-gray-300 hover:bg-adpel-600/20 hover:text-white transition">🐷 Cofres</a>
+          <a href="#ranking" onclick="navigateTo('ranking'); return false;" class="block px-4 py-2 text-sm text-gray-300 hover:bg-adpel-600/20 hover:text-white transition">🏅 Ranking</a>
             </div>
           </div>
         </nav>
@@ -396,6 +398,9 @@
           <a href="#cofres" onclick="navigateTo('cofres'); closeMobileSubmenus(); return false;" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-gray-300 hover:bg-adpel-600/20 hover:text-white transition">
             <i class="fas fa-piggy-bank w-5 text-center"></i> Cofres
           </a>
+          <a href="#ranking" onclick="navigateTo('ranking'); closeMobileSubmenus(); return false;" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-gray-300 hover:bg-adpel-600/20 hover:text-white transition">
+            <i class="fas fa-ranking-star w-5 text-center"></i> Ranking
+          </a>
         </div>
       </div>
     </div>
@@ -430,6 +435,7 @@
             <a href="bible.html" class="w-full flex items-center px-3 py-2 rounded-md text-gray-600 hover:text-adpel-700 hover:bg-adpel-50 transition text-sm"> <i class="fas fa-bible w-5 text-center text-xs mr-3"></i> Bíblia </a>
             <a href="harpa.html" class="w-full flex items-center px-3 py-2 rounded-md text-gray-600 hover:text-adpel-700 hover:bg-adpel-50 transition text-sm"> <i class="fas fa-music w-5 text-center text-xs mr-3"></i> Harpa </a>
             <button onclick="navigateTo('cofres')" class="w-full flex items-center px-3 py-2 rounded-md text-gray-600 hover:text-adpel-700 hover:bg-adpel-50 transition text-sm"> <i class="fas fa-piggy-bank w-5 text-center text-xs mr-3"></i> Cofres </button>
+            <button onclick="navigateTo('ranking')" class="w-full flex items-center px-3 py-2 rounded-md text-gray-600 hover:text-adpel-700 hover:bg-adpel-50 transition text-sm"> <i class="fas fa-ranking-star w-5 text-center text-xs mr-3"></i> Ranking </button>
           </div>
         </div>
       </div>
@@ -438,6 +444,7 @@
         <p class="text-xs text-gray-500 uppercase font-semibold mb-4 px-3">Minha Conta</p>
         <button onclick="navigateTo('profile')" class="w-full flex items-center px-3 py-2 rounded-md text-gray-600 hover:text-adpel-700 hover:bg-adpel-50 transition"> <i class="fas fa-user-circle w-5 text-center text-sm mr-3"></i> Meu Perfil </button>
         <button onclick="navigateTo('certificate')" class="w-full flex items-center px-3 py-2 rounded-md text-gray-600 hover:text-adpel-700 hover:bg-adpel-50 transition"> <i class="fas fa-certificate w-5 text-center text-sm mr-3"></i> Certificados </button>
+        <button onclick="navigateTo('ranking')" class="w-full flex items-center px-3 py-2 rounded-md text-gray-600 hover:text-adpel-700 hover:bg-adpel-50 transition"> <i class="fas fa-ranking-star w-5 text-center text-sm mr-3"></i> Ranking Geral </button>
       </div>
     </aside>
 
@@ -455,6 +462,18 @@
               "<span id="verse-text" class="italic">Carregando...</span>"
             </blockquote>
             <p id="verse-ref" class="text-sm font-bold text-adpel-200 uppercase tracking-wide">— ...</p>
+          </div>
+        </div>
+
+        <!-- Minha Caminhada -->
+        <div id="journey-card" class="bg-white rounded-2xl shadow-sm p-6 border border-gray-100">
+          <div class="flex items-center justify-between mb-4">
+            <h2 class="text-xl font-bold text-gray-900 flex items-center gap-2">
+              <span>🌱</span> Minha Caminhada
+            </h2>
+          </div>
+          <div id="journey-card-content">
+            <div class="text-center py-6 text-gray-500 text-sm">Carregando sua caminhada...</div>
           </div>
         </div>
 
@@ -640,6 +659,18 @@
         </div>
       </div>
 
+      <!-- SECT: RANKING -->
+      <div id="ranking" class="hidden space-y-8">
+        <div class="text-center mb-8">
+          <div class="inline-block p-4 bg-emerald-50 rounded-full mb-4">
+            <i class="fas fa-ranking-star text-4xl text-emerald-500"></i>
+          </div>
+          <h2 class="text-3xl md:text-4xl font-bold text-gray-800">Ranking Geral</h2>
+          <p class="text-gray-500 mt-2 max-w-xl mx-auto">Acompanhe a caminhada dos membros e celebre o crescimento espiritual.</p>
+        </div>
+        <div id="ranking-list" class="space-y-3"></div>
+      </div>
+
       <!-- SECT: BIBLE -->
       <div id="bible" class="hidden space-y-6 h-[calc(100dvh-5rem)] md:h-auto flex flex-col">
         <!-- BIBLE COVER (Initial View) -->
@@ -773,6 +804,14 @@
                 <p class="text-sm text-gray-500">Horas de Estudo</p>
               </div>
             </div>
+         </div>
+         <div class="bg-white rounded-2xl shadow-sm p-8">
+           <h3 class="text-xl font-bold text-gray-800 mb-4">🌱 Minha Caminhada</h3>
+           <div id="profile-journey-content"></div>
+         </div>
+         <div class="bg-white rounded-2xl shadow-sm p-8">
+           <h3 class="text-xl font-bold text-gray-800 mb-4">Medalhas</h3>
+           <div id="medals-grid" class="grid grid-cols-2 md:grid-cols-4 gap-4"></div>
          </div>
       </div>
       

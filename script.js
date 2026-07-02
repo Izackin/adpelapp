@@ -14,7 +14,7 @@ document.addEventListener('DOMContentLoaded', () => {
   // Navegação por hash (links diretos)
   function handleHash() {
     const hash = window.location.hash.replace('#', '');
-    if (hash && ['home','courses','studies','library','certificate','cofres','profile'].includes(hash)) {
+    if (hash && ['home','courses','studies','library','certificate','cofres','ranking','profile'].includes(hash)) {
       navigateTo(hash);
     }
   }
@@ -73,7 +73,7 @@ function navigateTo(section) {
     return;
   }
 
-  const sections = ['home', 'courses', 'studies', 'library', 'certificate', 'cofres', 'bible', 'profile'];
+  const sections = ['home', 'courses', 'studies', 'library', 'certificate', 'cofres', 'ranking', 'bible', 'profile'];
   sections.forEach(s => {
     const el = document.getElementById(s);
     if (el) el.classList.add('hidden');
@@ -102,6 +102,7 @@ function navigateTo(section) {
       library: 'aprender',
       certificate: 'aprender',
       cofres: 'culto',
+      ranking: 'culto',
       profile: 'home'
     };
     const activeGroup = groupMap[section] || section;
@@ -132,6 +133,7 @@ function loadSectionData(section) {
     case 'library': loadLibraryData(); break;
     case 'certificate': loadCertificatesData(); break;
     case 'cofres': if (typeof loadCofresData === 'function') loadCofresData(); break;
+    case 'ranking': if (window.ADPELJourney && typeof window.ADPELJourney.renderRanking === 'function') window.ADPELJourney.renderRanking(); break;
     case 'bible': break; // busca manual pelo usuário
     case 'profile': loadProfileData(); break;
   }
@@ -145,6 +147,9 @@ async function initApp() {
     await new Promise(resolve => setTimeout(resolve, 500));
   }
   await loadHomeData();
+  if (window.ADPELJourney && typeof window.ADPELJourney.init === 'function') {
+    await window.ADPELJourney.init();
+  }
 }
 
 async function carregarVersiculoDoDia() {
@@ -475,6 +480,9 @@ async function loadCertificatesData() {
 async function loadProfileData() {
   const userInfo = getCurrentUserInfo();
   renderProfile(userInfo);
+  if (window.ADPELJourney && typeof window.ADPELJourney.init === 'function') {
+    await window.ADPELJourney.init();
+  }
 }
 
 function renderAnnouncements(announcements) {
@@ -1234,6 +1242,10 @@ async function toggleLessonComplete(courseId, index) {
       if (delError) throw delError;
       showToast('Aula marcada como pendente.', 'info');
     } else {
+      const totalLessons = currentOpenCourse && currentOpenCourse.id === courseId
+        ? normalizeLessons(currentOpenCourse.lessons).length
+        : 0;
+      const completedBefore = await getLessonProgress(courseId);
       const { error: insError } = await window.supabaseClient
         .from('user_lesson_progress')
         .insert([{
@@ -1244,6 +1256,9 @@ async function toggleLessonComplete(courseId, index) {
           completed_at: new Date().toISOString()
         }]);
       if (insError) throw insError;
+      if (totalLessons > 0 && completedBefore.length + 1 >= totalLessons && window.ADPELJourney && typeof window.ADPELJourney.registerCourseCompleted === 'function') {
+        window.ADPELJourney.registerCourseCompleted(courseId);
+      }
       showToast('Aula concluída!', 'success');
     }
 
@@ -1623,6 +1638,9 @@ function loadStudyYouTubePlayer(videoId, studyId, lessonIndex) {
       'onStateChange': (event) => {
         if (event.data === YT.PlayerState.ENDED) {
           showToast('Aula concluída!', 'success');
+          if (window.ADPELJourney && typeof window.ADPELJourney.registerStudyCompleted === 'function') {
+            window.ADPELJourney.registerStudyCompleted(studyId);
+          }
         }
       }
     }
@@ -2171,6 +2189,9 @@ async function confirmarPagamento() {
   }
   
   showToast('Deus abençoe sua oferta!', 'success');
+  if (window.ADPELJourney && typeof window.ADPELJourney.registerOffering === 'function') {
+    window.ADPELJourney.registerOffering();
+  }
   
   // TODO: Futuramente, aqui será feita a verificação via API de pagamento
   // Exemplo:
@@ -2489,6 +2510,9 @@ function abrirBiblia() {
   if (reader) reader.classList.remove('hidden');
   populateBibleBooks();
   mostrarPaginaBiblia();
+  if (window.ADPELJourney && typeof window.ADPELJourney.registerBibleRead === 'function') {
+    window.ADPELJourney.registerBibleRead();
+  }
   if (!currentBibleBook) {
     const select = document.getElementById('bible-book-select');
     if (select) {
@@ -2597,6 +2621,12 @@ async function carregarCapitulo(book, chapter) {
     }
     
     renderChapterButtons(maxChapter);
+    if (window.ADPELJourney && typeof window.ADPELJourney.registerChapterRead === 'function') {
+      window.ADPELJourney.registerChapterRead(book, currentBibleChapter);
+      if (currentBibleChapter >= maxChapter && typeof window.ADPELJourney.registerBookCompleted === 'function') {
+        window.ADPELJourney.registerBookCompleted(book);
+      }
+    }
     
     if (prevBtn) prevBtn.disabled = currentBibleChapter <= 1;
     if (nextBtn) nextBtn.disabled = currentBibleChapter >= maxChapter;

@@ -77,6 +77,9 @@ async function initAuth() {
       if (typeof updateBannerWelcome === 'function') {
         updateBannerWelcome();
       }
+      if (window.ADPELJourney && typeof window.ADPELJourney.init === 'function') {
+        window.ADPELJourney.init();
+      }
       // Resetar debounce da home para forçar recarregamento com novos dados do usuário
       _lastHomeLoad = 0;
       
@@ -94,6 +97,9 @@ async function initAuth() {
       if (typeof updateBannerWelcome === 'function') {
         updateBannerWelcome();
       }
+      if (window.ADPELJourney && typeof window.ADPELJourney.renderJourneyWidgets === 'function') {
+        window.ADPELJourney.renderJourneyWidgets(null);
+      }
       showToast('Você foi desconectado.', 'info');
     }
   });
@@ -106,6 +112,9 @@ function updateAuthUI(isLoggedIn) {
   // Atualizar banner de boas-vindas
   if (typeof updateBannerWelcome === 'function') {
     setTimeout(() => updateBannerWelcome(), 100);
+  }
+  if (window.ADPELJourney && typeof window.ADPELJourney.init === 'function') {
+    setTimeout(() => window.ADPELJourney.init(), 150);
   }
   const authButtons = document.getElementById('auth-buttons');
   const userMenu = document.getElementById('user-menu');
