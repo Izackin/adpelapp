@@ -12,6 +12,7 @@
     chapter_read: 5,
     book_completed: 50,
     hymn_opened: 1,
+    lesson_watched: 0,
     study_completed: 20,
     course_completed: 50,
     offering: 10,
@@ -42,9 +43,19 @@
     { id: 'streak_100', title: '100 dias consecutivos', icon: 'fa-award', earned: function (p) { return p.longest_streak >= 100 || p.streak_days >= 100; }, target: 100, field: 'streak_days' }
   ];
 
+  var ACTION_TO_ACTIVITY = {
+    chapter_read: 'bible_chapter_read',
+    hymn_opened: 'hymn_opened',
+    lesson_watched: 'lesson_watched',
+    study_completed: 'study_completed',
+    offering: 'offering_made'
+  };
+
   var currentProgressCache = null;
   var rankingCache = [];
   var progressTableUnavailable = false;
+  var challengeTableUnavailable = false;
+  var dailyChallengesCache = [];
   var eventMemory = {};
 
   function getUserInfo() {
@@ -174,6 +185,168 @@
     return message.indexOf('spiritual_progress') !== -1 || message.indexOf('42p01') !== -1 || message.indexOf('does not exist') !== -1;
   }
 
+  function isMissingChallengeTableError(error) {
+    var message = String(error && (error.message || error.details || error.code) || '').toLowerCase();
+    return message.indexOf('daily_challenges') !== -1 || message.indexOf('user_daily_challenges') !== -1 || message.indexOf('42p01') !== -1 || message.indexOf('does not exist') !== -1;
+  }
+
+  function hashString(value) {
+    var hash = 0;
+    var input = String(value || '');
+    for (var i = 0; i < input.length; i++) {
+      hash = ((hash << 5) - hash) + input.charCodeAt(i);
+      hash |= 0;
+    }
+    return Math.abs(hash);
+  }
+
+  function pickDailyChallenges(challenges, progress) {
+    var seed = todayKey() + '_' + (progress.user_id || '') + '_' + (progress.level || 1);
+    return (challenges || []).slice().sort(function (a, b) {
+      return hashString(seed + '_' + a.id) - hashString(seed + '_' + b.id);
+    }).slice(0, 3);
+  }
+
+  function getChallengeMeta(activityType) {
+    var map = {
+      bible_chapter_read: { label: 'Ir para Biblia', icon: 'fa-book-bible' },
+      hymn_opened: { label: 'Ir para Harpa', icon: 'fa-music' },
+      lesson_watched: { label: 'Ir para Cursos', icon: 'fa-graduation-cap' },
+      study_completed: { label: 'Ir para Estudos', icon: 'fa-book-open' },
+      offering_made: { label: 'Ir para Ofertas', icon: 'fa-hand-holding-heart' }
+    };
+    return map[activityType] || { label: 'Ir para', icon: 'fa-arrow-right' };
+  }
+
+  function normalizeChallenge(row) {
+    var challenge = row && (row.daily_challenges || row.challenge || row);
+    challenge = challenge || {};
+    return {
+      id: row.id,
+      challenge_id: row.challenge_id || challenge.id,
+      title: challenge.title || 'Desafio diario',
+      description: challenge.description || '',
+      activity_type: challenge.activity_type || row.activity_type || '',
+      icon: challenge.icon || getChallengeMeta(challenge.activity_type || row.activity_type).icon,
+      xp_reward: Number(challenge.xp_reward) || 0,
+      current_count: Number(row.current_count) || 0,
+      target_count: Number(row.target_count || challenge.target_count) || 1,
+      completed: !!row.completed,
+      reward_claimed: !!row.reward_claimed
+    };
+  }
+
+  async function getDailyChallenges(progress) {
+    if (!progress || !window.supabaseClient || challengeTableUnavailable) return [];
+    var today = todayKey();
+    try {
+      var existing = await window.supabaseClient
+        .from('user_daily_challenges')
+        .select('*, daily_challenges(*)')
+        .eq('user_id', progress.user_id)
+        .eq('challenge_date', today)
+        .order('created_at', { ascending: true });
+
+      if (existing.error) throw existing.error;
+      var rows = (existing.data || []).slice(0, 3);
+      if (rows.length >= 3) {
+        dailyChallengesCache = rows.map(normalizeChallenge);
+        return dailyChallengesCache;
+      }
+
+      var available = await window.supabaseClient
+        .from('daily_challenges')
+        .select('*')
+        .eq('is_active', true)
+        .lte('level_min', Number(progress.level) || 1)
+        .gte('level_max', Number(progress.level) || 1);
+
+      if (available.error) throw available.error;
+
+      var existingIds = rows.map(function (row) { return row.challenge_id; });
+      var missingPool = (available.data || []).filter(function (item) {
+        return existingIds.indexOf(item.id) === -1;
+      });
+      var picked = pickDailyChallenges(missingPool, progress).slice(0, Math.max(0, 3 - rows.length));
+
+      if (picked.length) {
+        var inserts = picked.map(function (challenge) {
+          return {
+            user_id: progress.user_id,
+            challenge_id: challenge.id,
+            challenge_date: today,
+            current_count: 0,
+            target_count: Number(challenge.target_count) || 1,
+            completed: false,
+            reward_claimed: false
+          };
+        });
+        var insert = await window.supabaseClient
+          .from('user_daily_challenges')
+          .insert(inserts);
+        if (insert.error) throw insert.error;
+        return getDailyChallenges(progress);
+      }
+
+      dailyChallengesCache = rows.map(normalizeChallenge);
+      return dailyChallengesCache;
+    } catch (error) {
+      if (isMissingChallengeTableError(error)) {
+        challengeTableUnavailable = true;
+        renderDailyChallenges(null);
+        return [];
+      }
+      console.error('[Minha Caminhada] Erro ao carregar desafios diarios:', error);
+      return [];
+    }
+  }
+
+  async function recordChallengeProgress(progress, activityType, count) {
+    if (!progress || !activityType || challengeTableUnavailable || !window.supabaseClient) return progress;
+    var challenges = await getDailyChallenges(progress);
+    var matching = challenges.filter(function (challenge) {
+      return challenge.activity_type === activityType && !challenge.completed;
+    });
+    if (!matching.length) return progress;
+
+    var reward = 0;
+    for (var i = 0; i < matching.length; i++) {
+      var challenge = matching[i];
+      var nextCount = Math.min(challenge.target_count, challenge.current_count + (Number(count) || 1));
+      var completedNow = nextCount >= challenge.target_count;
+      var shouldReward = completedNow && !challenge.reward_claimed;
+      var update = await window.supabaseClient
+        .from('user_daily_challenges')
+        .update({
+          current_count: nextCount,
+          completed: completedNow,
+          reward_claimed: challenge.reward_claimed || shouldReward,
+          completed_at: completedNow ? new Date().toISOString() : null
+        })
+        .eq('id', challenge.id)
+        .eq('user_id', progress.user_id)
+        .select('*, daily_challenges(*)')
+        .single();
+
+      if (update.error) {
+        if (isMissingChallengeTableError(update.error)) challengeTableUnavailable = true;
+        console.error('[Minha Caminhada] Erro ao atualizar desafio:', update.error);
+        continue;
+      }
+      if (shouldReward) reward += challenge.xp_reward;
+    }
+
+    if (reward > 0) {
+      progress = updateXP(progress, reward);
+      progress = await saveProgress(progress);
+      if (typeof showToast === 'function') showToast('Desafio concluido! +' + reward + ' XP', 'success');
+    }
+
+    dailyChallengesCache = await getDailyChallenges(progress || currentProgressCache);
+    renderDailyChallenges(dailyChallengesCache);
+    return progress || currentProgressCache;
+  }
+
   async function getOrCreateProgress() {
     var userInfo = await resolveUserInfo();
     if (!userInfo.isLoggedIn || !userInfo.user || progressTableUnavailable || !window.supabaseClient) return null;
@@ -257,23 +430,41 @@
     return true;
   }
 
+  function rememberDailyEvent(key) {
+    var userInfo = getUserInfo();
+    var userId = userInfo.user && userInfo.user.id ? userInfo.user.id : 'anon';
+    var storageKey = 'adpel_journey_daily_event_' + userId + '_' + key;
+    var today = todayKey();
+    if (localStorage.getItem(storageKey) === today) return false;
+    localStorage.setItem(storageKey, today);
+    return true;
+  }
+
   async function applyProgress(action, options) {
     options = options || {};
     var progress = await getOrCreateProgress();
     if (!progress) return null;
 
-    if (options.uniqueKey && !rememberEvent(options.uniqueKey)) {
-      return progress;
+    var shouldApplyBaseProgress = !options.uniqueKey || rememberEvent(options.uniqueKey);
+    var saved = progress;
+
+    if (shouldApplyBaseProgress) {
+      progress = updateStreak(progress);
+      progress = updateXP(progress, XP_ACTIONS[action] || 0);
+
+      if (options.counter) {
+        progress[options.counter] = (Number(progress[options.counter]) || 0) + (options.count || 1);
+      }
+
+      saved = await saveProgress(progress);
     }
 
-    progress = updateStreak(progress);
-    progress = updateXP(progress, XP_ACTIONS[action] || 0);
-
-    if (options.counter) {
-      progress[options.counter] = (Number(progress[options.counter]) || 0) + (options.count || 1);
+    var activityType = ACTION_TO_ACTIVITY[action];
+    var challengeKey = action + '_' + (options.uniqueKey || 'daily');
+    if (activityType && rememberDailyEvent(challengeKey)) {
+      return recordChallengeProgress(saved || progress, activityType, options.count || 1);
     }
-
-    return saveProgress(progress);
+    return saved;
   }
 
   async function registerBibleRead() {
@@ -311,6 +502,12 @@
     return applyProgress('course_completed', {
       counter: 'courses_completed',
       uniqueKey: 'course_' + String(courseId || todayKey())
+    });
+  }
+
+  async function registerLessonWatched(courseId, lessonIndex) {
+    return applyProgress('lesson_watched', {
+      uniqueKey: 'lesson_' + String(courseId || 'course') + '_' + String(lessonIndex || 0)
     });
   }
 
@@ -378,6 +575,90 @@
     renderJourneyCard(progress);
     renderJourneyProfile(progress);
     renderMedals(progress);
+    if (progress) {
+      getDailyChallenges(progress).then(renderDailyChallenges);
+    } else {
+      renderDailyChallenges([]);
+    }
+  }
+
+  function renderDailyChallenges(challenges) {
+    var container = document.getElementById('daily-challenges-content');
+    if (!container) return;
+    if (challengeTableUnavailable) {
+      container.innerHTML = '<div class="text-sm text-gray-500 bg-gray-50 rounded-lg p-3">Desafios diarios serao ativados apos criar as tabelas no Supabase.</div>';
+      return;
+    }
+    if (challenges === null) {
+      container.innerHTML = '<div class="text-sm text-gray-500 bg-gray-50 rounded-lg p-3">Desafios diarios ainda nao disponiveis.</div>';
+      return;
+    }
+    var list = (challenges || dailyChallengesCache || []).slice(0, 3);
+    if (!list.length) {
+      container.innerHTML = '<div class="text-sm text-gray-500 bg-gray-50 rounded-lg p-3">Nenhum desafio ativo para seu nivel hoje.</div>';
+      return;
+    }
+
+    container.innerHTML = list.map(function (challenge) {
+      var percent = Math.min(100, Math.round((challenge.current_count / challenge.target_count) * 100));
+      var meta = getChallengeMeta(challenge.activity_type);
+      var button = challenge.completed
+        ? '<button disabled class="px-3 py-2 rounded-lg bg-emerald-100 text-emerald-700 text-xs font-bold cursor-default">Concluido</button>'
+        : '<button onclick="ADPELJourney.goToChallengeTarget(&quot;' + escapeHtml(challenge.activity_type) + '&quot;)" class="px-3 py-2 rounded-lg bg-gray-900 text-white text-xs font-bold hover:bg-gray-800 transition">' + escapeHtml(meta.label) + '</button>';
+      return [
+        '<div class="border border-gray-100 rounded-xl p-3 ' + (challenge.completed ? 'bg-emerald-50 border-emerald-100' : 'bg-white') + '">',
+          '<div class="flex items-start gap-3">',
+            '<div class="w-9 h-9 rounded-lg ' + (challenge.completed ? 'bg-emerald-100 text-emerald-700' : 'bg-gray-100 text-gray-600') + ' flex items-center justify-center shrink-0">',
+              '<i class="fas ' + escapeHtml(challenge.icon || meta.icon) + '"></i>',
+            '</div>',
+            '<div class="flex-1 min-w-0">',
+              '<div class="flex items-start justify-between gap-3">',
+                '<div class="min-w-0">',
+                  '<h4 class="font-bold text-gray-800 text-sm">' + escapeHtml(challenge.title) + '</h4>',
+                  challenge.description ? '<p class="text-xs text-gray-500 mt-0.5">' + escapeHtml(challenge.description) + '</p>' : '',
+                '</div>',
+                button,
+              '</div>',
+              '<div class="mt-3 flex items-center gap-3">',
+                '<div class="flex-1 h-2 rounded-full bg-gray-100 overflow-hidden"><div class="h-full ' + (challenge.completed ? 'bg-emerald-500' : 'bg-adpel-600') + ' rounded-full" style="width:' + percent + '%"></div></div>',
+                '<span class="text-xs font-semibold text-gray-500 whitespace-nowrap">' + challenge.current_count + '/' + challenge.target_count + '</span>',
+              '</div>',
+              '<p class="text-xs text-emerald-700 font-semibold mt-2">+' + challenge.xp_reward + ' XP</p>',
+            '</div>',
+          '</div>',
+        '</div>'
+      ].join('');
+    }).join('');
+  }
+
+  function goToChallengeTarget(activityType) {
+    if (activityType === 'bible_chapter_read') {
+      if (typeof navigateTo === 'function') {
+        navigateTo('bible');
+        if (typeof abrirBiblia === 'function') setTimeout(abrirBiblia, 150);
+        return;
+      }
+      window.location.href = 'index.html#bible';
+      return;
+    }
+    if (activityType === 'hymn_opened') {
+      window.location.href = 'harpa.html';
+      return;
+    }
+    if (activityType === 'lesson_watched') {
+      if (typeof navigateTo === 'function') navigateTo('courses');
+      else window.location.href = 'index.html#courses';
+      return;
+    }
+    if (activityType === 'study_completed') {
+      if (typeof navigateTo === 'function') navigateTo('studies');
+      else window.location.href = 'index.html#studies';
+      return;
+    }
+    if (activityType === 'offering_made') {
+      if (typeof openOfertaModal === 'function') openOfertaModal();
+      else window.location.href = 'index.html#home';
+    }
   }
 
   function renderJourneyCard(progress) {
@@ -418,6 +699,15 @@
       '<div class="mt-4 flex items-center justify-between gap-3 text-sm">',
         '<span class="text-gray-500">Próxima medalha</span>',
         '<span class="font-semibold text-gray-800 text-right">' + escapeHtml(nextMedal ? nextMedal.title : 'Todas conquistadas') + '</span>',
+      '</div>',
+      '<div class="mt-5 pt-4 border-t border-gray-100">',
+        '<div class="flex items-center justify-between mb-3">',
+          '<h3 class="font-bold text-gray-800 text-sm">Desafios de hoje</h3>',
+          '<span class="text-xs text-gray-500">max. 3</span>',
+        '</div>',
+        '<div id="daily-challenges-content" class="space-y-3">',
+          '<div class="text-sm text-gray-500 bg-gray-50 rounded-lg p-3">Carregando desafios diarios...</div>',
+        '</div>',
       '</div>',
       '<div class="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-3">',
         '<button onclick="ADPELJourney.completeDailyMission()" class="w-full py-2 bg-emerald-600 text-white rounded-lg text-sm font-bold hover:bg-emerald-700 transition">Missão diária</button>',
@@ -512,11 +802,14 @@
     init: initJourney,
     renderJourneyWidgets: renderJourneyWidgets,
     renderRanking: renderRanking,
+    renderDailyChallenges: renderDailyChallenges,
+    goToChallengeTarget: goToChallengeTarget,
     registerBibleRead: registerBibleRead,
     registerChapterRead: registerChapterRead,
     registerBookCompleted: registerBookCompleted,
     registerStudyCompleted: registerStudyCompleted,
     registerCourseCompleted: registerCourseCompleted,
+    registerLessonWatched: registerLessonWatched,
     registerOffering: registerOffering,
     registerMission: registerMission,
     completeDailyMission: completeDailyMission,
@@ -534,6 +827,7 @@
   window.registerBookCompleted = registerBookCompleted;
   window.registerStudyCompleted = registerStudyCompleted;
   window.registerCourseCompleted = registerCourseCompleted;
+  window.registerLessonWatched = registerLessonWatched;
   window.registerOffering = registerOffering;
   window.registerMission = registerMission;
   window.updateXP = updateXP;

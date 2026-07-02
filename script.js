@@ -1256,6 +1256,9 @@ async function toggleLessonComplete(courseId, index) {
           completed_at: new Date().toISOString()
         }]);
       if (insError) throw insError;
+      if (window.ADPELJourney && typeof window.ADPELJourney.registerLessonWatched === 'function') {
+        window.ADPELJourney.registerLessonWatched(courseId, index);
+      }
       if (totalLessons > 0 && completedBefore.length + 1 >= totalLessons && window.ADPELJourney && typeof window.ADPELJourney.registerCourseCompleted === 'function') {
         window.ADPELJourney.registerCourseCompleted(courseId);
       }
