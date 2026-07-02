@@ -84,3 +84,84 @@ img { max-width: 100%; height: auto; }
   .empty-state-icon { width: 4rem; height: 4rem; margin-bottom: 1rem; }
   .empty-state h3 { font-size: 1.1rem; }
 }
+
+/* Mobile polish: keep bottom navigation and modals comfortable on small screens */
+@media (max-width: 767px) {
+  body {
+    padding-bottom: calc(4.75rem + env(safe-area-inset-bottom, 0px));
+  }
+
+  button,
+  a,
+  input,
+  select,
+  textarea {
+    touch-action: manipulation;
+  }
+
+  #mobile-nav {
+    min-height: calc(4.25rem + env(safe-area-inset-bottom, 0px));
+  }
+
+  #mobile-nav .mobile-nav-btn {
+    min-height: 3.75rem;
+    gap: 0.2rem;
+  }
+
+  #menu-aprender,
+  #menu-culto {
+    max-width: calc(100vw - 1rem);
+    margin-left: 0.5rem;
+    margin-right: 0.5rem;
+  }
+
+  #login-modal,
+  #register-modal,
+  #course-modal,
+  #study-modal,
+  #oferta-modal,
+  #contribution-modal,
+  #certificate-view-modal {
+    align-items: flex-start !important;
+    padding: 1rem 0.75rem calc(1.5rem + env(safe-area-inset-bottom, 0px)) !important;
+    overflow-y: auto;
+  }
+
+  #login-modal > div,
+  #register-modal > div,
+  #course-modal > div,
+  #study-modal > div,
+  #oferta-modal > div,
+  #contribution-modal > div,
+  #certificate-view-modal > div {
+    width: 100%;
+    max-height: calc(100dvh - 2rem - env(safe-area-inset-bottom, 0px));
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  #course-modal h2,
+  #study-modal h2 {
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+
+  #login-modal input,
+  #register-modal input,
+  #register-modal select,
+  #oferta-modal input,
+  #oferta-modal textarea,
+  #contribution-modal input {
+    min-height: 2.75rem;
+  }
+
+  #login-modal button,
+  #register-modal button,
+  #course-modal button,
+  #study-modal button,
+  #oferta-modal button,
+  #contribution-modal button,
+  #certificate-view-modal button {
+    min-height: 2.75rem;
+  }
+}

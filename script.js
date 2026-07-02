@@ -20,6 +20,8 @@ document.addEventListener('DOMContentLoaded', () => {
   }
   window.addEventListener('hashchange', handleHash);
   if (window.location.hash) handleHash();
+  initMobileNavInteractions();
+  initModalInteractions();
 });
 
 let currentSection = 'home';
@@ -2621,6 +2623,78 @@ function closeMobileSubmenus() {
   const m2 = document.getElementById('menu-culto');
   if (m1) m1.classList.add('hidden');
   if (m2) m2.classList.add('hidden');
+}
+
+function initMobileNavInteractions() {
+  const mobileNav = document.getElementById('mobile-nav');
+  if (!mobileNav) return;
+
+  document.addEventListener('click', (event) => {
+    if (mobileNav.contains(event.target)) return;
+    closeMobileSubmenus();
+  });
+
+  document.addEventListener('keydown', (event) => {
+    if (event.key === 'Escape') {
+      closeMobileSubmenus();
+    }
+  });
+}
+
+function initModalInteractions() {
+  const modalIds = [
+    'login-modal',
+    'register-modal',
+    'course-modal',
+    'study-modal',
+    'oferta-modal',
+    'contribution-modal',
+    'certificate-view-modal'
+  ];
+
+  modalIds.forEach((modalId) => {
+    const modal = document.getElementById(modalId);
+    if (!modal) return;
+
+    modal.addEventListener('click', (event) => {
+      if (event.target === modal) {
+        closeModalById(modalId);
+      }
+    });
+  });
+
+  document.addEventListener('keydown', (event) => {
+    if (event.key !== 'Escape') return;
+
+    const openModal = modalIds
+      .map((modalId) => document.getElementById(modalId))
+      .filter((modal) => modal && !modal.classList.contains('hidden'))
+      .pop();
+
+    if (openModal) {
+      closeModalById(openModal.id);
+    }
+  });
+}
+
+function closeModalById(modalId) {
+  const closers = {
+    'course-modal': 'closeCourseModal',
+    'study-modal': 'closeStudyModal',
+    'oferta-modal': 'closeOfertaModal',
+    'contribution-modal': 'closeContributionModal',
+    'certificate-view-modal': 'closeCertificateViewModal'
+  };
+  const closerName = closers[modalId];
+
+  if (closerName && typeof window[closerName] === 'function') {
+    window[closerName]();
+    return;
+  }
+
+  if (typeof closeModal === 'function') {
+    closeModal(modalId);
+  }
 }
 
 function toggleSidebarGroup(groupId) {
