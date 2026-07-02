@@ -204,9 +204,6 @@ async function loadHomeData() {
       ADPEL.fetch.announcements()
     ]);
 
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-
     // Cursos em andamento
     const userInfo = getCurrentUserInfo();
     let progressMap = {};
@@ -218,7 +215,9 @@ async function loadHomeData() {
       });
     }
 
-    const publishedCourses = (courses || []).filter(c => c.is_published);
+    const publishedCourses = (courses || [])
+      .filter(c => c.is_published)
+      .filter(isContentVisibleNow);
     const inProgressCourses = publishedCourses.map(course => {
       const lessons = normalizeLessons(course.lessons);
       const total = lessons.length;
@@ -233,13 +232,7 @@ async function loadHomeData() {
 
     renderContinueSection(inProgressCourses);
 
-    const futureEvents = (events || []).filter(e => {
-      if (!e.event_date) return true;
-      const eventDate = parseLocalDate(e.event_date);
-      if (!eventDate) return true;
-      eventDate.setHours(0, 0, 0, 0);
-      return eventDate >= today;
-    });
+    const futureEvents = (events || []).filter(isHomeEventVisible);
 
     const attendancesByEvent = {};
     (attendances || []).forEach(a => {
@@ -250,7 +243,9 @@ async function loadHomeData() {
     renderHomeEvents(futureEvents, attendancesByEvent);
 
     // Avisos
-    const publishedAnnouncements = (announcements || []).filter(a => a.is_published);
+    const publishedAnnouncements = (announcements || [])
+      .filter(a => a.is_published)
+      .filter(isContentVisibleNow);
     const announcementsSection = document.getElementById('home-announcements-section');
     if (publishedAnnouncements.length > 0 && announcementsSection) {
       announcementsSection.classList.remove('hidden');
@@ -262,6 +257,25 @@ async function loadHomeData() {
   } catch (error) {
     console.error('Erro ao carregar dados da home:', error);
   }
+}
+
+function isContentVisibleNow(item) {
+  if (!window.ADPELDateUtils || typeof window.ADPELDateUtils.isWithinDateRange !== 'function') {
+    return true;
+  }
+  return window.ADPELDateUtils.isWithinDateRange(item);
+}
+
+function isHomeEventVisible(event) {
+  if (!window.ADPELDateUtils || typeof window.ADPELDateUtils.isWithinDateRange !== 'function') {
+    return true;
+  }
+
+  return window.ADPELDateUtils.isWithinDateRange(
+    event,
+    window.ADPELDateUtils.startFields,
+    window.ADPELDateUtils.endFields.concat(['event_date'])
+  );
 }
 
 async function fetchAllAttendances() {

@@ -2,6 +2,24 @@ document.addEventListener('DOMContentLoaded', async () => {
   await loadPublicApp();
 });
 
+function isVisibleByDate(item) {
+  if (!window.ADPELDateUtils || typeof window.ADPELDateUtils.isWithinDateRange !== 'function') {
+    return true;
+  }
+  return window.ADPELDateUtils.isWithinDateRange(item);
+}
+
+function isVisiblePublicEvent(item) {
+  if (!window.ADPELDateUtils || typeof window.ADPELDateUtils.isWithinDateRange !== 'function') {
+    return true;
+  }
+  return window.ADPELDateUtils.isWithinDateRange(
+    item,
+    window.ADPELDateUtils.startFields,
+    window.ADPELDateUtils.endFields.concat(['event_date'])
+  );
+}
+
 async function loadPublicApp() {
   try {
     const [
@@ -28,16 +46,16 @@ async function loadPublicApp() {
       fetchEvents()
     ]);
 
-    renderHomeSections(homeSections);
-    renderFeaturedCourses(featuredCourses);
-    renderCourses(courses);
-    renderFeaturedStudies(featuredStudies);
-    renderStudies(studies);
-    renderFeaturedBooks(featuredBooks);
-    renderBooks(books);
+    renderHomeSections((homeSections || []).filter(isVisibleByDate));
+    renderFeaturedCourses((featuredCourses || []).filter(isVisibleByDate));
+    renderCourses((courses || []).filter(isVisibleByDate));
+    renderFeaturedStudies((featuredStudies || []).filter(isVisibleByDate));
+    renderStudies((studies || []).filter(isVisibleByDate));
+    renderFeaturedBooks((featuredBooks || []).filter(isVisibleByDate));
+    renderBooks((books || []).filter(isVisibleByDate));
     renderCertificates(certificates);
-    renderAnnouncements(announcements);
-    renderEvents(events);
+    renderAnnouncements((announcements || []).filter(isVisibleByDate));
+    renderEvents((events || []).filter(isVisiblePublicEvent));
   } catch (error) {
     console.error('Erro ao carregar aplicação pública:', error);
   }
