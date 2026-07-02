@@ -14,8 +14,10 @@ document.addEventListener('DOMContentLoaded', () => {
   // Navegação por hash (links diretos)
   function handleHash() {
     const hash = window.location.hash.replace('#', '');
-    if (hash && ['home','courses','studies','library','certificate','cofres','ranking','profile'].includes(hash)) {
+    if (hash && ['home','courses','library','certificate','cofres','ranking','profile'].includes(hash)) {
       navigateTo(hash);
+    } else if (hash === 'studies') {
+      navigateTo('courses');
     }
   }
   window.addEventListener('hashchange', handleHash);
@@ -64,8 +66,9 @@ async function readBook(id) {
 }
 
 function navigateTo(section) {
+  if (section === 'studies') section = 'courses';
   // Seções que exigem login
-  var restrictedSections = ['courses', 'studies', 'library', 'certificate', 'profile'];
+  var restrictedSections = ['courses', 'library', 'certificate', 'profile'];
   var userInfo = getCurrentUserInfo();
   
   if (restrictedSections.indexOf(section) !== -1 && !userInfo.isLoggedIn) {
@@ -73,7 +76,7 @@ function navigateTo(section) {
     return;
   }
 
-  const sections = ['home', 'courses', 'studies', 'library', 'certificate', 'cofres', 'ranking', 'bible', 'profile'];
+  const sections = ['home', 'courses', 'library', 'certificate', 'cofres', 'ranking', 'bible', 'profile'];
   sections.forEach(s => {
     const el = document.getElementById(s);
     if (el) el.classList.add('hidden');
@@ -98,7 +101,6 @@ function navigateTo(section) {
     const groupMap = {
       home: 'home',
       courses: 'aprender',
-      studies: 'aprender',
       library: 'aprender',
       certificate: 'aprender',
       cofres: 'culto',
@@ -129,7 +131,6 @@ function loadSectionData(section) {
   switch(section) {
     case 'home': loadHomeData(); break;
     case 'courses': loadCoursesData(); break;
-    case 'studies': loadStudiesData(); break;
     case 'library': loadLibraryData(); break;
     case 'certificate': loadCertificatesData(); break;
     case 'cofres': if (typeof loadCofresData === 'function') loadCofresData(); break;
@@ -237,25 +238,20 @@ async function loadHomeData() {
 
     renderContinueSection(inProgressCourses);
 
-    const futureEvents = (events || []).filter(isHomeEventVisible);
-
     const attendancesByEvent = {};
     (attendances || []).forEach(a => {
       if (!attendancesByEvent[a.event_id]) attendancesByEvent[a.event_id] = [];
       attendancesByEvent[a.event_id].push(a);
     });
 
-    renderHomeEvents(futureEvents, attendancesByEvent);
-
-    // Avisos
+    const futureEvents = (events || []).filter(isHomeEventVisible);
     const publishedAnnouncements = (announcements || [])
       .filter(a => a.is_published)
       .filter(isContentVisibleNow);
+    renderHomeEvents(buildUnifiedAgenda(futureEvents, publishedAnnouncements), attendancesByEvent);
+
     const announcementsSection = document.getElementById('home-announcements-section');
-    if (publishedAnnouncements.length > 0 && announcementsSection) {
-      announcementsSection.classList.remove('hidden');
-      renderAnnouncements(publishedAnnouncements);
-    } else if (announcementsSection) {
+    if (announcementsSection) {
       announcementsSection.classList.add('hidden');
     }
 
@@ -269,6 +265,29 @@ function isContentVisibleNow(item) {
     return true;
   }
   return window.ADPELDateUtils.isWithinDateRange(item);
+}
+
+function buildUnifiedAgenda(events, announcements) {
+  const eventItems = (events || []).map(e => ({ ...e, agenda_type: 'event' }));
+  const announcementItems = (announcements || []).map(a => {
+    const dateSource = a.expiry || a.expires_at || a.created_at || new Date().toISOString();
+    return {
+      id: 'announcement-' + (a.id || String(a.title || '').replace(/\s+/g, '-')),
+      agenda_type: 'announcement',
+      title: a.title || 'Aviso',
+      description: a.message || a.description || '',
+      event_date: String(dateSource).slice(0, 10),
+      event_time: '',
+      category: a.priority === 'urgent' ? 'aviso_urgente' : 'aviso',
+      link: a.link || ''
+    };
+  });
+
+  return eventItems.concat(announcementItems).sort((a, b) => {
+    const aDate = String(a.event_date || '').slice(0, 10);
+    const bDate = String(b.event_date || '').slice(0, 10);
+    return aDate.localeCompare(bDate);
+  });
 }
 
 function isHomeEventVisible(event) {
@@ -610,13 +629,17 @@ function renderHomeEvents(events, attendancesByEvent = {}) {
   }
 
   section.classList.remove('hidden');
+  const sectionTitle = section.querySelector('h2');
+  if (sectionTitle) sectionTitle.textContent = 'Agenda';
   const isLoggedIn = getCurrentUserInfo().isLoggedIn;
 
   const categoryColors = {
     culto: 'border-l-blue-500 bg-blue-50',
     estudo: 'border-l-purple-500 bg-purple-50',
     reuniao: 'border-l-gray-500 bg-gray-50',
-    evento: 'border-l-gold-500 bg-gold-50'
+    evento: 'border-l-gold-500 bg-gold-50',
+    aviso: 'border-l-amber-500 bg-amber-50',
+    aviso_urgente: 'border-l-red-500 bg-red-50'
   };
 
   container.innerHTML = events.map(e => {

@@ -212,7 +212,7 @@
       bible_chapter_read: { label: 'Ir para Biblia', icon: 'fa-book-bible' },
       hymn_opened: { label: 'Ir para Harpa', icon: 'fa-music' },
       lesson_watched: { label: 'Ir para Cursos', icon: 'fa-graduation-cap' },
-      study_completed: { label: 'Ir para Estudos', icon: 'fa-book-open' },
+      study_completed: { label: 'Ir para Cursos', icon: 'fa-graduation-cap' },
       offering_made: { label: 'Ir para Ofertas', icon: 'fa-hand-holding-heart' }
     };
     return map[activityType] || { label: 'Ir para', icon: 'fa-arrow-right' };
@@ -603,27 +603,27 @@
       var percent = Math.min(100, Math.round((challenge.current_count / challenge.target_count) * 100));
       var meta = getChallengeMeta(challenge.activity_type);
       var button = challenge.completed
-        ? '<button disabled class="px-3 py-2 rounded-lg bg-emerald-100 text-emerald-700 text-xs font-bold cursor-default">Concluido</button>'
-        : '<button onclick="ADPELJourney.goToChallengeTarget(&quot;' + escapeHtml(challenge.activity_type) + '&quot;)" class="px-3 py-2 rounded-lg bg-gray-900 text-white text-xs font-bold hover:bg-gray-800 transition">' + escapeHtml(meta.label) + '</button>';
+        ? '<button disabled class="px-3 py-2 rounded-lg bg-emerald-600 text-white text-xs font-bold cursor-default inline-flex items-center gap-1"><i class="fas fa-check"></i> Concluido</button>'
+        : '<button onclick="ADPELJourney.goToChallengeTarget(&quot;' + escapeHtml(challenge.activity_type) + '&quot;)" class="px-3 py-2 rounded-lg bg-adpel-700 text-white text-xs font-bold hover:bg-adpel-800 transition inline-flex items-center gap-1"><i class="fas fa-arrow-right"></i> ' + escapeHtml(meta.label) + '</button>';
       return [
-        '<div class="border border-gray-100 rounded-xl p-3 ' + (challenge.completed ? 'bg-emerald-50 border-emerald-100' : 'bg-white') + '">',
+        '<div class="border rounded-xl p-3 shadow-sm ' + (challenge.completed ? 'bg-emerald-50 border-emerald-200' : 'bg-white border-gray-200') + '">',
           '<div class="flex items-start gap-3">',
-            '<div class="w-9 h-9 rounded-lg ' + (challenge.completed ? 'bg-emerald-100 text-emerald-700' : 'bg-gray-100 text-gray-600') + ' flex items-center justify-center shrink-0">',
+            '<div class="w-10 h-10 rounded-xl ' + (challenge.completed ? 'bg-emerald-600 text-white' : 'bg-adpel-700 text-white') + ' flex items-center justify-center shrink-0 shadow-sm">',
               '<i class="fas ' + escapeHtml(challenge.icon || meta.icon) + '"></i>',
             '</div>',
             '<div class="flex-1 min-w-0">',
               '<div class="flex items-start justify-between gap-3">',
                 '<div class="min-w-0">',
-                  '<h4 class="font-bold text-gray-800 text-sm">' + escapeHtml(challenge.title) + '</h4>',
-                  challenge.description ? '<p class="text-xs text-gray-500 mt-0.5">' + escapeHtml(challenge.description) + '</p>' : '',
+                  '<h4 class="font-bold text-gray-900 text-sm leading-snug">' + escapeHtml(challenge.title) + '</h4>',
+                  challenge.description ? '<p class="text-xs text-gray-600 mt-1 leading-relaxed">' + escapeHtml(challenge.description) + '</p>' : '',
                 '</div>',
                 button,
               '</div>',
               '<div class="mt-3 flex items-center gap-3">',
-                '<div class="flex-1 h-2 rounded-full bg-gray-100 overflow-hidden"><div class="h-full ' + (challenge.completed ? 'bg-emerald-500' : 'bg-adpel-600') + ' rounded-full" style="width:' + percent + '%"></div></div>',
-                '<span class="text-xs font-semibold text-gray-500 whitespace-nowrap">' + challenge.current_count + '/' + challenge.target_count + '</span>',
+                '<div class="flex-1 h-2.5 rounded-full bg-gray-200 overflow-hidden"><div class="h-full ' + (challenge.completed ? 'bg-emerald-600' : 'bg-adpel-700') + ' rounded-full" style="width:' + percent + '%"></div></div>',
+                '<span class="text-xs font-bold text-gray-700 whitespace-nowrap">' + challenge.current_count + '/' + challenge.target_count + '</span>',
               '</div>',
-              '<p class="text-xs text-emerald-700 font-semibold mt-2">+' + challenge.xp_reward + ' XP</p>',
+              '<p class="text-xs text-emerald-700 font-bold mt-2"><i class="fas fa-star mr-1"></i>+' + challenge.xp_reward + ' XP</p>',
             '</div>',
           '</div>',
         '</div>'
@@ -651,8 +651,8 @@
       return;
     }
     if (activityType === 'study_completed') {
-      if (typeof navigateTo === 'function') navigateTo('studies');
-      else window.location.href = 'index.html#studies';
+      if (typeof navigateTo === 'function') navigateTo('courses');
+      else window.location.href = 'index.html#courses';
       return;
     }
     if (activityType === 'offering_made') {
