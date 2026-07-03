@@ -2007,12 +2007,18 @@ let ofertaEtapaAtual = 1; // 1=tipo, 2=cofres, 3=valor, 4=pix, 5=sucesso
 
 function restorePageScroll() {
   document.body.style.overflow = '';
+  document.body.classList.remove('overflow-hidden');
+  document.documentElement.style.overflow = '';
+  document.documentElement.classList.remove('overflow-hidden');
 }
 
 function openOfertaModal(options) {
   options = options || {};
   const modal = document.getElementById('oferta-modal');
   if (modal) {
+    if (modal.parentElement !== document.body) {
+      document.body.appendChild(modal);
+    }
     modal.classList.remove('hidden');
     modal.classList.add('flex');
     restorePageScroll();
@@ -2136,7 +2142,7 @@ function closeOfertaModal() {
   if (modal) {
     modal.classList.add('hidden');
     modal.classList.remove('flex');
-    document.body.style.overflow = '';
+    restorePageScroll();
   }
   // Restaurar footer
   const footer = document.querySelector('footer');
@@ -2542,6 +2548,10 @@ async function registrarOfertaConfirmada() {
 
   if (isDestinada) {
     await atualizarEstatisticasCofre(ofertaCofreSelecionado.id, ofertaValorSelecionado);
+  }
+
+  if (currentSection === 'profile') {
+    renderProfileOfferings(userInfo);
   }
 
   return ofertaIdRegistrado;

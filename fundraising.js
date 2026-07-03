@@ -6,6 +6,7 @@
 let cofresData = [];
 let cofresStats = {};
 let currentContributionGoalId = null;
+let userCofreContributions = {};
 
 // ==========================
 // LOAD DATA
@@ -47,11 +48,49 @@ async function loadCofresData() {
       }
     });
 
+    userCofreContributions = {};
+    var userInfo = (typeof getCurrentUserInfo === 'function') ? getCurrentUserInfo() : { isLoggedIn: false };
+    if (userInfo.isLoggedIn && userInfo.user && userInfo.user.id) {
+      var contributionsResult = await window.supabaseClient
+        .from('fundraising_contributions')
+        .select('goal_id, amount, created_at, paid_at, status')
+        .eq('user_id', userInfo.user.id)
+        .not('goal_id', 'is', null)
+        .eq('status', 'confirmed')
+        .order('created_at', { ascending: false })
+        .limit(200);
+
+      if (contributionsResult.error && typeof isOfferingSchemaError === 'function' && isOfferingSchemaError(contributionsResult.error)) {
+        contributionsResult = await window.supabaseClient
+          .from('fundraising_contributions')
+          .select('goal_id, amount, created_at')
+          .eq('user_id', userInfo.user.id)
+          .not('goal_id', 'is', null)
+          .order('created_at', { ascending: false })
+          .limit(200);
+      }
+
+      if (!contributionsResult.error && Array.isArray(contributionsResult.data)) {
+        contributionsResult.data.forEach(function(item) {
+          if (!item || !item.goal_id) return;
+          if (!userCofreContributions[item.goal_id]) {
+            userCofreContributions[item.goal_id] = { total: 0, count: 0, latest: null };
+          }
+          userCofreContributions[item.goal_id].total += Number(item.amount || 0);
+          userCofreContributions[item.goal_id].count += 1;
+          userCofreContributions[item.goal_id].latest = userCofreContributions[item.goal_id].latest || (item.paid_at || item.created_at || null);
+        });
+      } else if (contributionsResult.error) {
+        console.warn('[Cofres] Nao foi possivel carregar ofertas do usuario:', contributionsResult.error);
+      }
+    }
+
     renderCofresSection();
   } catch (e) {
     console.error('[Cofres] Erro ao carregar:', e);
     cofresData = [];
     cofresStats = {};
+    userCofreContributions = {};
     renderCofresSection();
   }
 }
@@ -95,6 +134,7 @@ function renderCofresSection() {
     var remaining = Math.max(0, targetAmount - currentAmount);
     var progressPct = targetAmount > 0 ? Math.min(100, Math.round((currentAmount / targetAmount) * 100)) : 0;
     var contributors = parseInt(stats.contributor_count, 10) || 0;
+    var userContribution = userCofreContributions[goal.id] || null;
     var isComplete = progressPct >= 100;
     var goalEndDate = (goal.end_date && goal.end_date !== 'undefined' && goal.end_date !== 'null') ? goal.end_date : '';
 
@@ -140,6 +180,14 @@ function renderCofresSection() {
     '</div>';
 
     html += '<p class="text-xs text-gray-400 mb-3"><i class="fas fa-users mr-1"></i> ' + contributors + ' pessoa' + (contributors !== 1 ? 's' : '') + ' contribuíram</p>';
+
+    if (isLoggedIn && userContribution && userContribution.total > 0) {
+      html += '<div class="mb-3 rounded-xl border border-green-100 bg-green-50 p-3">' +
+        '<p class="text-xs font-bold text-green-700 flex items-center gap-1"><i class="fas fa-check-circle"></i> Voce ja ofertou neste cofre</p>' +
+        '<p class="text-sm text-gray-700 mt-1">Total: <strong>R$ ' + formatBRL(userContribution.total) + '</strong> em ' + userContribution.count + ' oferta' + (userContribution.count !== 1 ? 's' : '') + '.</p>' +
+        '<button onclick="navigateTo(\'profile\')" class="mt-2 text-xs font-bold text-green-700 hover:text-green-900 underline">Ver minhas ofertas</button>' +
+      '</div>';
+    }
 
     if (goalEndDate) {
       html += '<p class="text-xs text-gray-500 mb-3"><i class="fas fa-calendar mr-1"></i> Encerra em: ' + formatCofreDate(goalEndDate) + '</p>';
