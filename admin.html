@@ -117,17 +117,11 @@
         <button onclick="adminNavigateTo('courses')" class="w-full flex items-center px-3 py-3 rounded-lg hover:bg-gray-800 active:bg-gray-700 transition group text-gray-300 hover:text-white min-h-[44px]">
           <i class="fas fa-graduation-cap w-5 text-center text-lg transition group-hover:text-blue-400"></i><span class="ml-3 font-medium">Gerenciar Cursos</span>
         </button>
-        <button onclick="adminNavigateTo('studies')" class="w-full flex items-center px-3 py-3 rounded-lg hover:bg-gray-800 active:bg-gray-700 transition group text-gray-300 hover:text-white min-h-[44px]">
-          <i class="fas fa-book-open w-5 text-center text-lg transition group-hover:text-amber-400"></i><span class="ml-3 font-medium">Gerenciar Estudos</span>
-        </button>
         <button onclick="adminNavigateTo('library')" class="w-full flex items-center px-3 py-3 rounded-lg hover:bg-gray-800 active:bg-gray-700 transition group text-gray-300 hover:text-white min-h-[44px]">
           <i class="fas fa-book w-5 text-center text-lg transition group-hover:text-cyan-400"></i><span class="ml-3 font-medium">Gerenciar Biblioteca</span>
         </button>
         <button onclick="adminNavigateTo('certificates')" class="w-full flex items-center px-3 py-3 rounded-lg hover:bg-gray-800 active:bg-gray-700 transition group text-gray-300 hover:text-white min-h-[44px]">
           <i class="fas fa-certificate w-5 text-center text-lg transition group-hover:text-yellow-400"></i><span class="ml-3 font-medium">Gerenciar Certificados</span>
-        </button>
-        <button onclick="adminNavigateTo('avisos')" class="w-full flex items-center px-3 py-3 rounded-lg hover:bg-gray-800 active:bg-gray-700 transition group text-gray-300 hover:text-white min-h-[44px]">
-          <i class="fas fa-bullhorn w-5 text-center text-lg transition group-hover:text-red-400"></i><span class="ml-3 font-medium">Gerenciar Avisos</span>
         </button>
         <button onclick="adminNavigateTo('agenda')" class="w-full flex items-center px-3 py-3 rounded-lg hover:bg-gray-800 active:bg-gray-700 transition group text-gray-300 hover:text-white min-h-[44px]">
           <i class="fas fa-calendar-alt w-5 text-center text-lg transition group-hover:text-purple-400"></i><span class="ml-3 font-medium">Gerenciar Agenda</span>
@@ -171,11 +165,6 @@
             <h3 class="font-semibold text-adpel-800 mb-2 md:mb-4 flex items-center gap-2 text-sm md:text-base"><i class="fas fa-graduation-cap"></i> Cursos</h3>
             <div class="text-2xl md:text-3xl font-bold text-adpel-700" id="stat-courses">0</div>
             <p class="text-xs md:text-sm text-gray-500 mt-1">Cursos criados</p>
-          </div>
-          <div class="bg-amber-50 p-4 md:p-6 rounded-xl border border-amber-100 cursor-pointer hover:bg-amber-100 active:scale-[0.98] transition select-none" onclick="adminNavigateTo('studies')">
-            <h3 class="font-semibold text-amber-800 mb-2 md:mb-4 flex items-center gap-2 text-sm md:text-base"><i class="fas fa-book-open"></i> Estudos</h3>
-            <div class="text-2xl md:text-3xl font-bold text-amber-700" id="stat-studies">0</div>
-            <p class="text-xs md:text-sm text-gray-500 mt-1">Materiais publicados</p>
           </div>
           <div class="bg-blue-50 p-4 md:p-6 rounded-xl border border-blue-100 cursor-pointer hover:bg-blue-100 active:scale-[0.98] transition select-none" onclick="adminNavigateTo('library')">
             <h3 class="font-semibold text-blue-800 mb-2 md:mb-4 flex items-center gap-2 text-sm md:text-base"><i class="fas fa-book"></i> Biblioteca</h3>
@@ -319,7 +308,7 @@
       </div>
 
       <!-- STUDIES MANAGEMENT -->
-      <div id="admin-view-studies" class="hidden space-y-6 animate-fade-in">
+      <div id="admin-view-studies" class="hidden space-y-6 animate-fade-in" data-retired="true">
         <div class="flex flex-col md:flex-row md:items-center justify-between gap-3 md:gap-4">
           <div>
             <h2 class="text-xl md:text-2xl font-bold text-gray-800">Gerenciar Estudos Bíblicos</h2>
@@ -505,7 +494,7 @@
       </div>
 
       <!-- AVISOS MANAGEMENT -->
-      <div id="admin-view-avisos" class="hidden space-y-6 animate-fade-in">
+      <div id="admin-view-avisos" class="hidden space-y-6 animate-fade-in" data-retired="true">
         <div class="flex flex-col md:flex-row md:items-center justify-between gap-3 md:gap-4">
           <div>
             <h2 class="text-xl md:text-2xl font-bold text-gray-800">Gerenciar Avisos & Comunicados</h2>
@@ -795,10 +784,8 @@
   </script>
   <script src="admin.js"></script>
   <script src="admin/crud-courses.js"></script>
-  <script src="admin/crud-studies.js"></script>
   <script src="admin/crud-library.js"></script>
   <script src="admin/crud-certificates.js"></script>
-  <script src="admin/crud-avisos.js"></script>
   <script src="admin/crud-agenda.js"></script>
   <script src="admin/crud-verses.js"></script>
   <script src="admin/crud-cofres.js"></script>

@@ -570,11 +570,12 @@ function renderEvents(events, attendancesByEvent = {}) {
   };
   
   container.innerHTML = events.map(e => {
+    const isAnnouncement = e.agenda_type === 'announcement';
     const dateStr = e.event_date && e.event_date !== 'null' && e.event_date !== 'undefined' ? String(e.event_date) : '';
     const dateParts = dateStr ? dateStr.split('-') : [];
     const day = dateParts[2] || '--';
     const month = dateParts[1] || '';
-    const attendees = attendancesByEvent[e.id] || [];
+    const attendees = isAnnouncement ? [] : (attendancesByEvent[e.id] || []);
     const hasConfirmed = isLoggedIn && attendees.some(a => a.user_id === getCurrentUserInfo().user?.id);
     const visibleAttendees = attendees.slice(0, 3);
     const hiddenAttendees = attendees.slice(3);
@@ -596,7 +597,8 @@ function renderEvents(events, attendancesByEvent = {}) {
         </div>
       </div>
       ${e.description ? `<p class="text-xs text-gray-500 mt-2 line-clamp-2">${escapeHtml(e.description)}</p>` : ''}
-      <div class="mt-3 pt-3 border-t border-gray-100">
+      ${e.link ? `<a href="${escapeHtml(e.link)}" target="_blank" class="inline-flex items-center gap-1 mt-3 text-xs font-bold text-adpel-700 hover:text-adpel-900 hover:underline"><i class="fas fa-arrow-up-right-from-square"></i> Abrir link</a>` : ''}
+      <div class="${isAnnouncement ? 'hidden' : ''} mt-3 pt-3 border-t border-gray-100">
         <button id="attendance-btn-${e.id}" onclick="confirmAttendance('${e.id}')" class="w-full py-1.5 px-3 rounded-lg text-xs font-bold transition ${hasConfirmed ? 'bg-green-100 text-green-700 border border-green-200' : 'bg-purple-600 text-white hover:bg-purple-700 active:bg-purple-800'}">
           ${hasConfirmed ? '<i class="fas fa-check mr-1"></i> Presença Confirmada' : '<i class="fas fa-hand-point-up mr-1"></i> Marcar Presença'}
         </button>
@@ -643,11 +645,12 @@ function renderHomeEvents(events, attendancesByEvent = {}) {
   };
 
   container.innerHTML = events.map(e => {
+    const isAnnouncement = e.agenda_type === 'announcement';
     const dateStr = e.event_date && e.event_date !== 'null' && e.event_date !== 'undefined' ? String(e.event_date) : '';
     const dateParts = dateStr ? dateStr.split('-') : [];
     const day = dateParts[2] || '--';
     const month = dateParts[1] || '';
-    const attendees = attendancesByEvent[e.id] || [];
+    const attendees = isAnnouncement ? [] : (attendancesByEvent[e.id] || []);
     const hasConfirmed = isLoggedIn && attendees.some(a => a.user_id === getCurrentUserInfo().user?.id);
     const visibleAttendees = attendees.slice(0, 3);
     const hiddenAttendees = attendees.slice(3);
@@ -669,7 +672,8 @@ function renderHomeEvents(events, attendancesByEvent = {}) {
         </div>
       </div>
       ${e.description ? `<p class="text-xs text-gray-500 mt-2 line-clamp-2">${escapeHtml(e.description)}</p>` : ''}
-      <div class="mt-3 pt-3 border-t border-gray-100">
+      ${e.link ? `<a href="${escapeHtml(e.link)}" target="_blank" class="inline-flex items-center gap-1 mt-3 text-xs font-bold text-adpel-700 hover:text-adpel-900 hover:underline"><i class="fas fa-arrow-up-right-from-square"></i> Abrir link</a>` : ''}
+      <div class="${isAnnouncement ? 'hidden' : ''} mt-3 pt-3 border-t border-gray-100">
         <button id="attendance-btn-${e.id}" onclick="confirmAttendance('${e.id}')" class="w-full py-1.5 px-3 rounded-lg text-xs font-bold transition ${hasConfirmed ? 'bg-green-100 text-green-700 border border-green-200' : 'bg-purple-600 text-white hover:bg-purple-700 active:bg-purple-800'}">
           ${hasConfirmed ? '<i class="fas fa-check mr-1"></i> Presença Confirmada' : '<i class="fas fa-hand-point-up mr-1"></i> Marcar Presença'}
         </button>

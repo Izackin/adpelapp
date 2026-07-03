@@ -8,10 +8,8 @@
 
 // ---- DATA STORAGE (global, usado por todos os CRUDs) ----
 var coursesData = [];
-var studiesData = [];
 var libraryData = [];
 var certificatesData = [];
-var avisosData = [];
 var agendaData = [];
 var versesData = [];
 var cofresData = [];
@@ -22,6 +20,8 @@ var cofresStatsData = {};
 // ============================================================
 
 function adminNavigateTo(view) {
+  if (view === 'studies') view = 'courses';
+  if (view === 'avisos') view = 'agenda';
   var views = document.querySelectorAll('[id^="admin-view-"]');
   for (var i = 0; i < views.length; i++) {
     views[i].classList.add('hidden');
@@ -85,14 +85,6 @@ async function loadAllData() {
     if (statCourses) { statCourses.textContent = coursesData.length; }
     if (typeof renderAdminCourses === 'function') renderAdminCourses();
 
-    // Studies
-    var sResult = await window.supabaseClient
-      .from('studies').select('*').order('created_at', { ascending: false });
-    studiesData = sResult.data || [];
-    var statStudies = document.getElementById('stat-studies');
-    if (statStudies) { statStudies.textContent = studiesData.length; }
-    if (typeof renderAdminStudies === 'function') renderAdminStudies();
-
     // Library
     var lResult = await window.supabaseClient
       .from('library_books').select('*').order('created_at', { ascending: false });
@@ -106,12 +98,6 @@ async function loadAllData() {
       .from('certificates').select('*').order('created_at', { ascending: false });
     certificatesData = certResult.data || [];
     if (typeof renderAdminCertificates === 'function') renderAdminCertificates();
-
-    // Avisos (tabela: announcements)
-    var aResult = await window.supabaseClient
-      .from('announcements').select('*').order('created_at', { ascending: false });
-    avisosData = aResult.data || [];
-    if (typeof renderAdminAvisos === 'function') renderAdminAvisos();
 
     // Agenda (tabela: events)
     var agResult = await window.supabaseClient
@@ -179,7 +165,7 @@ function updateRecentActivity() {
     }
   }
 
-  if (Array.isArray(avisosData)) {
+  if (false && Array.isArray(window.avisosData)) {
     for (var j = 0; j < Math.min(avisosData.length, 2); j++) {
       if (avisosData[j]) {
         items.push({
@@ -235,17 +221,11 @@ document.addEventListener('DOMContentLoaded', function() {
   var courseForm = document.getElementById('course-form');
   if (courseForm) { courseForm.addEventListener('submit', handleCourseSubmit); }
 
-  var studyForm = document.getElementById('study-form');
-  if (studyForm) { studyForm.addEventListener('submit', handleStudySubmit); }
-
   var libraryForm = document.getElementById('library-form');
   if (libraryForm) { libraryForm.addEventListener('submit', handleLibrarySubmit); }
 
   var certificateForm = document.getElementById('certificate-form');
   if (certificateForm) { certificateForm.addEventListener('submit', handleCertificateSubmit); }
-
-  var avisoForm = document.getElementById('aviso-form');
-  if (avisoForm) { avisoForm.addEventListener('submit', handleAvisoSubmit); }
 
   var agendaForm = document.getElementById('agenda-form');
   if (agendaForm) { agendaForm.addEventListener('submit', handleCreateAgenda); }

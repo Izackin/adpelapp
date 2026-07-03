@@ -139,10 +139,6 @@ select 2, 6, 'Ler 3 capitulos', 'Avance um pouco mais na leitura biblica.', 'bib
 where not exists (select 1 from public.daily_challenges where title = 'Ler 3 capitulos' and activity_type = 'bible_chapter_read');
 
 insert into public.daily_challenges (level_min, level_max, title, description, activity_type, target_count, xp_reward, icon)
-select 3, 10, 'Concluir 1 estudo', 'Finalize um estudo disponivel.', 'study_completed', 1, 25, 'fa-book-open'
-where not exists (select 1 from public.daily_challenges where title = 'Concluir 1 estudo' and activity_type = 'study_completed');
-
-insert into public.daily_challenges (level_min, level_max, title, description, activity_type, target_count, xp_reward, icon)
 select 4, 10, 'Ler 5 capitulos', 'Complete cinco capitulos no dia.', 'bible_chapter_read', 5, 30, 'fa-list-ol'
 where not exists (select 1 from public.daily_challenges where title = 'Ler 5 capitulos' and activity_type = 'bible_chapter_read');
 
