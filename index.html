@@ -450,6 +450,16 @@
       
       <!-- SECT: HOME -->
       <div id="home" class="space-y-8">
+        <div class="app-home-greeting">
+          <div>
+            <p class="app-eyebrow">ADPEL Digital</p>
+            <h1 id="home-welcome-title">Olá, seja bem-vindo</h1>
+            <p id="home-welcome-subtitle">Continue sua caminhada com fé, ensino e comunhão.</p>
+          </div>
+          <button onclick="requestPushPermission()" class="app-icon-action" title="Ativar notificações">
+            <i class="fas fa-bell"></i>
+          </button>
+        </div>
         <!-- Versículo do Dia -->
         <div class="bg-gradient-to-br from-adpel-800 to-adpel-700 rounded-2xl p-6 md:p-8 text-white relative overflow-hidden shadow-lg border border-white/10">
           <div class="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -translate-y-1/2 translate-x-1/2"></div>
@@ -459,6 +469,28 @@
               "<span id="verse-text" class="italic">Carregando...</span>"
             </blockquote>
             <p id="verse-ref" class="text-sm font-bold text-adpel-200 uppercase tracking-wide">— ...</p>
+          </div>
+        </div>
+
+        <div class="app-quick-actions">
+          <h2>Ações rápidas</h2>
+          <div class="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
+            <button onclick="navigateTo('courses')" class="app-quick-card">
+              <i class="fas fa-graduation-cap"></i>
+              <span>Cursos</span>
+            </button>
+            <button onclick="navigateTo('library')" class="app-quick-card">
+              <i class="fas fa-book-open"></i>
+              <span>Biblioteca</span>
+            </button>
+            <button onclick="navigateTo('profile')" class="app-quick-card">
+              <i class="fas fa-hand-holding-heart"></i>
+              <span>Minhas Ofertas</span>
+            </button>
+            <button onclick="navigateTo('ranking')" class="app-quick-card">
+              <i class="fas fa-trophy"></i>
+              <span>Conquistas</span>
+            </button>
           </div>
         </div>
 

@@ -158,6 +158,26 @@ async function initApp() {
   verificarAtualizacoesPendentes();
 }
 
+function updateBannerWelcome() {
+  const title = document.getElementById('home-welcome-title');
+  const subtitle = document.getElementById('home-welcome-subtitle');
+  if (!title && !subtitle) return;
+
+  const userInfo = typeof getCurrentUserInfo === 'function' ? getCurrentUserInfo() : { isLoggedIn: false };
+  const profile = userInfo.profile || {};
+  const user = userInfo.user || {};
+  const name = profile.full_name || user.email || '';
+
+  if (title) {
+    title.textContent = userInfo.isLoggedIn && name ? 'Olá, ' + name : 'Olá, seja bem-vindo';
+  }
+  if (subtitle) {
+    subtitle.textContent = userInfo.isLoggedIn
+      ? 'Continue sua caminhada com fé, ensino e comunhão.'
+      : 'Entre para acompanhar cursos, ofertas, conquistas e sua caminhada.';
+  }
+}
+
 async function obterUsuarioAtualizacao() {
   try {
     if (window.ADPEL && window.ADPEL.auth && typeof window.ADPEL.auth.getSession === 'function') {
