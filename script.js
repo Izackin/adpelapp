@@ -2390,36 +2390,15 @@ async function registrarOfertaConfirmada() {
 }
 
 async function atualizarEstatisticasCofre(goalId, amount) {
-  if (!goalId || !window.supabaseClient) return;
-  const valor = Number(amount) || 0;
-  try {
-    const { data: current, error: fetchError } = await window.supabaseClient
-      .from('fundraising_stats')
-      .select('*')
-      .eq('goal_id', goalId)
-      .maybeSingle();
-    if (fetchError) throw fetchError;
-
-    const nextStats = {
-      goal_id: goalId,
-      current_amount: (Number(current && current.current_amount) || 0) + valor,
-      contributor_count: (Number(current && current.contributor_count) || 0) + 1,
-      updated_at: new Date().toISOString()
-    };
-
-    const { error: upsertError } = await window.supabaseClient
-      .from('fundraising_stats')
-      .upsert([nextStats], { onConflict: 'goal_id' });
-    if (upsertError) throw upsertError;
-
-    if (typeof cofresStats !== 'undefined') {
-      cofresStats[goalId] = nextStats;
-    }
-    if (typeof renderCofresSection === 'function') renderCofresSection();
-    if (typeof renderCofresNoModal === 'function') renderCofresNoModal();
-  } catch (error) {
-    console.warn('Nao foi possivel atualizar estatisticas do cofre automaticamente:', error);
+  // O banco atualiza fundraising_stats por trigger apos inserir em fundraising_contributions.
+  // No frontend, apenas recarregamos os dados para refletir o novo progresso do cofre.
+  if (!goalId) return;
+  if (typeof loadCofresData === 'function') {
+    await loadCofresData();
+    return;
   }
+  if (typeof renderCofresSection === 'function') renderCofresSection();
+  if (typeof renderCofresNoModal === 'function') renderCofresNoModal();
 }
 
 async function confirmarPagamento() {
