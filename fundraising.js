@@ -149,7 +149,7 @@ function renderCofresSection() {
     if (isComplete) {
       html += '<div class="w-full py-2.5 bg-green-100 text-green-700 rounded-xl text-sm font-bold text-center"><i class="fas fa-check-circle mr-1"></i> Meta alcançada! Glória a Deus!</div>';
     } else {
-      html += '<button onclick="openContributionModal(\'' + goal.id + '\', \'' + escapeHtml(goalName).replace(/'/g, "\\'") + '\', ' + targetAmount + ')" class="w-full py-2.5 bg-gradient-to-r from-green-600 to-emerald-500 text-white rounded-xl text-sm font-bold hover:from-green-700 hover:to-emerald-600 transition flex items-center justify-center gap-2 shadow-sm">' +
+      html += '<button onclick="openOfertaModalForCofre(\'' + goal.id + '\')" class="w-full py-2.5 bg-gradient-to-r from-green-600 to-emerald-500 text-white rounded-xl text-sm font-bold hover:from-green-700 hover:to-emerald-600 transition flex items-center justify-center gap-2 shadow-sm">' +
         '<i class="fas fa-heart"></i> Contribuir</button>';
     }
 
@@ -171,6 +171,11 @@ function renderCofresSection() {
 // ==========================
 
 function openContributionModal(goalId, goalName, targetAmount) {
+  if (typeof openOfertaModalForCofre === 'function') {
+    openOfertaModalForCofre(goalId);
+    return;
+  }
+
   var userInfo = getCurrentUserInfo();
   if (!userInfo.isLoggedIn) {
     showToast('Faça login para contribuir.', 'warning');
@@ -195,7 +200,7 @@ function openContributionModal(goalId, goalName, targetAmount) {
     document.getElementById('contribution-anonymous').checked = false;
     modal.classList.remove('hidden');
     modal.classList.add('flex');
-    document.body.style.overflow = 'hidden';
+    document.body.style.overflow = '';
   }
 }
 

@@ -499,6 +499,7 @@ async function loadCertificatesData() {
 async function loadProfileData() {
   const userInfo = getCurrentUserInfo();
   renderProfile(userInfo);
+  await renderProfileOfferings(userInfo);
   if (window.ADPELJourney && typeof window.ADPELJourney.init === 'function') {
     await window.ADPELJourney.init();
   }
@@ -1012,7 +1013,147 @@ function renderProfile(userInfo) {
         <div class="text-center p-4 bg-gray-50 rounded-xl"><p class="text-2xl font-bold text-gray-700">0</p><p class="text-sm text-gray-500">Cursos Concluidos</p></div>
         <div class="text-center p-4 bg-gray-50 rounded-xl"><p class="text-2xl font-bold text-gray-700">0h</p><p class="text-sm text-gray-500">Horas de Estudo</p></div>
       </div>
-    </div>`;
+    </div>
+    <div id="profile-offerings-content" class="mt-8"></div>`;
+}
+
+async function renderProfileOfferings(userInfo) {
+  const container = document.getElementById('profile-offerings-content');
+  if (!container) return;
+  if (!userInfo || !userInfo.isLoggedIn || !userInfo.user || !window.supabaseClient) {
+    container.innerHTML = '';
+    return;
+  }
+
+  container.innerHTML = '<div class="bg-white rounded-2xl shadow-sm p-6 border border-gray-100 text-sm text-gray-500">Carregando suas ofertas...</div>';
+  try {
+    let result = await window.supabaseClient
+      .from('fundraising_contributions')
+      .select('*, fundraising_goals(name)')
+      .eq('user_id', userInfo.user.id)
+      .eq('status', 'confirmed')
+      .order('created_at', { ascending: false })
+      .limit(100);
+    if (result.error && isOfferingSchemaError(result.error)) {
+      result = await window.supabaseClient
+        .from('fundraising_contributions')
+        .select('*, fundraising_goals(name)')
+        .eq('user_id', userInfo.user.id)
+        .order('created_at', { ascending: false })
+        .limit(100);
+    }
+    if (result.error) throw result.error;
+
+    const offerings = result.data || [];
+    const now = new Date();
+    const startWeek = new Date(now);
+    startWeek.setDate(now.getDate() - ((now.getDay() + 6) % 7));
+    startWeek.setHours(0, 0, 0, 0);
+    const startMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    const startYear = new Date(now.getFullYear(), 0, 1);
+    const sumSince = (date) => offerings.reduce((total, item) => {
+      const created = new Date(item.paid_at || item.created_at || 0);
+      return created >= date ? total + Number(item.amount || 0) : total;
+    }, 0);
+    const total = offerings.reduce((sum, item) => sum + Number(item.amount || 0), 0);
+    const goalNames = Array.from(new Set(offerings
+      .filter(item => item.goal_id)
+      .map(item => item.fundraising_goals && item.fundraising_goals.name ? item.fundraising_goals.name : 'Cofre')));
+    const latest = offerings.slice(0, 5);
+
+    container.innerHTML = [
+      '<div class="bg-white rounded-2xl shadow-sm p-6 border border-gray-100">',
+        '<div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-5">',
+          '<div>',
+            '<h3 class="text-xl font-bold text-gray-900 flex items-center gap-2"><i class="fas fa-heart text-green-600"></i> Minhas Ofertas</h3>',
+            '<p class="text-sm text-gray-500 mt-1">Seu historico de contribuicoes confirmadas.</p>',
+          '</div>',
+          '<button onclick="openOfferingReportModal()" class="px-4 py-2 bg-green-600 text-white rounded-lg text-sm font-bold hover:bg-green-700 transition inline-flex items-center justify-center gap-2"><i class="fas fa-file-lines"></i> Gerar relatorio</button>',
+        '</div>',
+        '<div class="grid grid-cols-2 lg:grid-cols-4 gap-3">',
+          offeringMetricCard('Esta semana', sumSince(startWeek), 'fa-heart'),
+          offeringMetricCard('Este mes', sumSince(startMonth), 'fa-calendar-days'),
+          offeringMetricCard('Este ano', sumSince(startYear), 'fa-seedling'),
+          offeringMetricCard('Total geral', total, 'fa-hands-praying'),
+        '</div>',
+        '<div class="mt-5 grid grid-cols-1 sm:grid-cols-3 gap-3 text-sm">',
+          '<div class="bg-gray-50 rounded-xl p-4"><p class="text-2xl font-bold text-gray-900">' + offerings.length + '</p><p class="text-gray-500">Quantidade de ofertas</p></div>',
+          '<div class="bg-gray-50 rounded-xl p-4"><p class="text-2xl font-bold text-gray-900">' + goalNames.length + '</p><p class="text-gray-500">Cofres ajudados</p></div>',
+          '<div class="bg-gray-50 rounded-xl p-4"><p class="text-2xl font-bold text-gray-900">R$ ' + formatBRL(total) + '</p><p class="text-gray-500">Total ofertado</p></div>',
+        '</div>',
+        '<div class="mt-5">',
+          '<h4 class="font-bold text-gray-800 mb-3">Ultimas ofertas</h4>',
+          latest.length ? latest.map(offeringHistoryItem).join('') : '<p class="text-sm text-gray-500 bg-gray-50 rounded-xl p-4">Nenhuma oferta confirmada ainda.</p>',
+        '</div>',
+        '<div class="mt-5">',
+          '<h4 class="font-bold text-gray-800 mb-2">Cofres ajudados</h4>',
+          goalNames.length ? '<div class="flex flex-wrap gap-2">' + goalNames.map(name => '<span class="px-3 py-1 rounded-full bg-green-50 text-green-700 border border-green-100 text-xs font-bold">' + escapeHtml(name) + '</span>').join('') + '</div>' : '<p class="text-sm text-gray-500">Nenhum cofre ajudado ainda.</p>',
+        '</div>',
+      '</div>'
+    ].join('');
+
+    window.ADPELOfferingReportData = { userInfo: userInfo, offerings: offerings, total: total, goalNames: goalNames };
+  } catch (error) {
+    console.error('Erro ao carregar ofertas do perfil:', error);
+    container.innerHTML = '<div class="bg-white rounded-2xl shadow-sm p-6 border border-gray-100 text-sm text-gray-500">Nao foi possivel carregar suas ofertas agora.</div>';
+  }
+}
+
+function offeringMetricCard(label, value, icon) {
+  return '<div class="bg-green-50 rounded-xl p-4 border border-green-100"><div class="flex items-center gap-2 text-green-700 text-xs font-bold mb-2"><i class="fas ' + icon + '"></i>' + escapeHtml(label) + '</div><p class="text-xl font-bold text-gray-900">R$ ' + formatBRL(value) + '</p></div>';
+}
+
+function offeringHistoryItem(item) {
+  const goal = item.fundraising_goals && item.fundraising_goals.name ? item.fundraising_goals.name : 'Oferta Livre';
+  const date = formatDate(item.paid_at || item.created_at || '');
+  return '<div class="flex items-center justify-between gap-3 py-3 border-t border-gray-100"><div class="min-w-0"><p class="font-semibold text-gray-800 truncate">' + escapeHtml(goal) + '</p><p class="text-xs text-gray-500">' + escapeHtml(date) + '</p></div><p class="font-bold text-green-700 whitespace-nowrap">R$ ' + formatBRL(item.amount) + '</p></div>';
+}
+
+function openOfferingReportModal() {
+  const data = window.ADPELOfferingReportData;
+  if (!data) return;
+  const name = escapeHtml((data.userInfo.profile && data.userInfo.profile.full_name) || (data.userInfo.user && data.userInfo.user.email) || 'Membro');
+  const modalId = 'offering-report-modal';
+  let modal = document.getElementById(modalId);
+  if (!modal) {
+    modal = document.createElement('div');
+    modal.id = modalId;
+    modal.className = 'fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4';
+    document.body.appendChild(modal);
+  }
+  modal.innerHTML = [
+    '<div class="bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden">',
+      '<div class="bg-gradient-to-r from-green-700 to-emerald-500 p-6 text-white">',
+        '<h3 class="text-2xl font-bold flex items-center gap-2"><i class="fas fa-file-lines"></i> Relatorio de Ofertas</h3>',
+        '<p class="text-green-100 text-sm mt-1">Resumo das suas contribuicoes confirmadas.</p>',
+      '</div>',
+      '<div class="p-6 space-y-4" id="offering-report-print-area">',
+        '<div><p class="text-xs text-gray-500">Nome</p><p class="font-bold text-gray-900">' + name + '</p></div>',
+        '<div><p class="text-xs text-gray-500">Periodo</p><p class="font-bold text-gray-900">Historico disponivel</p></div>',
+        '<div class="grid grid-cols-2 gap-3">',
+          '<div class="bg-gray-50 rounded-xl p-4"><p class="text-xs text-gray-500">Total ofertado</p><p class="text-xl font-bold text-green-700">R$ ' + formatBRL(data.total) + '</p></div>',
+          '<div class="bg-gray-50 rounded-xl p-4"><p class="text-xs text-gray-500">Quantidade</p><p class="text-xl font-bold text-gray-900">' + data.offerings.length + '</p></div>',
+        '</div>',
+        '<div><p class="text-xs text-gray-500">Cofres ajudados</p><p class="font-bold text-gray-900">' + (data.goalNames.length ? escapeHtml(data.goalNames.join(', ')) : 'Nenhum cofre destinado') + '</p></div>',
+        '<p class="text-sm text-gray-600 bg-green-50 border border-green-100 rounded-xl p-4">Suas contribuicoes ajudam a manter a obra, fortalecer familias e expandir o Reino de Deus.</p>',
+      '</div>',
+      '<div class="px-6 pb-6 grid grid-cols-1 sm:grid-cols-2 gap-3">',
+        '<button onclick="printOfferingReport()" class="py-3 bg-green-600 text-white rounded-xl font-bold hover:bg-green-700 transition"><i class="fas fa-print mr-2"></i>Imprimir / Salvar PDF</button>',
+        '<button onclick="closeOfferingReportModal()" class="py-3 border border-gray-300 text-gray-700 rounded-xl font-bold hover:bg-gray-50 transition">Fechar</button>',
+      '</div>',
+    '</div>'
+  ].join('');
+  restorePageScroll();
+}
+
+function closeOfferingReportModal() {
+  const modal = document.getElementById('offering-report-modal');
+  if (modal) modal.remove();
+  restorePageScroll();
+}
+
+function printOfferingReport() {
+  window.print();
 }
 
 function escapeHtml(value) {
@@ -1175,7 +1316,7 @@ function openModal(modalId) {
   if (modal) {
     modal.classList.remove('hidden');
     modal.classList.add('flex');
-    document.body.style.overflow = 'hidden';
+    restorePageScroll();
   }
 }
 
@@ -1392,7 +1533,7 @@ async function openCourseModal(encodedCourse) {
   if (modal) {
     modal.classList.remove('hidden');
     modal.classList.add('flex');
-    document.body.style.overflow = 'hidden';
+    restorePageScroll();
   }
 }
 
@@ -1632,7 +1773,7 @@ function openStudyModal(encodedStudy) {
   if (modal) {
     modal.classList.remove('hidden');
     modal.classList.add('flex');
-    document.body.style.overflow = 'hidden';
+    restorePageScroll();
   }
 }
 
@@ -1706,12 +1847,17 @@ let ofertaCofreSelecionado = null; // objeto do cofre escolhido
 let ofertaIdRegistrado = null; // ID da contribuição registrada
 let ofertaEtapaAtual = 1; // 1=tipo, 2=cofres, 3=valor, 4=pix, 5=sucesso
 
-function openOfertaModal() {
+function restorePageScroll() {
+  document.body.style.overflow = '';
+}
+
+function openOfertaModal(options) {
+  options = options || {};
   const modal = document.getElementById('oferta-modal');
   if (modal) {
     modal.classList.remove('hidden');
     modal.classList.add('flex');
-    document.body.style.overflow = 'hidden';
+    restorePageScroll();
   }
   // Esconder footer no mobile para não aparecer atrás do modal
   const footer = document.querySelector('footer');
@@ -1726,6 +1872,31 @@ function openOfertaModal() {
       console.log('✅ Cofres carregados para o modal');
     });
   }
+}
+
+function openOfertaModalForCofre(goalId) {
+  const userInfo = getCurrentUserInfo();
+  if (!userInfo.isLoggedIn) {
+    showToast('Faca login para contribuir.', 'warning');
+    openModal('login-modal');
+    restorePageScroll();
+    return;
+  }
+  const abrir = function() {
+    openOfertaModal();
+    abrirOfertaDestinadaParaCofre(goalId);
+  };
+  if (typeof loadCofresData === 'function' && (!Array.isArray(cofresData) || cofresData.length === 0)) {
+    loadCofresData().then(abrir).catch(abrir);
+  } else {
+    abrir();
+  }
+}
+
+function abrirOfertaDestinadaParaCofre(goalId) {
+  ofertaTipo = 'destinada';
+  renderCofresNoModal();
+  selecionarCofreOferta(goalId);
 }
 
 function selecionarTipoOferta(tipo) {
@@ -1932,8 +2103,8 @@ async function processarOferta() {
     return;
   }
   
-  // Registrar oferta no banco (se for destinada)
-  if (ofertaTipo === 'destinada' && ofertaCofreSelecionado) {
+  // A oferta destinada tambem sera registrada somente ao confirmar pagamento.
+  if (false && ofertaTipo === 'destinada' && ofertaCofreSelecionado) {
     const userInfo = getCurrentUserInfo();
     if (userInfo.isLoggedIn && userInfo.user) {
       try {
@@ -2158,9 +2329,110 @@ function copiarPix() {
   window.getSelection().removeAllRanges();
 }
 
+function gerarCodigoReciboOferta() {
+  return 'ADPEL-' + Date.now().toString(36).toUpperCase();
+}
+
+function isOfferingSchemaError(error) {
+  const text = String(error && (error.message || error.details || error.hint || error.code) || '').toLowerCase();
+  return text.indexOf('contribution_type') !== -1 ||
+    text.indexOf('receipt_code') !== -1 ||
+    text.indexOf('paid_at') !== -1 ||
+    text.indexOf('status') !== -1 ||
+    text.indexOf('42703') !== -1 ||
+    text.indexOf('pgrst204') !== -1;
+}
+
+async function registrarOfertaConfirmada() {
+  if (ofertaIdRegistrado) return ofertaIdRegistrado;
+  const userInfo = getCurrentUserInfo();
+  if (!userInfo.isLoggedIn || !userInfo.user) {
+    showToast('Faca login para registrar sua oferta.', 'warning');
+    return null;
+  }
+
+  const isDestinada = ofertaTipo === 'destinada' && ofertaCofreSelecionado && ofertaCofreSelecionado.id;
+  const payload = {
+    goal_id: isDestinada ? ofertaCofreSelecionado.id : null,
+    user_id: userInfo.user.id,
+    amount: ofertaValorSelecionado,
+    anonymous: false,
+    contribution_type: isDestinada ? 'destinada' : 'livre',
+    status: 'confirmed',
+    receipt_code: gerarCodigoReciboOferta(),
+    paid_at: new Date().toISOString()
+  };
+
+  let result = await window.supabaseClient
+    .from('fundraising_contributions')
+    .insert([payload]);
+
+  if (result.error && isOfferingSchemaError(result.error)) {
+    console.warn('Banco local sem colunas novas de ofertas. Usando registro compativel:', result.error);
+    result = await window.supabaseClient
+      .from('fundraising_contributions')
+      .insert([{
+        goal_id: payload.goal_id,
+        user_id: payload.user_id,
+        amount: payload.amount,
+        anonymous: payload.anonymous
+      }]);
+  }
+
+  if (result.error) throw result.error;
+  ofertaIdRegistrado = payload.receipt_code;
+
+  if (isDestinada) {
+    await atualizarEstatisticasCofre(ofertaCofreSelecionado.id, ofertaValorSelecionado);
+  }
+
+  return ofertaIdRegistrado;
+}
+
+async function atualizarEstatisticasCofre(goalId, amount) {
+  if (!goalId || !window.supabaseClient) return;
+  const valor = Number(amount) || 0;
+  try {
+    const { data: current, error: fetchError } = await window.supabaseClient
+      .from('fundraising_stats')
+      .select('*')
+      .eq('goal_id', goalId)
+      .maybeSingle();
+    if (fetchError) throw fetchError;
+
+    const nextStats = {
+      goal_id: goalId,
+      current_amount: (Number(current && current.current_amount) || 0) + valor,
+      contributor_count: (Number(current && current.contributor_count) || 0) + 1,
+      updated_at: new Date().toISOString()
+    };
+
+    const { error: upsertError } = await window.supabaseClient
+      .from('fundraising_stats')
+      .upsert([nextStats], { onConflict: 'goal_id' });
+    if (upsertError) throw upsertError;
+
+    if (typeof cofresStats !== 'undefined') {
+      cofresStats[goalId] = nextStats;
+    }
+    if (typeof renderCofresSection === 'function') renderCofresSection();
+    if (typeof renderCofresNoModal === 'function') renderCofresNoModal();
+  } catch (error) {
+    console.warn('Nao foi possivel atualizar estatisticas do cofre automaticamente:', error);
+  }
+}
+
 async function confirmarPagamento() {
+  try {
+    await registrarOfertaConfirmada();
+  } catch (e) {
+    console.error('Erro ao registrar oferta confirmada:', e);
+    showToast('Erro ao registrar oferta. Tente novamente.', 'error');
+    return;
+  }
+
   // Registrar oferta livre no banco (se não foi registrada antes)
-  if (ofertaTipo === 'livre' && !ofertaIdRegistrado) {
+  if (false && ofertaTipo === 'livre' && !ofertaIdRegistrado) {
     const userInfo = getCurrentUserInfo();
     if (userInfo.isLoggedIn && userInfo.user) {
       try {
@@ -2196,7 +2468,7 @@ async function confirmarPagamento() {
   
   // Se for destinada, recarregar dados dos cofres
   if (ofertaTipo === 'destinada' && typeof loadCofresData === 'function') {
-    loadCofresData();
+    await loadCofresData();
   }
   
   // Personalizar mensagem
@@ -2219,7 +2491,9 @@ async function confirmarPagamento() {
   }
   
   showToast('Deus abençoe sua oferta!', 'success');
-  if (window.ADPELJourney && typeof window.ADPELJourney.registerOffering === 'function') {
+  if (window.ADPELJourney && typeof window.ADPELJourney.registerSpiritualActivity === 'function') {
+    window.ADPELJourney.registerSpiritualActivity('offering_made');
+  } else if (window.ADPELJourney && typeof window.ADPELJourney.registerOffering === 'function') {
     window.ADPELJourney.registerOffering();
   }
   

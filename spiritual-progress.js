@@ -515,6 +515,17 @@
     return applyProgress('offering', { counter: 'offerings' });
   }
 
+  async function registerSpiritualActivity(activityType) {
+    if (activityType === 'offering_made') return registerOffering();
+    return currentProgressCache;
+  }
+
+  async function registerChallengeProgress(activityType, count) {
+    var progress = await getOrCreateProgress();
+    if (!progress) return null;
+    return recordChallengeProgress(progress, activityType, count || 1);
+  }
+
   async function registerMission() {
     if (!oncePerDay('mission')) return currentProgressCache;
     return applyProgress('mission', { counter: 'missions_completed' });
@@ -811,6 +822,8 @@
     registerCourseCompleted: registerCourseCompleted,
     registerLessonWatched: registerLessonWatched,
     registerOffering: registerOffering,
+    registerSpiritualActivity: registerSpiritualActivity,
+    registerChallengeProgress: registerChallengeProgress,
     registerMission: registerMission,
     completeDailyMission: completeDailyMission,
     registerHymnOpened: registerHymnOpened,
@@ -829,6 +842,8 @@
   window.registerCourseCompleted = registerCourseCompleted;
   window.registerLessonWatched = registerLessonWatched;
   window.registerOffering = registerOffering;
+  window.registerSpiritualActivity = registerSpiritualActivity;
+  window.registerChallengeProgress = registerChallengeProgress;
   window.registerMission = registerMission;
   window.updateXP = updateXP;
   window.updateLevel = updateLevel;
