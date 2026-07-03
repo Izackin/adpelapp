@@ -82,6 +82,9 @@ async function initAuth() {
       }
       // Resetar debounce da home para forçar recarregamento com novos dados do usuário
       _lastHomeLoad = 0;
+      if (typeof verificarAtualizacoesPendentes === 'function') {
+        setTimeout(() => verificarAtualizacoesPendentes(true), 800);
+      }
       
       // Verificar se o email foi confirmado
       if (!session.user.email_confirmed_at && !session.user.confirmed_at) {

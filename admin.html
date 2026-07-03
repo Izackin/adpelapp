@@ -129,6 +129,9 @@
         <button onclick="adminNavigateTo('cofres')" class="w-full flex items-center px-3 py-3 rounded-lg hover:bg-gray-800 active:bg-gray-700 transition group text-gray-300 hover:text-white min-h-[44px]">
           <i class="fas fa-piggy-bank w-5 text-center text-lg transition group-hover:text-green-400"></i><span class="ml-3 font-medium">Gerenciar Cofres</span>
         </button>
+        <button onclick="adminNavigateTo('app-updates')" class="w-full flex items-center px-3 py-3 rounded-lg hover:bg-gray-800 active:bg-gray-700 transition group text-gray-300 hover:text-white min-h-[44px]">
+          <i class="fas fa-bullhorn w-5 text-center text-lg transition group-hover:text-emerald-400"></i><span class="ml-3 font-medium">Atualizações do App</span>
+        </button>
         <button onclick="adminNavigateTo('notifications')" class="w-full flex items-center px-3 py-3 rounded-lg hover:bg-gray-800 active:bg-gray-700 transition group text-gray-300 hover:text-white min-h-[44px]">
           <i class="fas fa-bell w-5 text-center text-lg transition group-hover:text-red-400"></i><span class="ml-3 font-medium">Notificações Push</span>
         </button>
@@ -175,6 +178,11 @@
             <h3 class="font-semibold text-green-800 mb-2 md:mb-4 flex items-center gap-2 text-sm md:text-base"><i class="fas fa-piggy-bank"></i> Cofres</h3>
             <div class="text-2xl md:text-3xl font-bold text-green-700" id="stat-cofres">0</div>
             <p class="text-xs md:text-sm text-gray-500 mt-1">Cofres ativos</p>
+          </div>
+          <div class="bg-emerald-50 p-4 md:p-6 rounded-xl border border-emerald-100 cursor-pointer hover:bg-emerald-100 active:scale-[0.98] transition select-none" onclick="adminNavigateTo('app-updates')">
+            <h3 class="font-semibold text-emerald-800 mb-2 md:mb-4 flex items-center gap-2 text-sm md:text-base"><i class="fas fa-bullhorn"></i> Atualizações</h3>
+            <div class="text-2xl md:text-3xl font-bold text-emerald-700" id="stat-app-updates">0</div>
+            <p class="text-xs md:text-sm text-gray-500 mt-1">Novidades cadastradas</p>
           </div>
         </div>
         <div class="bg-white p-4 md:p-6 rounded-xl shadow-sm border border-gray-200 mt-6">
@@ -674,6 +682,57 @@
         </div>
       </div>
 
+      <!-- APP UPDATES MANAGEMENT -->
+      <div id="admin-view-app-updates" class="hidden space-y-6 animate-fade-in">
+        <div class="flex flex-col md:flex-row md:items-center justify-between gap-3 md:gap-4">
+          <div>
+            <h2 class="text-xl md:text-2xl font-bold text-gray-800">Atualizações do App</h2>
+            <p class="text-xs md:text-sm text-gray-500 mt-1">Cadastre novidades que aparecem para cada usuário ao entrar no app.</p>
+          </div>
+          <button onclick="showAppUpdateForm()" class="bg-emerald-600 text-white px-4 md:px-5 py-2.5 rounded-lg text-sm font-medium hover:bg-emerald-700 active:bg-emerald-800 transition flex items-center justify-center gap-2 min-h-[44px]">
+            <i class="fas fa-plus"></i> Nova Atualização
+          </button>
+        </div>
+
+        <div id="app-update-form-container" class="hidden bg-white rounded-xl shadow-sm border border-gray-200 p-4 md:p-6">
+          <h3 id="app-update-form-title" class="font-bold text-gray-800 mb-4">Nova Atualização</h3>
+          <form id="app-update-form">
+            <input type="hidden" id="app-update-id">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Título <span class="text-red-500">*</span></label>
+                <input type="text" id="app-update-title" required class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none" placeholder="Ex: Nova área de ofertas">
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Versão</label>
+                <input type="text" id="app-update-version" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none" placeholder="Ex: 2.1.0">
+              </div>
+              <div class="md:col-span-2">
+                <label class="block text-sm font-medium text-gray-700 mb-1">Descrição <span class="text-red-500">*</span></label>
+                <textarea id="app-update-description" rows="4" required class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none" placeholder="Conte o que mudou para os membros..."></textarea>
+              </div>
+              <div class="md:col-span-2">
+                <label class="block text-sm font-medium text-gray-700 mb-1">Imagem URL</label>
+                <input type="url" id="app-update-image-url" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none" placeholder="https://exemplo.com/imagem.jpg">
+              </div>
+              <div class="md:col-span-2 flex gap-4 mt-2">
+                <label class="inline-flex items-center">
+                  <input type="checkbox" id="app-update-active" checked class="rounded text-emerald-600 focus:ring-emerald-500">
+                  <span class="ml-2 text-sm text-gray-700">Ativo</span>
+                </label>
+              </div>
+            </div>
+            <div class="mt-6 flex flex-col sm:flex-row justify-end gap-2">
+              <button type="button" onclick="hideAppUpdateForm()" class="px-4 py-3 border border-gray-300 rounded-lg text-sm hover:bg-gray-50 min-h-[44px]">Cancelar</button>
+              <button type="submit" class="px-4 py-3 bg-emerald-600 text-white rounded-lg text-sm font-medium hover:bg-emerald-700 transition min-h-[44px]">Salvar Atualização</button>
+            </div>
+          </form>
+        </div>
+
+        <div id="admin-app-updates-list" class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden space-y-3 p-3 md:p-4">
+        </div>
+      </div>
+
       <!-- NOTIFICATIONS MANAGEMENT -->
       <div id="admin-view-notifications" class="hidden space-y-6 animate-fade-in">
         <div class="flex flex-col md:flex-row md:items-center justify-between gap-3 md:gap-4">
@@ -789,6 +848,7 @@
   <script src="admin/crud-agenda.js"></script>
   <script src="admin/crud-verses.js"></script>
   <script src="admin/crud-cofres.js"></script>
+  <script src="admin/crud-app-updates.js"></script>
   <script src="admin-notifications.js"></script>
   
   <script>

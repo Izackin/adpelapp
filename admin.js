@@ -14,6 +14,7 @@ var agendaData = [];
 var versesData = [];
 var cofresData = [];
 var cofresStatsData = {};
+var appUpdatesData = [];
 
 // ============================================================
 // NAVIGATION
@@ -104,6 +105,18 @@ async function loadAllData() {
       .from('events').select('*').order('event_date', { ascending: true });
     agendaData = agResult.data || [];
     if (typeof renderAdminAgenda === 'function') renderAdminAgenda();
+
+    // Atualizacoes do App
+    var updatesResult = await window.supabaseClient
+      .from('app_updates').select('*').order('created_at', { ascending: false });
+    if (!updatesResult.error) {
+      appUpdatesData = updatesResult.data || [];
+      var statUpdates = document.getElementById('stat-app-updates');
+      if (statUpdates) { statUpdates.textContent = appUpdatesData.length; }
+      if (typeof renderAdminAppUpdates === 'function') renderAdminAppUpdates();
+    } else {
+      console.warn('Nao foi possivel carregar atualizacoes do app:', updatesResult.error);
+    }
 
     // Verses
     var vResult = await window.supabaseClient
@@ -235,6 +248,9 @@ document.addEventListener('DOMContentLoaded', function() {
 
   var cofreForm = document.getElementById('cofre-form');
   if (cofreForm) { cofreForm.addEventListener('submit', handleCofreSubmit); }
+
+  var appUpdateForm = document.getElementById('app-update-form');
+  if (appUpdateForm) { appUpdateForm.addEventListener('submit', handleAppUpdateSubmit); }
 
   // Load data after DOM is ready and Supabase is initialized
   setTimeout(function() {
