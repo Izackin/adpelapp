@@ -91,6 +91,44 @@ function renderFeaturedStudies(studies) {
   `).join('');
 }
 
+function courseCarouselCard(course, actionLabel) {
+  const lessonsTotal = typeof course.totalLessons === 'number'
+    ? course.totalLessons
+    : normalizeLessons(course.lessons).length;
+  const lessonsDone = typeof course.completedLessons === 'number' ? course.completedLessons : 0;
+  const progress = lessonsTotal > 0 ? Math.min(100, Math.round((lessonsDone / lessonsTotal) * 100)) : 100;
+
+  return `
+    <div class="min-w-[292px] max-w-[320px] flex-shrink-0 snap-start bg-white rounded-xl shadow-sm overflow-hidden hover:shadow-lg transition group border border-gray-100">
+      <div class="relative h-40 bg-gradient-to-br from-blue-500 to-blue-700 cursor-pointer" onclick="if(!getCurrentUserInfo().isLoggedIn){openModal('login-modal');return;} openCourseModal('${encodeURIComponent(JSON.stringify(course))}')">
+        ${course.thumbnail_url
+          ? `<img src="${course.thumbnail_url}" class="w-full h-full object-cover" alt="${escapeHtml(course.title)}">`
+          : `<div class="w-full h-full flex items-center justify-center text-white/50"><i class="fas fa-graduation-cap text-5xl"></i></div>`}
+        <div class="absolute inset-0 bg-gradient-to-t from-black/65 via-black/10 to-transparent"></div>
+        <div class="absolute bottom-3 right-3 bg-white/90 px-2 py-1 rounded text-xs font-bold text-blue-700">${escapeHtml(course.category || 'Curso')}</div>
+      </div>
+      <div class="p-4">
+        <h4 class="font-bold text-gray-800 group-hover:text-blue-600 transition cursor-pointer" onclick="if(!getCurrentUserInfo().isLoggedIn){openModal('login-modal');return;} openCourseModal('${encodeURIComponent(JSON.stringify(course))}')">${escapeHtml(course.title)}</h4>
+        <p class="text-sm text-gray-500 mt-2 line-clamp-2">${escapeHtml(course.description || 'Sem descricao')}</p>
+        <div class="flex items-center justify-between mt-4 text-sm text-gray-600">
+          <span class="flex items-center gap-1"><i class="fas fa-user-tie text-xs"></i> ${escapeHtml(course.teacher_name || 'A definir')}</span>
+          <span class="flex items-center gap-1"><i class="fas fa-clock text-xs"></i> ${course.duration ? `${course.duration}h` : 'A definir'}</span>
+        </div>
+        <div class="mt-4">
+          <div class="flex justify-between text-xs text-gray-500 mb-1">
+            <span>${lessonsDone}/${lessonsTotal} aulas</span>
+            <span>${progress}%</span>
+          </div>
+          <div class="w-full bg-gray-100 rounded-full h-1.5 overflow-hidden">
+            <div class="h-1.5 bg-blue-600 rounded-full" style="width:${progress}%"></div>
+          </div>
+        </div>
+        <button onclick="if(!getCurrentUserInfo().isLoggedIn){openModal('login-modal');return;} openCourseModal('${encodeURIComponent(JSON.stringify(course))}')" class="mt-4 w-full py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition">${escapeHtml(actionLabel || 'Assistir')}</button>
+      </div>
+    </div>
+  `;
+}
+
 function renderCoursesList(courses) {
   const completedContainer = document.getElementById('courses-completed');
   const inprogressContainer = document.getElementById('courses-inprogress');

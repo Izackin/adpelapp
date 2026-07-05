@@ -3,7 +3,10 @@ window.openModal = function(modalId) {
       if (modal) {
         modal.classList.remove('hidden');
         modal.classList.add('flex');
-        document.body.style.overflow = 'hidden';
+        document.body.style.overflow = '';
+        document.body.classList.remove('overflow-hidden');
+        document.documentElement.classList.remove('overflow-hidden');
+        document.documentElement.style.overflow = '';
         console.log('✅ Modal aberto:', modalId);
       } else {
         console.error('❌ Modal não encontrado:', modalId);

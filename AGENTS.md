@@ -45,7 +45,7 @@ Ajudar igrejas a discipular, informar, engajar e servir seus membros por meio de
 ```text
 .
 |-- index.html                         # Aplicacao principal
-|-- script.js                          # Core do app publico
+|-- script.js                          # Inicializacao e helpers compartilhados
 |-- auth.js                            # Login, cadastro, sessao e UI de autenticacao
 |-- supabase.js                        # Cliente Supabase e facade global ADPEL
 |-- fundraising.js                     # Cofres e contribuicoes publicas
@@ -69,10 +69,14 @@ Ajudar igrejas a discipular, informar, engajar e servir seus membros por meio de
 |   |-- app-updates.js               # Novidades e atualizacoes do app
 |   |-- bible.js                     # Biblia embutida no app principal
 |   |-- bootstrap.js                 # Helpers globais iniciais
+|   |-- certificates.js              # Certificados publicos
 |   |-- config.js                    # Configuracao base ADPEL
 |   |-- courses.js                   # Cursos, aulas e estudos publicos
 |   |-- home.js                      # Home publica
-|   `-- library.js                   # Biblioteca publica
+|   |-- library.js                   # Biblioteca publica
+|   |-- navigation.js                # Navegacao publica e modais globais
+|   |-- offerings.js                 # Modal de ofertas e PIX
+|   `-- profile.js                   # Perfil e relatorio de ofertas
 |-- bible.html                         # Pagina separada da Biblia
 |-- harpa.html                         # Pagina separada da Harpa Crista
 |-- style.css                          # Tema visual global
@@ -108,7 +112,7 @@ O projeto e um app estatico com backend Supabase. Nao ha framework frontend, bun
 - Renderizacao imperativa usando `innerHTML` e eventos inline (`onclick`).
 - Modulos separados por arquivo, mas sem import/export.
 
-O core publico esta em `script.js`. O core admin esta em `admin.js`, com CRUDs em arquivos separados dentro de `admin/`.
+O core publico foi dividido entre `script.js` e os modulos em `js/`. O core admin esta em `admin.js`, com CRUDs em arquivos separados dentro de `admin/`.
 
 ## Como o frontend funciona
 
@@ -120,13 +124,14 @@ O core publico esta em `script.js`. O core admin esta em `admin.js`, com CRUDs e
 4. `auth.js`.
 5. `utils/date-utils.js`.
 6. `spiritual-progress.js`.
-7. `script.js`.
-8. modulos publicos em `js/` (`bible.js`, `app-updates.js`, `library.js`, `agenda.js`, `courses.js`, `home.js`).
-9. `fundraising.js`.
+7. modulos publicos em `js/` (`navigation.js`, `bible.js`, `app-updates.js`, `library.js`, `agenda.js`, `courses.js`, `home.js`).
+8. `fundraising.js`.
+9. modulos publicos dependentes (`offerings.js`, `profile.js`, `certificates.js`).
 10. `notifications.js`.
 11. `text-fix.js`.
+12. `script.js`.
 
-`script.js` interpreta hash da URL, controla navegacao, carrega dados por secao e mantem funcoes compartilhadas e dominios ainda nao extraidos. Modulos em `js/` cuidam de Home, Agenda, Cursos/Estudos, Biblioteca, Biblia embutida e Atualizacoes.
+`script.js` inicializa o app apos o carregamento do DOM e mantem helpers compartilhados. Modulos em `js/` cuidam de Navegacao, Home, Agenda, Cursos/Estudos, Biblioteca, Biblia embutida, Atualizacoes, Ofertas, Perfil e Certificados.
 
 A navegacao principal usa `navigateTo(section)`. Ela esconde todas as secoes principais e mostra a secao solicitada. Algumas secoes exigem login: `courses`, `library`, `certificate` e `profile`.
 
@@ -208,7 +213,7 @@ O fluxo atual e:
 1. Usuario acessa `index.html`.
 2. Supabase inicializa em `supabase.js`.
 3. `auth.js` resolve sessao e perfil.
-4. `script.js` carrega dados da secao ativa.
+4. `js/navigation.js` carrega dados da secao ativa.
 5. Cada modulo consulta tabelas diretamente.
 6. Renderizacao acontece no DOM por `innerHTML`.
 7. Acoes do usuario gravam diretamente no Supabase.
@@ -481,7 +486,7 @@ O app e mobile-first:
 
 1. Confirme se precisa ser pagina separada ou apenas nova secao em `index.html`.
 2. Para secao interna, crie um bloco com `id` unico em `index.html`.
-3. Inclua o id na lista de secoes em `navigateTo()` dentro de `script.js`.
+3. Inclua o id na lista de secoes em `navigateTo()` dentro de `js/navigation.js`.
 4. Adicione o caso correspondente em `loadSectionData(section)`.
 5. Adicione item no menu desktop e/ou mobile.
 6. Reutilize padroes de cards, headings, estados vazios e modais.
@@ -594,7 +599,7 @@ Nao altere sem necessidade e sem entender impacto:
 - RLS permissivo demais para escrita administrativa.
 - Admin protegido principalmente no cliente.
 - Email `master@adpel.com` hardcoded.
-- `script.js` muito grande e com muitas responsabilidades.
+- `script.js` ja foi reduzido, mas ainda ha dependencias globais herdadas entre modulos.
 - Duplicacao de helpers (`escapeHtml`, `formatDate`, `openModal`, `closeModal`, `formatBRL`).
 - Inconsistencias entre schemas antigos e codigo atual, como `file_data` vs `file_url`.
 - `fundraising_stats` aparece como view em um SQL e como tabela em migration.
