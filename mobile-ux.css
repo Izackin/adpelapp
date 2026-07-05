@@ -1,0 +1,261 @@
+/* ADPEL mobile-first UX refinements.
+   Loaded last to improve contrast and reduce visual cost on phones. */
+
+:root {
+  --ux-light-surface: #ffffff;
+  --ux-light-soft: #f8fafc;
+  --ux-light-border: #dbe3ef;
+  --ux-light-text: #0f172a;
+  --ux-light-muted: #475569;
+}
+
+#oferta-modal > div,
+#oferta-modal .bg-white,
+#contribution-modal > div {
+  background: var(--ux-light-surface) !important;
+  background-image: none !important;
+  color: var(--ux-light-text) !important;
+  border-color: var(--ux-light-border) !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+#oferta-modal h2,
+#oferta-modal h3,
+#oferta-modal label,
+#oferta-modal .font-bold,
+#oferta-modal .font-semibold,
+#oferta-modal .text-gray-900,
+#oferta-modal .text-gray-800,
+#oferta-modal .text-gray-700,
+#contribution-modal label,
+#contribution-modal .text-gray-800,
+#contribution-modal .text-gray-700 {
+  color: var(--ux-light-text) !important;
+}
+
+#oferta-modal p,
+#oferta-modal .text-gray-600,
+#oferta-modal .text-gray-500,
+#oferta-modal .text-gray-400,
+#contribution-modal .text-gray-600,
+#contribution-modal .text-gray-500 {
+  color: var(--ux-light-muted) !important;
+}
+
+#oferta-modal .text-green-600,
+#oferta-modal .text-green-700,
+#oferta-modal .text-green-800,
+#contribution-modal .text-green-600,
+#contribution-modal .text-green-700 {
+  color: #15803d !important;
+}
+
+#oferta-modal input,
+#oferta-modal textarea,
+#contribution-modal input {
+  background: var(--ux-light-soft) !important;
+  color: var(--ux-light-text) !important;
+  border-color: #cbd5e1 !important;
+}
+
+#oferta-modal input::placeholder,
+#oferta-modal textarea::placeholder,
+#contribution-modal input::placeholder {
+  color: #64748b !important;
+}
+
+#oferta-modal #oferta-etapa-tipo > button,
+#oferta-modal #oferta-cofres-lista > button,
+#oferta-modal .oferta-valor-btn {
+  background: #ffffff !important;
+  color: var(--ux-light-text) !important;
+  border-color: var(--ux-light-border) !important;
+  box-shadow: 0 8px 18px rgba(15, 23, 42, 0.06) !important;
+}
+
+#oferta-modal #oferta-etapa-tipo > button:hover,
+#oferta-modal #oferta-cofres-lista > button:hover,
+#oferta-modal .oferta-valor-btn:hover,
+#oferta-modal .oferta-valor-btn.selected,
+#oferta-modal .oferta-valor-btn.bg-green-50 {
+  background: #ecfdf5 !important;
+  border-color: #22c55e !important;
+  color: #14532d !important;
+}
+
+#oferta-modal .bg-green-50,
+#contribution-modal .bg-green-50 {
+  background: #ecfdf5 !important;
+  border-color: #bbf7d0 !important;
+}
+
+#oferta-modal .bg-gray-50,
+#oferta-modal .bg-gray-100,
+#contribution-modal .bg-gray-50,
+#contribution-modal .bg-gray-100 {
+  background: var(--ux-light-soft) !important;
+}
+
+#oferta-modal .bg-gray-200,
+#contribution-modal .bg-gray-200 {
+  background: #e2e8f0 !important;
+}
+
+#oferta-modal .bg-gray-300 {
+  background: #cbd5e1 !important;
+  color: #475569 !important;
+}
+
+#oferta-modal button.bg-green-600,
+#oferta-modal button.bg-green-700,
+#contribution-modal button.bg-green-600 {
+  background: linear-gradient(135deg, #16a34a, #059669) !important;
+  color: #ffffff !important;
+}
+
+#oferta-modal button.border-gray-300,
+#contribution-modal button.border-gray-300 {
+  background: #ffffff !important;
+  color: #475569 !important;
+  border-color: #cbd5e1 !important;
+}
+
+#oferta-modal #pix-qrcode {
+  background: #ffffff !important;
+  border-color: #d1d5db !important;
+}
+
+#cofres-list > * {
+  background: linear-gradient(180deg, rgba(17, 28, 51, 0.98), rgba(8, 17, 31, 0.98)) !important;
+  border-color: rgba(148, 163, 184, 0.22) !important;
+}
+
+#cofres-list > * h3 {
+  color: #f8fafc !important;
+}
+
+#cofres-list > * p,
+#cofres-list > * .text-gray-500,
+#cofres-list > * .text-gray-400 {
+  color: #b6c2d4 !important;
+}
+
+#cofres-list .bg-green-50 {
+  background: rgba(34, 197, 94, 0.12) !important;
+  border-color: rgba(34, 197, 94, 0.26) !important;
+}
+
+@media (max-width: 767px) {
+  body {
+    background:
+      radial-gradient(circle at 8% 0%, rgba(37, 99, 235, 0.18), transparent 18rem),
+      linear-gradient(180deg, #050816, #08111f 72%, #050816) !important;
+  }
+
+  body::before {
+    display: none !important;
+  }
+
+  header.bg-white,
+  #mobile-nav {
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+  }
+
+  .glass,
+  .empty-state,
+  #cofres-list > *,
+  #journey-card,
+  #continue-section > div + div > *,
+  #home-events-container > *,
+  #news-container > *,
+  #books-grid > *,
+  #certificates-list > *,
+  #ranking-list > *,
+  #profile-content > div,
+  #profile-offerings-content > div,
+  .bg-white {
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    box-shadow: 0 12px 26px rgba(0, 0, 0, 0.22) !important;
+  }
+
+  .animate-fade-in {
+    animation-duration: 0.18s !important;
+  }
+
+  #home > .bg-gradient-to-br:first-of-type {
+    min-height: 12.5rem !important;
+    box-shadow: 0 16px 34px rgba(37, 99, 235, 0.18) !important;
+  }
+
+  #home > .bg-gradient-to-br:first-of-type::after {
+    opacity: 0.35;
+  }
+
+  #cofres {
+    gap: 1.25rem !important;
+  }
+
+  #cofres .text-center {
+    margin-bottom: 1.25rem !important;
+  }
+
+  #cofres h2 {
+    font-size: 1.65rem !important;
+    line-height: 1.15 !important;
+  }
+
+  #cofres-list {
+    gap: 1rem !important;
+  }
+
+  #cofres-list > * img {
+    transition: none !important;
+  }
+
+  #oferta-modal,
+  #contribution-modal {
+    background: rgba(2, 6, 23, 0.72) !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+  }
+
+  #oferta-modal > div {
+    border-radius: 1.1rem !important;
+    max-height: calc(100dvh - 1.25rem - env(safe-area-inset-bottom, 0px)) !important;
+  }
+
+  #oferta-modal .p-6 {
+    padding: 1rem !important;
+  }
+
+  #oferta-modal h2 {
+    font-size: 1.45rem !important;
+  }
+
+  #oferta-modal #oferta-etapa-tipo > button,
+  #oferta-modal #oferta-cofres-lista > button {
+    padding: 0.9rem !important;
+  }
+
+  #oferta-modal .oferta-valor-btn {
+    min-height: 3rem;
+    padding: 0.65rem 0.5rem !important;
+    font-size: 1rem !important;
+  }
+
+  #pix-qrcode {
+    width: min(14.5rem, 72vw) !important;
+    height: min(14.5rem, 72vw) !important;
+  }
+}
+
+@media (prefers-reduced-motion: reduce), (max-width: 767px) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+  }
+}
