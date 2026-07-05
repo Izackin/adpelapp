@@ -402,7 +402,7 @@ async function loadHomeData() {
     const publishedCourses = (courses || [])
       .filter(c => c.is_published)
       .filter(isContentVisibleNow);
-    const inProgressCourses = publishedCourses.map(course => {
+    const homeCourses = publishedCourses.map(course => {
       const lessons = normalizeLessons(course.lessons);
       const total = lessons.length;
       const completedSet = progressMap[course.id] || new Set();
@@ -412,9 +412,12 @@ async function loadHomeData() {
       else if (completed >= total) status = 'completed';
       else if (completed > 0) status = 'in-progress';
       return { ...course, totalLessons: total, completedLessons: completed, status };
-    }).filter(c => c.status === 'in-progress');
+    });
+    const inProgressCourses = homeCourses.filter(c => c.status === 'in-progress');
+    const featuredCourses = homeCourses.filter(c => c.is_featured).slice(0, 8);
 
     renderContinueSection(inProgressCourses);
+    renderFeaturedCourses(featuredCourses);
 
     const attendancesByEvent = {};
     (attendances || []).forEach(a => {
@@ -884,24 +887,22 @@ function renderContinueSection(courses) {
 
 function renderFeaturedCourses(courses) {
   const container = document.getElementById('featured-courses');
+  const section = document.getElementById('featured-courses-section');
   if (!container) return;
   if (!courses || courses.length === 0) {
-    container.innerHTML = `
-      <div class="min-w-[300px] flex-shrink-0 w-full text-center py-8 bg-white rounded-xl border border-dashed border-gray-300">
-        <i class="fas fa-graduation-cap text-4xl text-gray-300 mb-3"></i>
-        <p class="text-gray-500">Nenhum curso em destaque.</p>
-        <p class="text-xs text-gray-400 mt-2">Marque "Destaque (Home)" no painel administrativo para exibir um curso aqui.</p>
-      </div>`;
+    if (section) section.classList.add('hidden');
     return;
   }
-  const isLoggedIn = getCurrentUserInfo().isLoggedIn;
+  if (section) section.classList.remove('hidden');
   container.innerHTML = courses.map(course => `
-    <div class="min-w-[300px] flex-shrink-0 snap-start bg-white rounded-xl shadow-sm overflow-hidden hover:shadow-lg transition group">
+    <div class="min-w-[292px] max-w-[320px] flex-shrink-0 snap-start bg-white rounded-xl shadow-sm overflow-hidden hover:shadow-lg transition group border border-gray-100">
       <div class="relative h-40 bg-gradient-to-br from-blue-500 to-blue-700 cursor-pointer" onclick="if(!getCurrentUserInfo().isLoggedIn){openModal('login-modal');return;} openCourseModal('${encodeURIComponent(JSON.stringify(course))}')">
         ${course.thumbnail_url 
           ? `<img src="${course.thumbnail_url}" class="w-full h-full object-cover" alt="${escapeHtml(course.title)}">`
           : `<div class="w-full h-full flex items-center justify-center text-white/50"><i class="fas fa-graduation-cap text-5xl"></i></div>`}
-        <div class="absolute top-3 right-3 bg-white/90 px-2 py-1 rounded text-xs font-bold text-blue-700">${escapeHtml(course.category || 'Curso')}</div>
+        <div class="absolute inset-0 bg-gradient-to-t from-black/65 via-black/10 to-transparent"></div>
+        <div class="absolute top-3 left-3 bg-amber-400 text-slate-950 px-2 py-1 rounded text-xs font-black shadow-sm">Lançamento</div>
+        <div class="absolute bottom-3 right-3 bg-white/90 px-2 py-1 rounded text-xs font-bold text-blue-700">${escapeHtml(course.category || 'Curso')}</div>
       </div>
       <div class="p-4">
         <h4 class="font-bold text-gray-800 group-hover:text-blue-600 transition cursor-pointer" onclick="if(!getCurrentUserInfo().isLoggedIn){openModal('login-modal');return;} openCourseModal('${encodeURIComponent(JSON.stringify(course))}')">${escapeHtml(course.title)}</h4>
@@ -910,7 +911,10 @@ function renderFeaturedCourses(courses) {
           <span class="flex items-center gap-1"><i class="fas fa-user-tie text-xs"></i> ${escapeHtml(course.teacher_name || 'A definir')}</span>
           <span class="flex items-center gap-1"><i class="fas fa-clock text-xs"></i> ${course.duration ? `${course.duration}h` : 'A definir'}</span>
         </div>
-        <button onclick="if(!getCurrentUserInfo().isLoggedIn){openModal('login-modal');return;} openCourseModal('${encodeURIComponent(JSON.stringify(course))}')" class="mt-3 w-full py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition">Ver Aulas</button>
+        <div class="mt-3 grid grid-cols-2 gap-2">
+          <button onclick="if(!getCurrentUserInfo().isLoggedIn){openModal('login-modal');return;} openCourseModal('${encodeURIComponent(JSON.stringify(course))}')" class="py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition">Assistir</button>
+          <button onclick="navigateTo('courses')" class="py-2 bg-gray-100 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-200 transition">Outros cursos</button>
+        </div>
       </div>
     </div>
   `).join('');
@@ -1513,11 +1517,30 @@ function closeModal(modalId) {
 
 function normalizeLessons(lessons) {
   if (!lessons) return [];
-  if (Array.isArray(lessons)) return lessons;
+  if (Array.isArray(lessons)) {
+    return lessons.map(normalizeLesson).filter(function(lesson) { return lesson.url; });
+  }
   if (typeof lessons === 'string') {
-    try { return JSON.parse(lessons); } catch (e) { return []; }
+    try {
+      return normalizeLessons(JSON.parse(lessons));
+    } catch (e) {
+      const url = lessons.trim();
+      return url ? [{ title: '', url: url }] : [];
+    }
   }
   return [];
+}
+
+function normalizeLesson(lesson) {
+  if (!lesson) return { title: '', url: '' };
+  if (typeof lesson === 'string') return { title: '', url: lesson.trim() };
+  if (typeof lesson === 'object') {
+    return {
+      title: String(lesson.title || lesson.name || '').trim(),
+      url: String(lesson.url || lesson.video_url || lesson.youtube_url || lesson.link || '').trim()
+    };
+  }
+  return { title: '', url: '' };
 }
 
 function extractYouTubeID(url) {
@@ -1639,8 +1662,10 @@ async function renderCourseLessons(course) {
 
   const completedIndexes = await getLessonProgress(course.id);
 
-  lessons.forEach((url, index) => {
-    const videoId = extractYouTubeID(url);
+  lessons.forEach((lesson, index) => {
+    const lessonTitle = lesson.title || `Aula ${index + 1}`;
+    const lessonUrl = lesson.url;
+    const videoId = extractYouTubeID(lessonUrl);
     const isYouTube = !!videoId;
     const isCompleted = isLessonCompleted(completedIndexes, index);
 
@@ -1657,7 +1682,7 @@ async function renderCourseLessons(course) {
       </div>
       <div class="w-10 h-10 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center flex-shrink-0 font-bold text-sm">${index + 1}</div>
       <div class="flex-1 min-w-0">
-        <p class="text-sm font-medium text-gray-800 truncate">Aula ${index + 1}</p>
+        <p class="text-sm font-medium text-gray-800 truncate">${escapeHtml(lessonTitle)}</p>
         <p class="text-xs ${isCompleted ? 'text-green-600 font-medium' : 'text-gray-500'}">${isCompleted ? 'Concluído' : 'Clique para assistir'}</p>
       </div>
     `;
@@ -1667,7 +1692,7 @@ async function renderCourseLessons(course) {
         videoWrapper.classList.remove('hidden');
         loadYouTubePlayer(videoId, course.id, index);
       } else {
-        window.open(url, '_blank');
+        window.open(lessonUrl, '_blank');
       }
     });
 
@@ -1743,6 +1768,10 @@ function loadYouTubePlayer(videoId, courseId, lessonIndex) {
 
   if (ytPlayer && ytPlayer.destroy) {
     ytPlayer.destroy();
+  }
+  const wrapper = document.getElementById('course-video-wrapper');
+  if (wrapper) {
+    wrapper.innerHTML = '<div id="yt-player" class="w-full h-full"></div>';
   }
 
   ytPlayer = new YT.Player('yt-player', {
@@ -1922,14 +1951,16 @@ function openStudyModal(encodedStudy) {
   const lessons = normalizeLessons(study.lessons);
   if (lessons.length > 0 && lessonsSection && lessonsContainer) {
     lessonsSection.classList.remove('hidden');
-    lessons.forEach((url, index) => {
-      const videoId = extractYouTubeID(url);
+    lessons.forEach((lesson, index) => {
+      const lessonTitle = lesson.title || `Aula ${index + 1}`;
+      const lessonUrl = lesson.url;
+      const videoId = extractYouTubeID(lessonUrl);
       const div = document.createElement('div');
       div.className = 'flex items-center gap-3 p-3 rounded-lg border border-gray-100 hover:bg-amber-50 transition cursor-pointer';
       div.innerHTML = `
         <div class="w-10 h-10 rounded-full bg-amber-100 text-amber-600 flex items-center justify-center flex-shrink-0 font-bold text-sm">${index + 1}</div>
         <div class="flex-1 min-w-0">
-          <p class="text-sm font-medium text-gray-800 truncate">Aula ${index + 1}</p>
+          <p class="text-sm font-medium text-gray-800 truncate">${escapeHtml(lessonTitle)}</p>
           <p class="text-xs text-gray-500">${videoId ? 'Clique para assistir' : 'Clique para abrir'}</p>
         </div>
       `;
@@ -1938,7 +1969,7 @@ function openStudyModal(encodedStudy) {
           videoWrapper.classList.remove('hidden');
           loadStudyYouTubePlayer(videoId, study.id, index);
         } else {
-          window.open(url, '_blank');
+          window.open(lessonUrl, '_blank');
         }
       });
       lessonsContainer.appendChild(div);
@@ -1978,6 +2009,10 @@ function loadStudyYouTubePlayer(videoId, studyId, lessonIndex) {
   currentStudyForPlayer = studyId;
   currentStudyLessonIndexForPlayer = lessonIndex;
   if (studyYtPlayer && studyYtPlayer.destroy) studyYtPlayer.destroy();
+  const wrapper = document.getElementById('study-video-wrapper');
+  if (wrapper) {
+    wrapper.innerHTML = '<div id="study-yt-player" class="w-full h-full"></div>';
+  }
   studyYtPlayer = new YT.Player('study-yt-player', {
     height: '100%',
     width: '100%',

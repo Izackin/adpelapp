@@ -53,7 +53,7 @@ function addLessonField(lesson) {
   if (!list) { return; }
 
   var div = document.createElement('div');
-  div.className = 'flex gap-2 items-center';
+  div.className = 'admin-lesson-row flex gap-2 items-center';
   div.innerHTML =
     '<input type="text" placeholder="Título da aula" value="' + escapeHtml(lesson && lesson.title ? lesson.title : '') + '" class="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-adpel-500 outline-none">' +
     '<input type="url" placeholder="URL do YouTube" value="' + escapeHtml(lesson && lesson.url ? lesson.url : '') + '" class="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-adpel-500 outline-none">' +
