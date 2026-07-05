@@ -64,6 +64,15 @@ Ajudar igrejas a discipular, informar, engajar e servir seus membros por meio de
 |   |-- crud-library.js
 |   |-- crud-studies.js
 |   `-- crud-verses.js
+|-- js/
+|   |-- agenda.js                    # Agenda/eventos publicos
+|   |-- app-updates.js               # Novidades e atualizacoes do app
+|   |-- bible.js                     # Biblia embutida no app principal
+|   |-- bootstrap.js                 # Helpers globais iniciais
+|   |-- config.js                    # Configuracao base ADPEL
+|   |-- courses.js                   # Cursos, aulas e estudos publicos
+|   |-- home.js                      # Home publica
+|   `-- library.js                   # Biblioteca publica
 |-- bible.html                         # Pagina separada da Biblia
 |-- harpa.html                         # Pagina separada da Harpa Crista
 |-- style.css                          # Tema visual global
@@ -112,11 +121,12 @@ O core publico esta em `script.js`. O core admin esta em `admin.js`, com CRUDs e
 5. `utils/date-utils.js`.
 6. `spiritual-progress.js`.
 7. `script.js`.
-8. `fundraising.js`.
-9. `notifications.js`.
-10. `text-fix.js`.
+8. modulos publicos em `js/` (`bible.js`, `app-updates.js`, `library.js`, `agenda.js`, `courses.js`, `home.js`).
+9. `fundraising.js`.
+10. `notifications.js`.
+11. `text-fix.js`.
 
-`script.js` inicializa a home, interpreta hash da URL, controla navegacao, renderiza cards, abre modais, carrega dados por secao, controla aulas, certificados, Biblia embutida, ofertas PIX, perfil e ranking.
+`script.js` interpreta hash da URL, controla navegacao, carrega dados por secao e mantem funcoes compartilhadas e dominios ainda nao extraidos. Modulos em `js/` cuidam de Home, Agenda, Cursos/Estudos, Biblioteca, Biblia embutida e Atualizacoes.
 
 A navegacao principal usa `navigateTo(section)`. Ela esconde todas as secoes principais e mostra a secao solicitada. Algumas secoes exigem login: `courses`, `library`, `certificate` e `profile`.
 
@@ -673,4 +683,3 @@ Nao altere sem necessidade e sem entender impacto:
 - Manter o projeto organizado.
 - Documentar qualquer funcionalidade nova criada.
 - Atualizar este `AGENTS.md` sempre que a arquitetura mudar.
-

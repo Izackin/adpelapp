@@ -8,8 +8,6 @@ let currentLessonIndexForPlayer = null;
 
 let currentOpenCourse = null;
 
-let currentOpenStudy = null;
-
 let studyYtPlayer = null;
 
 let currentStudyForPlayer = null;
@@ -292,7 +290,6 @@ async function renderCourseLessons(course) {
   const lessonsContainer = document.getElementById('course-lessons-container');
   const noLessonsEl = document.getElementById('course-no-lessons');
   const videoWrapper = document.getElementById('course-video-wrapper');
-  const videoFrame = document.getElementById('course-video-frame');
   if (!lessonsContainer) return;
 
   lessonsContainer.innerHTML = '';
@@ -359,8 +356,6 @@ async function openCourseModal(encodedCourse) {
   const titleEl = document.getElementById('course-modal-title');
   const teacherEl = document.getElementById('course-modal-teacher');
   const descEl = document.getElementById('course-modal-description');
-  const lessonsContainer = document.getElementById('course-lessons-container');
-  const noLessonsEl = document.getElementById('course-no-lessons');
   const videoWrapper = document.getElementById('course-video-wrapper');
 
   if (titleEl) titleEl.textContent = course.title || 'Curso';
@@ -555,8 +550,6 @@ function openStudyModal(encodedStudy) {
     console.error('Erro ao abrir estudo:', e);
     return;
   }
-  currentOpenStudy = study;
-
   const titleEl = document.getElementById('study-modal-title');
   const catEl = document.getElementById('study-modal-category');
   const descEl = document.getElementById('study-modal-description');
@@ -640,7 +633,6 @@ function closeStudyModal() {
     modal.classList.remove('flex');
     document.body.style.overflow = '';
   }
-  currentOpenStudy = null;
   currentStudyForPlayer = null;
   currentStudyLessonIndexForPlayer = null;
 }
