@@ -1,15 +1,7 @@
 var communityPostsCache = [];
 var communityCommentsCache = {};
 var communityFilter = 'all';
-
-var COMMUNITY_CATEGORIES = {
-  all: { label: 'Todos', icon: 'fa-layer-group' },
-  testemunho: { label: 'Testemunho', icon: 'fa-star' },
-  oracao: { label: 'Pedido de oracao', icon: 'fa-hands-praying' },
-  gratidao: { label: 'Gratidao', icon: 'fa-heart' },
-  reflexao: { label: 'Reflexao', icon: 'fa-book-open' },
-  comunhao: { label: 'Comunhao', icon: 'fa-people-group' }
-};
+var openCommunityMenuId = null;
 
 function isCommunitySchemaError(error) {
   var text = String(error && (error.message || error.details || error.hint || error.code) || '').toLowerCase();
@@ -37,6 +29,50 @@ function uniqueValues(values) {
   });
 }
 
+function getCommunityProfileDisplay(profile, fallback) {
+  var safeProfile = profile || {};
+  return safeProfile.public_name || safeProfile.full_name || fallback || 'Membro';
+}
+
+function getCommunityInitials(name) {
+  var parts = String(name || 'Membro').trim().split(/\s+/).filter(Boolean);
+  if (!parts.length) return 'M';
+  return (parts[0].charAt(0) + (parts.length > 1 ? parts[parts.length - 1].charAt(0) : '')).toUpperCase();
+}
+
+function renderCommunityAvatar(profile, sizeClass, fallback) {
+  var name = getCommunityProfileDisplay(profile, fallback);
+  var avatar = profile && profile.avatar_url ? profile.avatar_url : '';
+  return '<span class="community-avatar ' + (sizeClass || '') + '">' +
+    (avatar ? '<img src="' + escapeHtml(avatar) + '" alt="' + escapeHtml(name) + '">' : escapeHtml(getCommunityInitials(name))) +
+  '</span>';
+}
+
+function formatCommunityDate(value) {
+  if (!value) return '';
+  var date = new Date(value);
+  if (isNaN(date.getTime())) return '';
+  var now = new Date();
+  var diffMs = now.getTime() - date.getTime();
+  var minute = 60 * 1000;
+  var hour = 60 * minute;
+  var day = 24 * hour;
+  if (diffMs < minute) return 'agora';
+  if (diffMs < hour) return 'ha ' + Math.max(1, Math.floor(diffMs / minute)) + ' min';
+  if (diffMs < day) return 'ha ' + Math.floor(diffMs / hour) + ' h';
+
+  var yesterday = new Date(now);
+  yesterday.setDate(now.getDate() - 1);
+  var sameYesterday = date.getFullYear() === yesterday.getFullYear() &&
+    date.getMonth() === yesterday.getMonth() &&
+    date.getDate() === yesterday.getDate();
+  var time = date.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+  if (sameYesterday) return 'ontem as ' + time;
+
+  var months = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez'];
+  return String(date.getDate()).padStart(2, '0') + ' ' + months[date.getMonth()] + ' ' + date.getFullYear() + ' - ' + time;
+}
+
 async function loadCommunityProfiles(userIds) {
   var profilesById = {};
   var ids = uniqueValues(userIds);
@@ -45,8 +81,18 @@ async function loadCommunityProfiles(userIds) {
   try {
     var result = await window.supabaseClient
       .from('profiles')
-      .select('id, full_name, public_name, avatar_url, show_public_profile')
+      .select('id, full_name, public_name, avatar_url, bio, ministry, show_public_profile')
       .in('id', ids);
+    if (result.error) {
+      var text = String(result.error && (result.error.message || result.error.details || result.error.hint || result.error.code) || '').toLowerCase();
+      var missingOptionalProfileFields = text.indexOf('bio') !== -1 || text.indexOf('ministry') !== -1 || text.indexOf('42703') !== -1 || text.indexOf('pgrst204') !== -1;
+      if (missingOptionalProfileFields) {
+        result = await window.supabaseClient
+          .from('profiles')
+          .select('id, full_name, public_name, avatar_url, show_public_profile')
+          .in('id', ids);
+      }
+    }
     if (result.error) throw result.error;
     (result.data || []).forEach(function(profile) {
       profilesById[profile.id] = profile;
@@ -64,21 +110,48 @@ async function loadCommunityProfiles(userIds) {
 function renderCommunityShell() {
   var root = document.getElementById('community-content');
   if (!root) return;
-  var filters = Object.keys(COMMUNITY_CATEGORIES).map(function(key) {
-    var active = communityFilter === key;
-    var cat = COMMUNITY_CATEGORIES[key];
-    return '<button onclick="setCommunityFilter(&quot;' + key + '&quot;)" class="min-h-[44px] px-3 py-2 rounded-xl text-sm font-bold border transition inline-flex items-center justify-center gap-2 whitespace-nowrap ' + (active ? 'bg-adpel-600 text-white border-adpel-500' : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50') + '"><i class="fas ' + cat.icon + '"></i>' + escapeHtml(cat.label) + '</button>';
-  }).join('');
+  var userInfo = getCurrentUserInfo();
+  var profile = userInfo.profile || {};
+  var displayName = getCommunityProfileDisplay(profile, 'Membro');
 
   root.innerHTML = [
-    '<div class="space-y-5">',
-      '<div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4">',
-        '<div><h2 class="text-3xl md:text-4xl font-bold text-gray-800">Comunidade ADPEL</h2><p class="text-gray-500 mt-2 max-w-2xl">Compartilhe testemunhos, pedidos de oracao e palavras de edificacao.</p></div>',
-        '<button onclick="openCommunityComposer()" class="min-h-[48px] px-5 py-3 bg-emerald-600 text-white rounded-xl font-bold hover:bg-emerald-700 transition inline-flex items-center justify-center gap-2"><i class="fas fa-plus"></i> Nova publicacao</button>',
+    '<div class="community-shell">',
+      '<section class="community-hero">',
+        '<div class="community-hero-copy">',
+          '<span class="community-kicker"><i class="fas fa-heart"></i> Feed da igreja</span>',
+          '<h2>Comunidade ADPEL</h2>',
+          '<p>Um espaco para compartilhar pensamentos, testemunhos e momentos com a igreja.</p>',
+        '</div>',
+        '<div class="community-hero-mark" aria-hidden="true"><i class="fas fa-cross"></i></div>',
+      '</section>',
+      '<section class="community-composer-card">',
+        '<button onclick="openCommunityComposer()" class="community-composer-trigger">',
+          renderCommunityAvatar(profile, 'community-avatar-lg', displayName),
+          '<span class="community-composer-placeholder">Compartilhe algo com a comunidade...</span>',
+          '<span class="community-composer-plus"><i class="fas fa-pen"></i></span>',
+        '</button>',
+        '<div id="community-composer" class="hidden community-composer"></div>',
+        '<div class="community-media-hint"><i class="fas fa-image"></i><span>Espaco preparado para fotos e midia em breve</span></div>',
+      '</section>',
+      '<section class="community-feed">',
+        '<div id="community-posts-list" class="community-posts-list"></div>',
+      '</section>',
+    '</div>'
+  ].join('');
+}
+
+function renderCommunityComposerForm() {
+  return [
+    '<div class="community-composer-expanded">',
+      '<textarea id="community-post-content" maxlength="800" rows="4" oninput="updateCommunityCounter()" placeholder="Compartilhe algo com a comunidade..." class="community-composer-textarea"></textarea>',
+      '<input id="community-post-category" type="hidden" value="comunhao">',
+      '<div class="community-composer-toolbar">',
+        '<span id="community-char-counter" class="community-char-counter">0/800</span>',
+        '<div class="community-composer-actions">',
+          '<button onclick="closeCommunityComposer()" class="community-secondary-btn">Cancelar</button>',
+          '<button onclick="createCommunityPost()" class="community-primary-btn"><i class="fas fa-paper-plane"></i> Publicar</button>',
+        '</div>',
       '</div>',
-      '<div class="flex gap-2 overflow-x-auto pb-2">' + filters + '</div>',
-      '<div id="community-composer" class="hidden bg-white rounded-2xl border border-gray-100 p-4 md:p-5"></div>',
-      '<div id="community-posts-list" class="space-y-4"></div>',
     '</div>'
   ].join('');
 }
@@ -86,7 +159,7 @@ function renderCommunityShell() {
 async function loadCommunityData() {
   renderCommunityShell();
   var list = document.getElementById('community-posts-list');
-  if (list) list.innerHTML = '<div class="text-center py-8 text-gray-500">Carregando comunidade...</div>';
+  if (list) list.innerHTML = '<div class="community-loading"><i class="fas fa-circle-notch fa-spin"></i><span>Carregando comunidade...</span></div>';
   if (!window.supabaseClient) return;
 
   try {
@@ -145,8 +218,8 @@ async function loadCommunityData() {
     console.error('Erro ao carregar comunidade:', error);
     if (list) {
       list.innerHTML = isCommunitySchemaError(error)
-        ? '<div class="empty-state"><div class="empty-state-icon"><i class="fas fa-comments text-2xl"></i></div><h3>Comunidade ainda nao ativada</h3><p>Execute o SQL da Comunidade ADPEL no Supabase.</p></div>'
-        : '<div class="empty-state"><div class="empty-state-icon"><i class="fas fa-triangle-exclamation text-2xl"></i></div><h3>Nao foi possivel carregar</h3><p>Tente novamente em instantes.</p></div>';
+        ? '<div class="community-empty"><div class="community-empty-icon"><i class="fas fa-comments"></i></div><h3>Comunidade ainda nao ativada</h3><p>Execute o SQL da Comunidade ADPEL no Supabase.</p></div>'
+        : '<div class="community-empty"><div class="community-empty-icon"><i class="fas fa-triangle-exclamation"></i></div><h3>Nao foi possivel carregar</h3><p>Tente novamente em instantes.</p></div>';
     }
   }
 }
@@ -166,29 +239,17 @@ function openCommunityComposer() {
   var composer = document.getElementById('community-composer');
   if (!composer) return;
   composer.classList.remove('hidden');
-  composer.innerHTML = [
-    '<div class="space-y-3">',
-      '<div class="grid grid-cols-1 sm:grid-cols-[14rem_1fr] gap-3">',
-        '<select id="community-post-category" class="w-full px-3 py-3 rounded-xl border border-gray-300 bg-white text-gray-800 min-h-[44px]">',
-          '<option value="testemunho">Testemunho</option><option value="oracao">Pedido de oracao</option><option value="gratidao">Gratidao</option><option value="reflexao">Reflexao</option><option value="comunhao">Comunhao</option>',
-        '</select>',
-        '<div class="text-sm text-gray-500 flex items-center">Publique algo que edifique e fortaleça a comunhao.</div>',
-      '</div>',
-      '<textarea id="community-post-content" maxlength="800" rows="4" oninput="updateCommunityCounter()" placeholder="Escreva sua mensagem..." class="w-full px-4 py-3 rounded-xl border border-gray-300 bg-white text-gray-800 outline-none focus:ring-2 focus:ring-emerald-500 resize-y"></textarea>',
-      '<div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">',
-        '<span id="community-char-counter" class="text-xs text-gray-500">0/800</span>',
-        '<div class="grid grid-cols-2 sm:flex gap-2">',
-          '<button onclick="closeCommunityComposer()" class="min-h-[44px] px-4 py-2 rounded-xl border border-gray-300 text-gray-700 font-bold hover:bg-gray-50">Cancelar</button>',
-          '<button onclick="createCommunityPost()" class="min-h-[44px] px-4 py-2 rounded-xl bg-emerald-600 text-white font-bold hover:bg-emerald-700"><i class="fas fa-paper-plane mr-1"></i> Publicar</button>',
-        '</div>',
-      '</div>',
-    '</div>'
-  ].join('');
+  composer.innerHTML = renderCommunityComposerForm();
+  var input = document.getElementById('community-post-content');
+  if (input) input.focus();
 }
 
 function closeCommunityComposer() {
   var composer = document.getElementById('community-composer');
-  if (composer) composer.classList.add('hidden');
+  if (composer) {
+    composer.classList.add('hidden');
+    composer.innerHTML = '';
+  }
 }
 
 function updateCommunityCounter() {
@@ -201,7 +262,7 @@ async function createCommunityPost() {
   var userInfo = getCurrentUserInfo();
   if (!userInfo.isLoggedIn || !userInfo.user) return;
   var content = (document.getElementById('community-post-content') || {}).value || '';
-  var category = (document.getElementById('community-post-category') || {}).value || 'reflexao';
+  var category = (document.getElementById('community-post-category') || {}).value || 'comunhao';
   content = content.trim().slice(0, 800);
   if (!content) {
     showToast('Escreva uma mensagem antes de publicar.', 'warning');
@@ -223,48 +284,79 @@ function renderCommunityPosts() {
   var list = document.getElementById('community-posts-list');
   if (!list) return;
   if (!communityPostsCache.length) {
-    list.innerHTML = '<div class="empty-state"><div class="empty-state-icon"><i class="fas fa-comments text-2xl"></i></div><h3>Nenhuma publicacao ainda</h3><p>Seja o primeiro a compartilhar uma palavra de edificacao.</p></div>';
+    list.innerHTML = '<div class="community-empty"><div class="community-empty-icon"><i class="fas fa-comments"></i></div><h3>Nenhuma publicacao ainda</h3><p>Seja o primeiro a compartilhar uma palavra de edificacao.</p></div>';
     return;
   }
   var userInfo = getCurrentUserInfo();
   list.innerHTML = communityPostsCache.map(function(post) {
     var author = post.profiles || {};
-    var authorName = author.public_name || author.full_name || 'Membro';
-    var avatar = author.avatar_url || '';
-    var initials = String(authorName).charAt(0).toUpperCase();
+    var authorName = getCommunityProfileDisplay(author, 'Membro');
+    var authorMeta = author.ministry || author.bio || 'Membro da comunidade';
     var reactions = (post.community_reactions || []).filter(function(r) { return r.reaction_type === 'amen'; });
     var reacted = userInfo.user && reactions.some(function(r) { return r.user_id === userInfo.user.id; });
     var comments = (post.community_comments || []).filter(function(c) { return c.status === 'published'; });
-    var cat = COMMUNITY_CATEGORIES[post.category] || COMMUNITY_CATEGORIES.reflexao;
     return [
-      '<article class="bg-white rounded-2xl border border-gray-100 p-4 md:p-5 shadow-sm">',
-        '<div class="flex items-start gap-3">',
-          '<button onclick="openCommunityAuthorProfile(&quot;' + escapeHtml(post.user_id) + '&quot;)" class="w-12 h-12 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center overflow-hidden shrink-0 font-bold">',
-            avatar ? '<img src="' + escapeHtml(avatar) + '" alt="' + escapeHtml(authorName) + '" class="w-full h-full object-cover">' : escapeHtml(initials),
+      '<article class="community-post">',
+        '<div class="community-post-header">',
+          '<button onclick="openCommunityAuthorProfile(&quot;' + escapeHtml(post.user_id) + '&quot;)" class="community-author-btn">',
+            renderCommunityAvatar(author, '', authorName),
           '</button>',
-          '<div class="flex-1 min-w-0">',
-            '<button onclick="openCommunityAuthorProfile(&quot;' + escapeHtml(post.user_id) + '&quot;)" class="font-bold text-gray-800 hover:text-emerald-500 truncate block">' + escapeHtml(authorName) + '</button>',
-            '<div class="flex flex-wrap gap-2 mt-1 text-xs text-gray-500"><span class="px-2 py-1 rounded-full bg-emerald-50 text-emerald-700 font-bold"><i class="fas ' + cat.icon + ' mr-1"></i>' + escapeHtml(cat.label) + '</span><span>' + formatDate(post.created_at) + '</span></div>',
+          '<div class="community-author-meta">',
+            '<button onclick="openCommunityAuthorProfile(&quot;' + escapeHtml(post.user_id) + '&quot;)" class="community-author-name">' + escapeHtml(authorName) + '</button>',
+            '<div class="community-meta"><span>' + escapeHtml(authorMeta) + '</span><span class="community-dot">&bull;</span><time>' + escapeHtml(formatCommunityDate(post.created_at)) + '</time></div>',
           '</div>',
+          renderCommunityPostMenu(post, userInfo),
         '</div>',
-        '<p class="mt-4 text-gray-700 leading-relaxed whitespace-pre-wrap">' + escapeHtml(post.content) + '</p>',
-        '<div class="mt-4 grid grid-cols-2 sm:flex gap-2">',
-          '<button onclick="toggleAmenReaction(&quot;' + post.id + '&quot;)" class="min-h-[44px] px-4 py-2 rounded-xl font-bold border ' + (reacted ? 'bg-emerald-600 text-white border-emerald-600' : 'bg-gray-50 text-gray-700 border-gray-100 hover:bg-emerald-50') + '"><i class="fas fa-hands-praying mr-1"></i> Amem <span>(' + reactions.length + ')</span></button>',
-          '<button onclick="toggleCommunityComments(&quot;' + post.id + '&quot;)" class="min-h-[44px] px-4 py-2 rounded-xl font-bold bg-gray-50 text-gray-700 border border-gray-100 hover:bg-gray-100"><i class="fas fa-comment mr-1"></i> Comentarios (' + comments.length + ')</button>',
+        '<div class="community-post-body"><p>' + escapeHtml(post.content) + '</p></div>',
+        '<div class="community-post-stats">' + reactions.length + ' amens <span>&bull;</span> ' + comments.length + ' comentarios</div>',
+        '<div class="community-post-footer">',
+          '<button onclick="toggleAmenReaction(&quot;' + post.id + '&quot;)" class="community-action-btn ' + (reacted ? 'is-active' : '') + '"><i class="fas fa-hands-praying"></i><span>Amem</span></button>',
+          '<button onclick="toggleCommunityComments(&quot;' + post.id + '&quot;)" class="community-action-btn"><i class="fas fa-comment"></i><span>Comentar</span></button>',
+          '<button onclick="toggleCommunityMenu(&quot;' + post.id + '&quot;)" class="community-action-btn community-action-more"><i class="fas fa-ellipsis"></i><span>Mais</span></button>',
         '</div>',
-        '<div id="community-comments-' + post.id + '" class="hidden mt-4 border-t border-gray-100 pt-4 space-y-3">' + renderCommunityComments(post, comments) + '</div>',
+        '<div id="community-comments-' + post.id + '" class="hidden community-comments">' + renderCommunityComments(post, comments) + '</div>',
       '</article>'
     ].join('');
   }).join('');
 }
 
+function renderCommunityPostMenu(post, userInfo) {
+  var isAuthor = userInfo.user && userInfo.user.id === post.user_id;
+  var isMaster = !!userInfo.isMaster;
+  var items = [
+    '<button onclick="openCommunityAuthorProfile(&quot;' + escapeHtml(post.user_id) + '&quot;)"><i class="fas fa-user"></i> Ver perfil</button>',
+    '<button onclick="copyCommunityPostText(&quot;' + escapeHtml(post.id) + '&quot;)"><i class="fas fa-copy"></i> Copiar texto</button>'
+  ];
+  if (isAuthor) {
+    items.push('<button class="danger" onclick="deleteCommunityPost(&quot;' + escapeHtml(post.id) + '&quot;)"><i class="fas fa-trash"></i> Excluir publicacao</button>');
+  }
+  if (isMaster && !isAuthor) {
+    items.push('<button onclick="hideCommunityPost(&quot;' + escapeHtml(post.id) + '&quot;)"><i class="fas fa-eye-slash"></i> Ocultar publicacao</button>');
+    items.push('<button class="danger" onclick="deleteCommunityPost(&quot;' + escapeHtml(post.id) + '&quot;)"><i class="fas fa-trash"></i> Remover publicacao</button>');
+  }
+  return [
+    '<div class="community-menu-wrap">',
+      '<button onclick="toggleCommunityMenu(&quot;' + escapeHtml(post.id) + '&quot;)" class="community-menu-trigger" aria-label="Mais opcoes"><i class="fas fa-ellipsis"></i></button>',
+      '<div id="community-menu-' + escapeHtml(post.id) + '" class="community-menu hidden">' + items.join('') + '</div>',
+    '</div>'
+  ].join('');
+}
+
 function renderCommunityComments(post, comments) {
   var html = comments.length ? comments.map(function(comment) {
     var author = comment.profiles || {};
-    var name = author.public_name || author.full_name || 'Membro';
-    return '<div class="bg-gray-50 rounded-xl p-3"><p class="text-xs font-bold text-gray-700">' + escapeHtml(name) + '</p><p class="text-sm text-gray-600 mt-1">' + escapeHtml(comment.content) + '</p></div>';
-  }).join('') : '<p class="text-sm text-gray-500 bg-gray-50 rounded-xl p-3">Nenhum comentario ainda.</p>';
-  html += '<div class="flex flex-col sm:flex-row gap-2"><input id="community-comment-input-' + post.id + '" maxlength="300" placeholder="Escreva um comentario..." class="flex-1 px-3 py-3 rounded-xl border border-gray-300 bg-white text-gray-800 min-h-[44px]"><button onclick="createCommunityComment(&quot;' + post.id + '&quot;)" class="min-h-[44px] px-4 py-2 rounded-xl bg-adpel-600 text-white font-bold">Comentar</button></div>';
+    var name = getCommunityProfileDisplay(author, 'Membro');
+    return [
+      '<div class="community-comment">',
+        renderCommunityAvatar(author, 'community-avatar-sm', name),
+        '<div class="community-comment-bubble">',
+          '<div class="community-comment-head"><strong>' + escapeHtml(name) + '</strong><span>' + escapeHtml(formatCommunityDate(comment.created_at)) + '</span></div>',
+          '<p>' + escapeHtml(comment.content) + '</p>',
+        '</div>',
+      '</div>'
+    ].join('');
+  }).join('') : '<p class="community-no-comments">Nenhum comentario ainda.</p>';
+  html += '<div class="community-comment-input-row"><input id="community-comment-input-' + post.id + '" maxlength="300" placeholder="Escreva um comentario..." class="community-comment-input"><button onclick="createCommunityComment(&quot;' + post.id + '&quot;)" class="community-comment-submit"><i class="fas fa-paper-plane"></i><span>Enviar</span></button></div>';
   return html;
 }
 
@@ -324,6 +416,78 @@ function openCommunityAuthorProfile(userId) {
   if (typeof openPublicProfile === 'function') openPublicProfile(userId);
 }
 
+function toggleCommunityMenu(postId) {
+  var current = document.getElementById('community-menu-' + postId);
+  document.querySelectorAll('.community-menu').forEach(function(menu) {
+    if (menu !== current) menu.classList.add('hidden');
+  });
+  if (!current) return;
+  current.classList.toggle('hidden');
+  openCommunityMenuId = current.classList.contains('hidden') ? null : postId;
+}
+
+function getCommunityPostById(postId) {
+  return communityPostsCache.find(function(item) { return item.id === postId; });
+}
+
+async function copyCommunityPostText(postId) {
+  var post = getCommunityPostById(postId);
+  if (!post) return;
+  try {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      await navigator.clipboard.writeText(post.content || '');
+    } else {
+      var temp = document.createElement('textarea');
+      temp.value = post.content || '';
+      document.body.appendChild(temp);
+      temp.select();
+      document.execCommand('copy');
+      document.body.removeChild(temp);
+    }
+    showToast('Texto copiado.', 'success');
+  } catch (error) {
+    showToast('Nao foi possivel copiar o texto.', 'error');
+  }
+}
+
+async function hideCommunityPost(postId) {
+  var userInfo = getCurrentUserInfo();
+  if (!userInfo.isMaster) return;
+  try {
+    var result = await window.supabaseClient.from('community_posts').update({ status: 'hidden' }).eq('id', postId);
+    if (result.error) throw result.error;
+    showToast('Publicacao ocultada.', 'success');
+    await loadCommunityData();
+  } catch (error) {
+    showToast('Nao foi possivel ocultar a publicacao.', 'error');
+  }
+}
+
+async function deleteCommunityPost(postId) {
+  var userInfo = getCurrentUserInfo();
+  var post = getCommunityPostById(postId);
+  if (!post || (!userInfo.isMaster && (!userInfo.user || userInfo.user.id !== post.user_id))) return;
+  if (!confirm('Deseja remover esta publicacao?')) return;
+  try {
+    var result = await window.supabaseClient.from('community_posts').delete().eq('id', postId);
+    if (result.error) throw result.error;
+    showToast('Publicacao removida.', 'success');
+    await loadCommunityData();
+  } catch (error) {
+    showToast('Nao foi possivel remover a publicacao.', 'error');
+  }
+}
+
+document.addEventListener('click', function(event) {
+  if (!openCommunityMenuId) return;
+  var target = event.target;
+  if (target && target.closest && target.closest('.community-menu-wrap, .community-action-more')) return;
+  document.querySelectorAll('.community-menu').forEach(function(menu) {
+    menu.classList.add('hidden');
+  });
+  openCommunityMenuId = null;
+});
+
 Object.assign(window, {
   loadCommunityData,
   setCommunityFilter,
@@ -335,5 +499,9 @@ Object.assign(window, {
   toggleCommunityComments,
   createCommunityComment,
   toggleAmenReaction,
-  openCommunityAuthorProfile
+  openCommunityAuthorProfile,
+  toggleCommunityMenu,
+  copyCommunityPostText,
+  hideCommunityPost,
+  deleteCommunityPost
 });
