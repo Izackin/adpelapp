@@ -149,6 +149,9 @@
           <button onclick="adminNavigateTo('certificates')" class="w-full flex items-center px-3 py-2.5 rounded-lg hover:bg-gray-800 active:bg-gray-700 transition group text-gray-300 hover:text-white min-h-[44px]">
             <i class="fas fa-certificate w-5 text-center transition group-hover:text-yellow-400"></i><span class="ml-3 font-medium">Certificados de Curso</span>
           </button>
+          <button onclick="adminNavigateTo('community')" class="w-full flex items-center px-3 py-2.5 rounded-lg hover:bg-gray-800 active:bg-gray-700 transition group text-gray-300 hover:text-white min-h-[44px]">
+            <i class="fas fa-users w-5 text-center transition group-hover:text-emerald-400"></i><span class="ml-3 font-medium">Comunidade</span>
+          </button>
         </div>
         <div>
           <div class="text-xs font-semibold text-gray-500 uppercase tracking-wider px-3 mb-2">Sistema</div>
@@ -986,6 +989,20 @@
         </div>
       </div>
 
+      <!-- COMMUNITY MANAGEMENT -->
+      <div id="admin-view-community" class="hidden space-y-6 animate-fade-in">
+        <div class="flex flex-col md:flex-row md:items-center justify-between gap-3 md:gap-4">
+          <div>
+            <h2 class="text-xl md:text-2xl font-bold text-gray-800">Comunidade ADPEL</h2>
+            <p class="text-xs md:text-sm text-gray-500 mt-1">Modere publicacoes do mural interno da igreja.</p>
+          </div>
+          <button onclick="loadAdminCommunity()" class="bg-adpel-600 text-white px-4 md:px-5 py-2.5 rounded-lg text-sm font-medium hover:bg-adpel-700 transition flex items-center justify-center gap-2 min-h-[44px]">
+            <i class="fas fa-sync-alt"></i> Atualizar
+          </button>
+        </div>
+        <div id="admin-community-list" class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden space-y-3 p-3 md:p-4"></div>
+      </div>
+
       <!-- NOTIFICATIONS MANAGEMENT -->
       <div id="admin-view-notifications" class="hidden space-y-6 animate-fade-in">
         <div class="flex flex-col md:flex-row md:items-center justify-between gap-3 md:gap-4">
@@ -1103,6 +1120,7 @@
   <script src="admin/crud-cofres.js"></script>
   <script src="admin/crud-app-updates.js"></script>
   <script src="admin/church-management.js"></script>
+  <script src="admin/community-management.js"></script>
   <script src="admin-notifications.js"></script>
   
   <script>

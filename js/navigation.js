@@ -6,7 +6,7 @@ var SECTION_LOAD_DEBOUNCE = 2000;
 function navigateTo(section) {
   if (section === 'studies') section = 'courses';
   // Seções que exigem login
-  var restrictedSections = ['courses', 'library', 'certificate', 'profile'];
+  var restrictedSections = ['courses', 'library', 'certificate', 'profile', 'community'];
   var userInfo = getCurrentUserInfo();
 
   if (restrictedSections.indexOf(section) !== -1 && !userInfo.isLoggedIn) {
@@ -14,7 +14,7 @@ function navigateTo(section) {
     return;
   }
 
-  const sections = ['home', 'courses', 'library', 'certificate', 'cofres', 'ranking', 'bible', 'profile'];
+  const sections = ['home', 'courses', 'library', 'certificate', 'cofres', 'ranking', 'bible', 'profile', 'community'];
   sections.forEach(s => {
     const el = document.getElementById(s);
     if (el) el.classList.add('hidden');
@@ -43,6 +43,7 @@ function navigateTo(section) {
       certificate: 'aprender',
       cofres: 'culto',
       ranking: 'culto',
+      community: 'community',
       profile: 'home'
     };
     const activeGroup = groupMap[section] || section;
@@ -73,6 +74,7 @@ function loadSectionData(section) {
     case 'certificate': loadCertificatesData(); break;
     case 'cofres': if (typeof loadCofresData === 'function') loadCofresData(); break;
     case 'ranking': if (window.ADPELJourney && typeof window.ADPELJourney.renderRanking === 'function') window.ADPELJourney.renderRanking(); break;
+    case 'community': if (typeof loadCommunityData === 'function') loadCommunityData(); break;
     case 'bible': break; // busca manual pelo usuário
     case 'profile': loadProfileData(); break;
   }
@@ -80,7 +82,7 @@ function loadSectionData(section) {
 
 function handleNavigationHash() {
   const hash = window.location.hash.replace('#', '');
-  if (hash && ['home','courses','library','certificate','cofres','ranking','profile'].includes(hash)) {
+  if (hash && ['home','courses','library','certificate','cofres','ranking','profile','community'].includes(hash)) {
     navigateTo(hash);
   } else if (hash === 'studies') {
     navigateTo('courses');

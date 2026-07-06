@@ -27,6 +27,7 @@
   <script src="fundraising.js" defer></script>
   <script src="js/offerings.js" defer></script>
   <script src="js/profile.js" defer></script>
+  <script src="js/community.js" defer></script>
   <script src="js/certificates.js" defer></script>
   <script src="notifications.js" defer></script>
   <script src="text-fix.js" defer></script>
@@ -218,6 +219,10 @@
             </div>
           </div>
 
+          <a href="#community" onclick="navigateTo('community'); return false;" class="text-gray-600 px-3 py-2 rounded-md text-sm font-medium hover:text-adpel-700 transition cursor-pointer flex items-center gap-1">
+            <i class="fas fa-users"></i> Comunidade
+          </a>
+
           <div class="relative group">
             <button class="text-gray-600 px-3 py-2 rounded-md text-sm font-medium hover:text-adpel-700 transition cursor-pointer flex items-center gap-1">
               📖 Culto <i class="fas fa-chevron-down text-[10px]"></i>
@@ -271,6 +276,10 @@
         <i class="fas fa-book-open text-lg mb-1 pointer-events-none"></i>
         <span class="text-[10px] font-medium pointer-events-none">Culto</span>
       </button>
+      <button onclick="navigateTo('community'); closeMobileSubmenus()" data-section="community" data-group="community" class="mobile-nav-btn flex flex-col items-center text-gray-600 hover:text-adpel-600 flex-1 py-1 bg-transparent border-none cursor-pointer">
+        <i class="fas fa-users text-lg mb-1 pointer-events-none"></i>
+        <span class="text-[10px] font-medium pointer-events-none">Comunidade</span>
+      </button>
 
       <!-- Submenu Aprender -->
       <div id="menu-aprender" class="hidden absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-56 bg-[#0f172a] border border-gray-700 rounded-xl shadow-2xl overflow-hidden z-50">
@@ -320,6 +329,7 @@
 
       <div class="space-y-1">
         <button onclick="navigateTo('home')" class="w-full flex items-center px-3 py-2 rounded-md text-gray-900 hover:bg-adpel-50 transition"> <i class="fas fa-home w-5 text-center text-sm mr-3"></i> Início </button>
+        <button onclick="navigateTo('community')" class="w-full flex items-center px-3 py-2 rounded-md text-gray-600 hover:text-adpel-700 hover:bg-adpel-50 transition"> <i class="fas fa-users w-5 text-center text-sm mr-3"></i> Comunidade </button>
 
         <div class="sidebar-group">
           <button onclick="toggleSidebarGroup('sidebar-aprender')" class="w-full flex items-center px-3 py-2 rounded-md text-gray-600 hover:text-adpel-700 hover:bg-adpel-50 transition"> <i class="fas fa-graduation-cap w-5 text-center text-sm mr-3"></i> 🎓 Aprender <i class="fas fa-chevron-down ml-auto text-xs transition-transform" id="sidebar-aprender-icon"></i></button>
@@ -613,6 +623,11 @@
           <p class="text-gray-500 mt-2 max-w-xl mx-auto">Acompanhe a caminhada dos membros e celebre o crescimento espiritual.</p>
         </div>
         <div id="ranking-list" class="space-y-3"></div>
+      </div>
+
+      <!-- SECT: COMMUNITY -->
+      <div id="community" class="hidden space-y-8">
+        <div id="community-content"></div>
       </div>
 
       <!-- SECT: BIBLE -->

@@ -58,6 +58,9 @@ function adminNavigateTo(view) {
   if (target) {
     target.classList.remove('hidden');
   }
+  if (view === 'community' && typeof loadAdminCommunity === 'function') {
+    loadAdminCommunity();
+  }
 
   // Close mobile sidebar
   if (window.innerWidth < 768) {

@@ -233,17 +233,11 @@ function resizeAvatarImage(file) {
       ctx.drawImage(image, 0, 0, width, height);
 
       canvas.toBlob(function(webpBlob) {
-        if (webpBlob && webpBlob.type === 'image/webp') {
-          resolve({ blob: webpBlob, extension: 'webp', contentType: 'image/webp' });
+        if (!webpBlob) {
+          reject(new Error('Nao foi possivel processar a imagem em WEBP.'));
           return;
         }
-        canvas.toBlob(function(jpegBlob) {
-          if (!jpegBlob) {
-            reject(new Error('Nao foi possivel processar a imagem.'));
-            return;
-          }
-          resolve({ blob: jpegBlob, extension: 'jpg', contentType: 'image/jpeg' });
-        }, 'image/jpeg', 0.8);
+        resolve({ blob: webpBlob, extension: 'webp', contentType: 'image/webp' });
       }, 'image/webp', 0.8);
     };
     image.onerror = function() {
@@ -262,7 +256,7 @@ async function uploadProfileAvatar(file, userId) {
   if (resized.blob.size > 2 * 1024 * 1024) {
     throw new Error('A imagem processada ficou acima de 2MB.');
   }
-  const path = userId + '/avatar.' + resized.extension;
+  const path = userId + '/avatar.webp';
   const result = await window.supabaseClient.storage
     .from('avatars')
     .upload(path, resized.blob, {
@@ -275,7 +269,7 @@ async function uploadProfileAvatar(file, userId) {
     throw result.error;
   }
 
-  return getAvatarPublicUrl(path);
+  return getAvatarPublicUrl(path) + '?v=' + Date.now();
 }
 
 function getAvatarPublicUrl(path) {
