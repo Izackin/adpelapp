@@ -549,7 +549,57 @@
         .order('total_points', { ascending: false })
         .limit(50);
       if (result.error) throw result.error;
-      rankingCache = (result.data || []).map(normalizeProgress);
+      var rows = (result.data || []).map(normalizeProgress);
+      var userIds = rows.map(function (item) { return item.user_id; }).filter(Boolean);
+      var profileMap = {};
+
+      if (userIds.length) {
+        try {
+          var profilesResult = await window.supabaseClient
+            .from('profiles')
+            .select('id, full_name, public_name, avatar_url, bio, ministry, show_public_profile, show_in_ranking')
+            .in('id', userIds);
+          if (profilesResult.error) throw profilesResult.error;
+          (profilesResult.data || []).forEach(function (profile) {
+            profileMap[profile.id] = profile;
+          });
+        } catch (profileError) {
+          var text = String(profileError && (profileError.message || profileError.details || profileError.code) || '').toLowerCase();
+          var missingProfileColumns = text.indexOf('public_name') !== -1 || text.indexOf('avatar_url') !== -1 || text.indexOf('bio') !== -1 || text.indexOf('ministry') !== -1 || text.indexOf('show_public_profile') !== -1 || text.indexOf('show_in_ranking') !== -1 || text.indexOf('42703') !== -1 || text.indexOf('pgrst204') !== -1;
+          if (missingProfileColumns) {
+            try {
+              var fallbackProfiles = await window.supabaseClient
+                .from('profiles')
+                .select('id, full_name')
+                .in('id', userIds);
+              if (!fallbackProfiles.error) {
+                (fallbackProfiles.data || []).forEach(function (profile) {
+                  profileMap[profile.id] = profile;
+                });
+              }
+            } catch (fallbackError) {
+              console.warn('[Minha Caminhada] Perfis indisponiveis para ranking:', fallbackError);
+            }
+          } else {
+            console.warn('[Minha Caminhada] Nao foi possivel enriquecer ranking com perfis:', profileError);
+          }
+        }
+      }
+
+      rankingCache = rows.map(function (item) {
+        var profile = profileMap[item.user_id] || {};
+        return Object.assign({}, item, {
+          public_name: profile.public_name || '',
+          avatar_url: profile.avatar_url || item.avatar || '',
+          bio: profile.bio || '',
+          ministry: profile.ministry || '',
+          show_public_profile: profile.show_public_profile,
+          show_in_ranking: profile.show_in_ranking,
+          user_name: profile.public_name || profile.full_name || item.user_name || 'Membro'
+        });
+      }).filter(function (item) {
+        return item.show_in_ranking !== false;
+      });
       return rankingCache;
     } catch (error) {
       if (isMissingTableError(error)) progressTableUnavailable = true;
@@ -784,10 +834,16 @@
 
     container.innerHTML = ranking.map(function (item, index) {
       var level = getLevelInfo(item.xp);
+      var avatar = item.avatar_url || item.avatar || '';
+      var initials = String(item.user_name || 'M').trim().charAt(0).toUpperCase();
+      var click = item.user_id ? ' onclick="openPublicProfile(&quot;' + escapeHtml(item.user_id) + '&quot;)"' : '';
       var medal = index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : String(index + 1);
       return [
-        '<div class="bg-white rounded-xl border border-gray-100 p-4 flex items-center gap-4">',
+        '<div class="bg-white rounded-xl border border-gray-100 p-4 flex items-center gap-4 cursor-pointer hover:border-emerald-200 hover:shadow-md transition"' + click + '>',
           '<div class="w-10 text-center text-xl font-bold text-gray-700">' + medal + '</div>',
+          '<div class="w-12 h-12 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center overflow-hidden shrink-0 font-bold">',
+            avatar ? '<img src="' + escapeHtml(avatar) + '" alt="' + escapeHtml(item.user_name || 'Membro') + '" class="w-full h-full object-cover">' : escapeHtml(initials),
+          '</div>',
           '<div class="flex-1 min-w-0">',
             '<h4 class="font-bold text-gray-800 truncate">' + escapeHtml(item.user_name || 'Membro') + '</h4>',
             '<p class="text-xs text-gray-500">Nível ' + level.level + ' - ' + escapeHtml(level.title) + '</p>',
