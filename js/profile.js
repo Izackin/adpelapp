@@ -7,6 +7,9 @@ async function loadProfileData() {
   }
 }
 
+let selectedAvatarFile = null;
+let selectedAvatarPreviewUrl = '';
+
 function normalizeInstagram(value) {
   const raw = String(value || '').trim();
   if (!raw) return '';
@@ -128,6 +131,8 @@ function openEditProfileModal() {
     return;
   }
   const profile = userInfo.profile || {};
+  selectedAvatarFile = null;
+  selectedAvatarPreviewUrl = profile.avatar_url || '';
   const modal = ensureProfileModal('edit-profile-modal');
   modal.classList.remove('hidden');
   modal.classList.add('flex');
@@ -141,7 +146,18 @@ function openEditProfileModal() {
       '</div>',
       '<form onsubmit="handleProfileSubmit(event)" class="p-6 grid grid-cols-1 md:grid-cols-2 gap-4">',
         profileField('profile-public-name', 'Nome publico', profile.public_name || profile.full_name || '', 'text'),
-        profileField('profile-avatar-url', 'URL da foto/avatar', profile.avatar_url || '', 'url'),
+        '<div class="md:col-span-2 rounded-2xl bg-gray-50 border border-gray-100 p-4">',
+          '<div class="flex flex-col sm:flex-row sm:items-center gap-4">',
+            '<div id="avatar-preview" class="w-24 h-24 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center overflow-hidden shrink-0 text-2xl font-bold">',
+              profile.avatar_url ? '<img src="' + escapeHtml(profile.avatar_url) + '" alt="Avatar atual" class="w-full h-full object-cover">' : '<i class="fas fa-user"></i>',
+            '</div>',
+            '<div class="flex-1 min-w-0">',
+              '<label class="block text-sm font-bold text-gray-700 mb-2">Foto do perfil</label>',
+              '<input id="profile-avatar-file" type="file" accept="image/jpeg,image/jpg,image/png,image/webp" onchange="handleAvatarFileChange(event)" class="w-full px-3 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none bg-white">',
+              '<p class="text-xs text-gray-500 mt-2">Use uma foto clara. Ela podera aparecer no ranking e na sua BIO publica. JPG, PNG ou WEBP ate 2MB.</p>',
+            '</div>',
+          '</div>',
+        '</div>',
         '<div class="md:col-span-2">' + profileTextarea('profile-bio', 'Bio curta', profile.bio || '', 3) + '</div>',
         profileField('profile-favorite-verse', 'Versiculo favorito', profile.favorite_verse || '', 'text'),
         profileField('profile-ministry', 'Ministerio/funcao', profile.ministry || '', 'text'),
@@ -161,6 +177,125 @@ function openEditProfileModal() {
   ].join('');
 }
 
+function handleAvatarFileChange(event) {
+  const input = event.target;
+  const file = input && input.files && input.files[0] ? input.files[0] : null;
+  selectedAvatarFile = null;
+  if (!file) return;
+
+  const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
+  const name = String(file.name || '').toLowerCase();
+  const validExtension = /\.(jpg|jpeg|png|webp)$/.test(name);
+  if (allowedTypes.indexOf(file.type) === -1 || !validExtension) {
+    input.value = '';
+    showToast('Envie apenas imagens JPG, PNG ou WEBP.', 'warning');
+    return;
+  }
+
+  if (file.size > 2 * 1024 * 1024) {
+    input.value = '';
+    showToast('A imagem deve ter no maximo 2MB.', 'warning');
+    return;
+  }
+
+  selectedAvatarFile = file;
+  if (selectedAvatarPreviewUrl && selectedAvatarPreviewUrl.indexOf('blob:') === 0) {
+    URL.revokeObjectURL(selectedAvatarPreviewUrl);
+  }
+  selectedAvatarPreviewUrl = URL.createObjectURL(file);
+  const preview = document.getElementById('avatar-preview');
+  if (preview) {
+    preview.innerHTML = '<img src="' + escapeHtml(selectedAvatarPreviewUrl) + '" alt="Preview do avatar" class="w-full h-full object-cover">';
+  }
+}
+
+function resizeAvatarImage(file) {
+  return new Promise(function(resolve, reject) {
+    const image = new Image();
+    const url = URL.createObjectURL(file);
+    image.onload = function() {
+      URL.revokeObjectURL(url);
+      const maxSize = 512;
+      let width = image.width;
+      let height = image.height;
+      if (width > height && width > maxSize) {
+        height = Math.round((height * maxSize) / width);
+        width = maxSize;
+      } else if (height >= width && height > maxSize) {
+        width = Math.round((width * maxSize) / height);
+        height = maxSize;
+      }
+
+      const canvas = document.createElement('canvas');
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(image, 0, 0, width, height);
+
+      canvas.toBlob(function(webpBlob) {
+        if (webpBlob && webpBlob.type === 'image/webp') {
+          resolve({ blob: webpBlob, extension: 'webp', contentType: 'image/webp' });
+          return;
+        }
+        canvas.toBlob(function(jpegBlob) {
+          if (!jpegBlob) {
+            reject(new Error('Nao foi possivel processar a imagem.'));
+            return;
+          }
+          resolve({ blob: jpegBlob, extension: 'jpg', contentType: 'image/jpeg' });
+        }, 'image/jpeg', 0.8);
+      }, 'image/webp', 0.8);
+    };
+    image.onerror = function() {
+      URL.revokeObjectURL(url);
+      reject(new Error('Nao foi possivel ler a imagem selecionada.'));
+    };
+    image.src = url;
+  });
+}
+
+async function uploadProfileAvatar(file, userId) {
+  if (!window.supabaseClient || !window.supabaseClient.storage) {
+    throw new Error('Supabase Storage indisponivel.');
+  }
+  const resized = await resizeAvatarImage(file);
+  if (resized.blob.size > 2 * 1024 * 1024) {
+    throw new Error('A imagem processada ficou acima de 2MB.');
+  }
+  const path = userId + '/avatar.' + resized.extension;
+  const result = await window.supabaseClient.storage
+    .from('avatars')
+    .upload(path, resized.blob, {
+      cacheControl: '3600',
+      upsert: true,
+      contentType: resized.contentType
+    });
+
+  if (result.error) {
+    throw result.error;
+  }
+
+  return getAvatarPublicUrl(path);
+}
+
+function getAvatarPublicUrl(path) {
+  const result = window.supabaseClient.storage
+    .from('avatars')
+    .getPublicUrl(path);
+  return result && result.data ? result.data.publicUrl : '';
+}
+
+function isAvatarUploadError(error) {
+  const text = String(error && (error.message || error.details || error.hint || error.code) || '').toLowerCase();
+  return text.indexOf('bucket') !== -1 ||
+    text.indexOf('storage') !== -1 ||
+    text.indexOf('avatars') !== -1 ||
+    text.indexOf('not found') !== -1 ||
+    text.indexOf('row-level security') !== -1 ||
+    text.indexOf('permission') !== -1 ||
+    text.indexOf('unauthorized') !== -1;
+}
+
 function closeEditProfileModal() {
   const modal = document.getElementById('edit-profile-modal');
   if (modal) {
@@ -177,7 +312,7 @@ async function handleProfileSubmit(event) {
   const updates = {
     public_name: document.getElementById('profile-public-name').value.trim() || null,
     bio: document.getElementById('profile-bio').value.trim().slice(0, 320) || null,
-    avatar_url: document.getElementById('profile-avatar-url').value.trim() || null,
+    avatar_url: (userInfo.profile && userInfo.profile.avatar_url) || null,
     favorite_verse: document.getElementById('profile-favorite-verse').value.trim() || null,
     ministry: document.getElementById('profile-ministry').value.trim() || null,
     phone: document.getElementById('profile-phone').value.trim() || null,
@@ -189,6 +324,12 @@ async function handleProfileSubmit(event) {
   };
 
   try {
+    if (selectedAvatarFile) {
+      showToast('Enviando foto do perfil...', 'info');
+      updates.avatar_url = await uploadProfileAvatar(selectedAvatarFile, userInfo.user.id);
+      if (!updates.avatar_url) throw new Error('Nao foi possivel obter a URL publica do avatar.');
+    }
+
     const result = await window.supabaseClient
       .from('profiles')
       .update(updates)
@@ -206,8 +347,9 @@ async function handleProfileSubmit(event) {
     }
 
     userInfo.profile = Object.assign({}, userInfo.profile || {}, result.data || updates);
-    if (typeof currentUser !== 'undefined' && currentUser) currentUser.profile = userInfo.profile;
+    if (typeof currentProfile !== 'undefined') currentProfile = userInfo.profile;
     closeEditProfileModal();
+    selectedAvatarFile = null;
     renderProfile(userInfo);
     await renderProfileOfferings(userInfo);
     showToast('Perfil atualizado com sucesso!', 'success');
@@ -215,6 +357,8 @@ async function handleProfileSubmit(event) {
     console.error('Erro ao salvar perfil:', error);
     if (isProfileSchemaError(error)) {
       showToast('Execute o SQL de perfil publico no Supabase antes de salvar estes campos.', 'warning');
+    } else if (isAvatarUploadError(error)) {
+      showToast('Nao foi possivel enviar a foto. Crie o bucket publico "avatars" no Supabase Storage e confira as permissoes.', 'warning');
     } else {
       showToast('Erro ao salvar perfil. Tente novamente.', 'error');
     }
@@ -504,6 +648,10 @@ Object.assign(window, {
   printOfferingReport,
   openEditProfileModal,
   closeEditProfileModal,
+  handleAvatarFileChange,
+  resizeAvatarImage,
+  uploadProfileAvatar,
+  getAvatarPublicUrl,
   handleProfileSubmit,
   openPublicProfile,
   closePublicProfile,
