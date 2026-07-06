@@ -115,6 +115,9 @@
         <button onclick="adminNavigateTo('home')" class="w-full flex items-center px-3 py-3 rounded-lg hover:bg-gray-800 active:bg-gray-700 transition group text-gray-300 hover:text-white min-h-[44px]">
           <i class="fas fa-home w-5 text-center text-lg transition group-hover:text-adpel-400"></i><span class="ml-3 font-medium">Gerenciar Home</span>
         </button>
+        <button onclick="adminNavigateTo('church')" class="w-full flex items-center px-3 py-3 rounded-lg hover:bg-gray-800 active:bg-gray-700 transition group text-gray-300 hover:text-white min-h-[44px]">
+          <i class="fas fa-church w-5 text-center text-lg transition group-hover:text-cyan-400"></i><span class="ml-3 font-medium">Gestao da Igreja</span>
+        </button>
         <button onclick="adminNavigateTo('courses')" class="w-full flex items-center px-3 py-3 rounded-lg hover:bg-gray-800 active:bg-gray-700 transition group text-gray-300 hover:text-white min-h-[44px]">
           <i class="fas fa-graduation-cap w-5 text-center text-lg transition group-hover:text-blue-400"></i><span class="ml-3 font-medium">Gerenciar Cursos</span>
         </button>
@@ -734,6 +737,153 @@
         </div>
       </div>
 
+      <!-- CHURCH MANAGEMENT -->
+      <div id="admin-view-church" class="hidden space-y-6 animate-fade-in">
+        <div class="flex flex-col md:flex-row md:items-center justify-between gap-3 md:gap-4">
+          <div>
+            <h2 class="text-xl md:text-2xl font-bold text-gray-800">Gestao da Igreja</h2>
+            <p class="text-xs md:text-sm text-gray-500 mt-1">Membros, movimentacoes, caixa, certificados e relatorios.</p>
+          </div>
+          <button onclick="loadChurchManagementData()" class="bg-adpel-600 text-white px-4 md:px-5 py-2.5 rounded-lg text-sm font-medium hover:bg-adpel-700 active:bg-adpel-800 transition flex items-center justify-center gap-2 min-h-[44px]">
+            <i class="fas fa-sync-alt"></i> Atualizar
+          </button>
+        </div>
+
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-2 md:p-3 overflow-x-auto">
+          <div class="flex gap-2 min-w-max">
+            <button onclick="setChurchTab('dashboard')" data-church-tab="dashboard" class="church-tab-btn px-4 py-2.5 rounded-lg text-sm font-semibold min-h-[44px] bg-adpel-600 text-white"><i class="fas fa-chart-line mr-2"></i>Dashboard</button>
+            <button onclick="setChurchTab('members')" data-church-tab="members" class="church-tab-btn px-4 py-2.5 rounded-lg text-sm font-semibold min-h-[44px] bg-gray-100 text-gray-700"><i class="fas fa-users mr-2"></i>Membros</button>
+            <button onclick="setChurchTab('movements')" data-church-tab="movements" class="church-tab-btn px-4 py-2.5 rounded-lg text-sm font-semibold min-h-[44px] bg-gray-100 text-gray-700"><i class="fas fa-exchange-alt mr-2"></i>Movimentacoes</button>
+            <button onclick="setChurchTab('cash')" data-church-tab="cash" class="church-tab-btn px-4 py-2.5 rounded-lg text-sm font-semibold min-h-[44px] bg-gray-100 text-gray-700"><i class="fas fa-wallet mr-2"></i>Caixa</button>
+            <button onclick="setChurchTab('certificates')" data-church-tab="certificates" class="church-tab-btn px-4 py-2.5 rounded-lg text-sm font-semibold min-h-[44px] bg-gray-100 text-gray-700"><i class="fas fa-award mr-2"></i>Certificados</button>
+            <button onclick="setChurchTab('reports')" data-church-tab="reports" class="church-tab-btn px-4 py-2.5 rounded-lg text-sm font-semibold min-h-[44px] bg-gray-100 text-gray-700"><i class="fas fa-file-alt mr-2"></i>Relatorios</button>
+          </div>
+        </div>
+
+        <section id="church-tab-dashboard" class="church-tab-panel space-y-4">
+          <div id="church-dashboard-cards" class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4"></div>
+          <div class="grid grid-cols-1 xl:grid-cols-2 gap-4">
+            <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-4 md:p-6">
+              <h3 class="font-bold text-gray-800 mb-4">Aniversariantes do Mes</h3>
+              <div id="church-birthdays-list" class="space-y-3"></div>
+            </div>
+            <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-4 md:p-6">
+              <h3 class="font-bold text-gray-800 mb-4">Resumo Financeiro</h3>
+              <div id="church-cash-summary" class="space-y-3"></div>
+            </div>
+          </div>
+        </section>
+
+        <section id="church-tab-members" class="church-tab-panel hidden space-y-4">
+          <div class="flex flex-col md:flex-row md:items-center justify-between gap-3">
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 flex-1">
+              <input type="search" id="member-search" oninput="renderChurchMembers()" placeholder="Buscar por nome ou telefone" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-adpel-500 outline-none">
+              <select id="member-status-filter" onchange="renderChurchMembers()" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-adpel-500 outline-none">
+                <option value="">Todos os status</option>
+                <option value="ativo">Ativo</option>
+                <option value="afastado">Afastado</option>
+                <option value="transferido">Transferido</option>
+                <option value="falecido">Falecido</option>
+                <option value="removido">Removido</option>
+              </select>
+            </div>
+            <div class="flex flex-col sm:flex-row gap-2">
+              <button onclick="showBirthdayMembers()" class="px-4 py-2.5 bg-purple-600 text-white rounded-lg text-sm font-medium hover:bg-purple-700 min-h-[44px]"><i class="fas fa-birthday-cake mr-2"></i>Aniversariantes</button>
+              <button onclick="showMemberForm()" class="px-4 py-2.5 bg-adpel-600 text-white rounded-lg text-sm font-medium hover:bg-adpel-700 min-h-[44px]"><i class="fas fa-user-plus mr-2"></i>Novo Membro</button>
+            </div>
+          </div>
+
+          <div id="member-form-container" class="hidden bg-white rounded-xl shadow-sm border border-gray-200 p-4 md:p-6">
+            <h3 id="member-form-title" class="font-bold text-gray-800 mb-4">Novo Membro</h3>
+            <form id="member-form">
+              <input type="hidden" id="member-id">
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div class="md:col-span-2">
+                  <label class="block text-sm font-medium text-gray-700 mb-1">Nome completo <span class="text-red-500">*</span></label>
+                  <input type="text" id="member-full-name" required class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-adpel-500 outline-none">
+                </div>
+                <div><label class="block text-sm font-medium text-gray-700 mb-1">Data de nascimento</label><input type="date" id="member-birth-date" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-adpel-500 outline-none"></div>
+                <div><label class="block text-sm font-medium text-gray-700 mb-1">Telefone</label><input type="tel" id="member-phone" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-adpel-500 outline-none"></div>
+                <div><label class="block text-sm font-medium text-gray-700 mb-1">Email</label><input type="email" id="member-email" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-adpel-500 outline-none"></div>
+                <div><label class="block text-sm font-medium text-gray-700 mb-1">Data de entrada</label><input type="date" id="member-entry-date" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-adpel-500 outline-none"></div>
+                <div><label class="block text-sm font-medium text-gray-700 mb-1">Status</label><select id="member-status" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-adpel-500 outline-none"><option value="ativo">Ativo</option><option value="afastado">Afastado</option><option value="transferido">Transferido</option><option value="falecido">Falecido</option><option value="removido">Removido</option></select></div>
+                <div><label class="block text-sm font-medium text-gray-700 mb-1">Funcao/Cargo</label><select id="member-role" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-adpel-500 outline-none"><option value="visitante">Visitante</option><option value="membro">Membro</option><option value="obreiro">Obreiro</option><option value="lider">Lider</option><option value="pastor">Pastor</option><option value="crianca">Crianca</option><option value="jovem">Jovem</option></select></div>
+                <div><label class="block text-sm font-medium text-gray-700 mb-1">Batizado</label><select id="member-baptized" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-adpel-500 outline-none"><option value="false">Nao</option><option value="true">Sim</option></select></div>
+                <div><label class="block text-sm font-medium text-gray-700 mb-1">Data do batismo</label><input type="date" id="member-baptism-date" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-adpel-500 outline-none"></div>
+                <div><label class="block text-sm font-medium text-gray-700 mb-1">URL da foto</label><input type="url" id="member-photo-url" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-adpel-500 outline-none" placeholder="Opcional"></div>
+                <div class="md:col-span-2"><label class="block text-sm font-medium text-gray-700 mb-1">Endereco</label><input type="text" id="member-address" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-adpel-500 outline-none"></div>
+                <div class="md:col-span-2"><label class="block text-sm font-medium text-gray-700 mb-1">Observacoes</label><textarea id="member-notes" rows="3" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-adpel-500 outline-none"></textarea></div>
+              </div>
+              <div class="mt-6 flex flex-col sm:flex-row justify-end gap-2">
+                <button type="button" onclick="hideMemberForm()" class="px-4 py-3 border border-gray-300 rounded-lg text-sm hover:bg-gray-50 min-h-[44px]">Cancelar</button>
+                <button type="submit" class="px-4 py-3 bg-adpel-600 text-white rounded-lg text-sm font-medium hover:bg-adpel-700 min-h-[44px]">Salvar Membro</button>
+              </div>
+            </form>
+          </div>
+
+          <div id="admin-members-list" class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden space-y-3 p-3 md:p-4"></div>
+        </section>
+
+        <section id="church-tab-movements" class="church-tab-panel hidden space-y-4">
+          <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-4 md:p-6">
+            <h3 class="font-bold text-gray-800 mb-4">Registrar Movimentacao</h3>
+            <form id="member-movement-form" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div><label class="block text-sm font-medium text-gray-700 mb-1">Membro <span class="text-red-500">*</span></label><select id="movement-member-id" required class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-adpel-500 outline-none"></select></div>
+              <div><label class="block text-sm font-medium text-gray-700 mb-1">Tipo <span class="text-red-500">*</span></label><select id="movement-type" required class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-adpel-500 outline-none"><option value="entrada">Entrada</option><option value="saida">Saida</option><option value="transferencia">Transferencia</option><option value="retorno">Retorno</option><option value="afastamento">Afastamento</option><option value="falecimento">Falecimento</option><option value="outro">Outro</option></select></div>
+              <div><label class="block text-sm font-medium text-gray-700 mb-1">Data</label><input type="date" id="movement-date" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-adpel-500 outline-none"></div>
+              <div><label class="block text-sm font-medium text-gray-700 mb-1">Responsavel</label><input type="text" id="movement-responsible" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-adpel-500 outline-none"></div>
+              <div class="md:col-span-2"><label class="block text-sm font-medium text-gray-700 mb-1">Motivo/Observacao</label><textarea id="movement-reason" rows="3" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-adpel-500 outline-none"></textarea></div>
+              <div class="md:col-span-2 flex justify-end"><button type="submit" class="w-full sm:w-auto px-4 py-3 bg-cyan-600 text-white rounded-lg text-sm font-medium hover:bg-cyan-700 min-h-[44px]"><i class="fas fa-save mr-2"></i>Salvar Movimentacao</button></div>
+            </form>
+          </div>
+          <div id="admin-member-movements-list" class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden space-y-3 p-3 md:p-4"></div>
+        </section>
+
+        <section id="church-tab-cash" class="church-tab-panel hidden space-y-4">
+          <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-4 md:p-6">
+            <h3 class="font-bold text-gray-800 mb-4">Lancamento de Caixa</h3>
+            <form id="cash-movement-form" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <input type="hidden" id="cash-id">
+              <div><label class="block text-sm font-medium text-gray-700 mb-1">Tipo <span class="text-red-500">*</span></label><select id="cash-type" required class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 outline-none"><option value="entrada">Entrada</option><option value="saida">Saida</option></select></div>
+              <div><label class="block text-sm font-medium text-gray-700 mb-1">Categoria <span class="text-red-500">*</span></label><input type="text" id="cash-category" required class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 outline-none"></div>
+              <div><label class="block text-sm font-medium text-gray-700 mb-1">Valor <span class="text-red-500">*</span></label><input type="number" id="cash-amount" min="0.01" step="0.01" required class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 outline-none"></div>
+              <div><label class="block text-sm font-medium text-gray-700 mb-1">Data <span class="text-red-500">*</span></label><input type="date" id="cash-date" required class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 outline-none"></div>
+              <div><label class="block text-sm font-medium text-gray-700 mb-1">Forma de pagamento</label><input type="text" id="cash-payment-method" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 outline-none" placeholder="PIX, dinheiro, cartao..."></div>
+              <div><label class="block text-sm font-medium text-gray-700 mb-1">Responsavel</label><input type="text" id="cash-responsible" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 outline-none"></div>
+              <div class="md:col-span-2"><label class="block text-sm font-medium text-gray-700 mb-1">Descricao</label><textarea id="cash-description" rows="2" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 outline-none"></textarea></div>
+              <div class="md:col-span-2 flex flex-col sm:flex-row justify-end gap-2"><button type="button" onclick="resetCashForm()" class="px-4 py-3 border border-gray-300 rounded-lg text-sm hover:bg-gray-50 min-h-[44px]">Limpar</button><button type="submit" class="px-4 py-3 bg-green-600 text-white rounded-lg text-sm font-medium hover:bg-green-700 min-h-[44px]">Salvar Lancamento</button></div>
+            </form>
+          </div>
+          <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-3">
+              <input type="date" id="cash-filter-start" onchange="renderCashMovements()" class="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 outline-none">
+              <input type="date" id="cash-filter-end" onchange="renderCashMovements()" class="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 outline-none">
+              <select id="cash-filter-type" onchange="renderCashMovements()" class="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 outline-none"><option value="">Todos os tipos</option><option value="entrada">Entrada</option><option value="saida">Saida</option></select>
+              <input type="search" id="cash-filter-category" oninput="renderCashMovements()" placeholder="Categoria" class="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 outline-none">
+            </div>
+          </div>
+          <div id="cash-summary-cards" class="grid grid-cols-1 sm:grid-cols-3 gap-4"></div>
+          <div id="admin-cash-movements-list" class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden space-y-3 p-3 md:p-4"></div>
+        </section>
+
+        <section id="church-tab-certificates" class="church-tab-panel hidden space-y-4">
+          <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-4 md:p-6">
+            <h3 class="font-bold text-gray-800 mb-4">Emitir Certificado</h3>
+            <form id="church-certificate-form" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <input type="hidden" id="church-certificate-id">
+              <div class="md:col-span-2"><label class="block text-sm font-medium text-gray-700 mb-1">Tipo <span class="text-red-500">*</span></label><select id="church-certificate-type" onchange="renderCertificateSpecificFields()" required class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500 outline-none"><option value="batismo">Certificado de Batismo</option><option value="apresentacao_bebe">Certificado de Apresentacao de Bebe</option><option value="curso">Certificado de Curso</option><option value="participacao">Certificado de Participacao</option><option value="membro">Certificado de Membro</option></select></div>
+              <div id="church-certificate-specific-fields" class="md:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-4"></div>
+              <div class="md:col-span-2 flex flex-col sm:flex-row justify-end gap-2"><button type="button" onclick="resetChurchCertificateForm()" class="px-4 py-3 border border-gray-300 rounded-lg text-sm hover:bg-gray-50 min-h-[44px]">Limpar</button><button type="submit" class="px-4 py-3 bg-yellow-600 text-white rounded-lg text-sm font-medium hover:bg-yellow-700 min-h-[44px]">Salvar Certificado</button></div>
+            </form>
+          </div>
+          <div id="admin-church-certificates-list" class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden space-y-3 p-3 md:p-4"></div>
+        </section>
+
+        <section id="church-tab-reports" class="church-tab-panel hidden space-y-4">
+          <div id="church-reports-cards" class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4"></div>
+        </section>
+      </div>
+
       <!-- NOTIFICATIONS MANAGEMENT -->
       <div id="admin-view-notifications" class="hidden space-y-6 animate-fade-in">
         <div class="flex flex-col md:flex-row md:items-center justify-between gap-3 md:gap-4">
@@ -850,6 +1000,7 @@
   <script src="admin/crud-verses.js"></script>
   <script src="admin/crud-cofres.js"></script>
   <script src="admin/crud-app-updates.js"></script>
+  <script src="admin/church-management.js"></script>
   <script src="admin-notifications.js"></script>
   
   <script>

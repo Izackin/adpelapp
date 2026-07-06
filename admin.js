@@ -15,6 +15,10 @@ var versesData = [];
 var cofresData = [];
 var cofresStatsData = {};
 var appUpdatesData = [];
+var membersData = [];
+var memberMovementsData = [];
+var cashMovementsData = [];
+var churchCertificatesData = [];
 
 // ============================================================
 // NAVIGATION
@@ -144,6 +148,11 @@ async function loadAllData() {
       }
     }
     if (typeof renderAdminCofres === 'function') renderAdminCofres();
+
+    // Church Management (optional module)
+    if (typeof loadChurchManagementData === 'function') {
+      await loadChurchManagementData();
+    }
 
     // Update recent activity
     updateRecentActivity();
