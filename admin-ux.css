@@ -20,12 +20,53 @@
   -webkit-backdrop-filter: none !important;
 }
 
+#admin-app .admin-card,
+#admin-app .admin-list-item,
+#admin-app .admin-card-muted,
+#admin-app #admin-view-home .bg-adpel-50,
+#admin-app #admin-view-home .bg-blue-50,
+#admin-app #admin-view-home .bg-green-50,
+#admin-app #admin-view-home .bg-emerald-50,
+#admin-app #admin-view-home .bg-cyan-50,
+#admin-app #admin-view-home .bg-red-50,
+#admin-app #admin-view-home .bg-yellow-50,
+#admin-app #admin-view-home .bg-purple-50 {
+  background: linear-gradient(180deg, rgba(15, 23, 42, 0.96), rgba(8, 17, 31, 0.98)) !important;
+  border-color: rgba(148, 163, 184, 0.18) !important;
+  color: #f8fafc !important;
+  box-shadow: 0 14px 34px rgba(0, 0, 0, 0.20) !important;
+}
+
+#admin-app .admin-title,
+#admin-app #admin-view-home h3,
+#admin-app #admin-view-home .font-bold,
+#admin-app #admin-view-home .font-semibold {
+  color: #f8fafc !important;
+}
+
+#admin-app .admin-subtitle,
+#admin-app #admin-view-home p {
+  color: #cbd5e1 !important;
+}
+
 #admin-app input,
 #admin-app select,
 #admin-app textarea {
   min-height: 2.75rem;
   background: rgba(2, 6, 23, 0.72) !important;
   border-color: rgba(148, 163, 184, 0.28) !important;
+  color: #f8fafc !important;
+}
+
+#admin-app .admin-input {
+  background: rgba(2, 6, 23, 0.72) !important;
+  border-color: rgba(148, 163, 184, 0.28) !important;
+  color: #f8fafc !important;
+}
+
+#admin-app input::placeholder,
+#admin-app textarea::placeholder {
+  color: #94a3b8 !important;
 }
 
 #admin-app label {
@@ -36,6 +77,7 @@
 #admin-app .bg-gray-100 {
   background: rgba(15, 23, 42, 0.72) !important;
   border-color: rgba(148, 163, 184, 0.16) !important;
+  color: #f8fafc !important;
 }
 
 #admin-app .text-gray-800,
@@ -51,6 +93,78 @@
 #admin-app .text-gray-500,
 #admin-app .text-gray-400 {
   color: #94a3b8 !important;
+}
+
+#admin-app .bg-green-100,
+#admin-app .bg-green-50 {
+  background: rgba(34, 197, 94, 0.14) !important;
+}
+
+#admin-app .text-green-700,
+#admin-app .text-green-600,
+#admin-app .text-green-500 {
+  color: #86efac !important;
+}
+
+#admin-app .bg-red-100,
+#admin-app .bg-red-50 {
+  background: rgba(239, 68, 68, 0.14) !important;
+}
+
+#admin-app .text-red-700,
+#admin-app .text-red-600,
+#admin-app .text-red-500 {
+  color: #fca5a5 !important;
+}
+
+#admin-app .bg-yellow-100,
+#admin-app .bg-yellow-50 {
+  background: rgba(250, 204, 21, 0.16) !important;
+}
+
+#admin-app .text-yellow-800,
+#admin-app .text-yellow-700,
+#admin-app .text-yellow-600 {
+  color: #fde68a !important;
+}
+
+#admin-app .bg-blue-100,
+#admin-app .bg-blue-50,
+#admin-app .bg-adpel-50,
+#admin-app .bg-cyan-50,
+#admin-app .bg-purple-50,
+#admin-app .bg-emerald-50 {
+  background: rgba(37, 99, 235, 0.13) !important;
+}
+
+#admin-app .text-blue-800,
+#admin-app .text-blue-700,
+#admin-app .text-adpel-800,
+#admin-app .text-adpel-700,
+#admin-app .text-cyan-800,
+#admin-app .text-cyan-700,
+#admin-app .text-purple-800,
+#admin-app .text-purple-700,
+#admin-app .text-emerald-800,
+#admin-app .text-emerald-700 {
+  color: #bfdbfe !important;
+}
+
+#admin-app .admin-badge,
+#admin-app span[class*="bg-"][class*="text-"] {
+  border: 1px solid rgba(148, 163, 184, 0.18);
+  font-weight: 700;
+}
+
+#admin-app button.bg-gray-300 {
+  background: #334155 !important;
+  color: #cbd5e1 !important;
+}
+
+#admin-app button.border-gray-300,
+#admin-app a.border-gray-300 {
+  border-color: rgba(148, 163, 184, 0.28) !important;
+  color: #e2e8f0 !important;
 }
 
 #admin-backdrop {

@@ -287,16 +287,42 @@ async function handleContribution(e) {
   }
 
   try {
-    var { error } = await window.supabaseClient
+    var result = await window.supabaseClient
       .from('fundraising_contributions')
       .insert([{
         goal_id: currentContributionGoalId,
         user_id: userInfo.user.id,
         amount: amount,
         anonymous: anonymous
-      }]);
+      }])
+      .select('*')
+      .single();
 
-    if (error) throw error;
+    if (result.error) throw result.error;
+
+    if (typeof createCashMovementFromOffering === 'function') {
+      var goal = null;
+      if (Array.isArray(cofresData)) {
+        goal = cofresData.find(function(item) { return item && item.id === currentContributionGoalId; });
+      }
+      try {
+        await createCashMovementFromOffering({
+          id: result.data && result.data.id,
+          source_id: result.data && result.data.id,
+          source: 'fundraising_contribution',
+          goal_id: currentContributionGoalId,
+          goal_name: goal ? goal.name : '',
+          user_id: userInfo.user.id,
+          amount: amount,
+          status: 'confirmado',
+          payment_method: 'Pix',
+          paid_at: result.data && (result.data.paid_at || result.data.created_at),
+          created_at: result.data && result.data.created_at
+        });
+      } catch (cashError) {
+        console.warn('Contribuicao registrada, mas nao entrou no caixa automaticamente:', cashError);
+      }
+    }
 
     showToast('Contribuição de R$ ' + formatBRL(amount) + ' registrada! Deus abençoe!', 'success');
     closeContributionModal();

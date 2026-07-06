@@ -504,6 +504,143 @@ function isOfferingSchemaError(error) {
     text.indexOf('pgrst204') !== -1;
 }
 
+function isCashSourceSchemaError(error) {
+  const text = String(error && (error.message || error.details || error.hint || error.code) || '').toLowerCase();
+  return text.indexOf('source') !== -1 ||
+    text.indexOf('source_id') !== -1 ||
+    text.indexOf('payer_name') !== -1 ||
+    text.indexOf('payer_email') !== -1 ||
+    text.indexOf('payer_phone') !== -1 ||
+    text.indexOf('status') !== -1 ||
+    text.indexOf('42703') !== -1 ||
+    text.indexOf('pgrst204') !== -1;
+}
+
+function isDuplicateCashMovementError(error) {
+  const text = String(error && (error.message || error.details || error.hint || error.code) || '').toLowerCase();
+  return text.indexOf('23505') !== -1 || text.indexOf('duplicate key') !== -1;
+}
+
+async function getOfferingPayerInfo(userId) {
+  var info = { name: '', email: '', phone: '' };
+  try {
+    var sessionResult = await window.supabaseClient.auth.getSession();
+    var user = sessionResult && sessionResult.data && sessionResult.data.session ? sessionResult.data.session.user : null;
+    if (user) {
+      info.email = user.email || '';
+      info.name = user.user_metadata && user.user_metadata.full_name ? user.user_metadata.full_name : '';
+    }
+  } catch (error) {
+    console.warn('Nao foi possivel ler sessao para oferta:', error);
+  }
+
+  if (userId) {
+    try {
+      var profileResult = await window.supabaseClient
+        .from('profiles')
+        .select('full_name, name, email, phone')
+        .eq('id', userId)
+        .single();
+      if (!profileResult.error && profileResult.data) {
+        info.name = profileResult.data.full_name || profileResult.data.name || info.name;
+        info.email = profileResult.data.email || info.email;
+        info.phone = profileResult.data.phone || info.phone;
+      }
+    } catch (error) {
+      console.warn('Nao foi possivel carregar perfil para oferta:', error);
+    }
+  }
+
+  return info;
+}
+
+async function createCashMovementFromOffering(offering) {
+  if (!window.supabaseClient || !offering) return { success: false, skipped: true };
+
+  var amount = Number(offering.amount || 0);
+  if (!amount || amount <= 0) return { success: false, skipped: true };
+
+  var source = offering.source || 'offering_app';
+  var sourceId = offering.id || offering.source_id || null;
+  var isGoal = !!(offering.goal_id || offering.goal_name);
+  var goalName = offering.goal_name || (ofertaCofreSelecionado && ofertaCofreSelecionado.name) || '';
+  var payer = await getOfferingPayerInfo(offering.user_id);
+  var movementDate = String(offering.paid_at || offering.created_at || new Date().toISOString()).slice(0, 10);
+  var category = isGoal ? 'Campanha/Cofre' : 'Oferta';
+  var description = isGoal
+    ? 'Contribuicao para cofre: ' + (goalName || 'Cofre')
+    : 'Oferta registrada pelo app';
+
+  var fullData = {
+    type: 'entrada',
+    category: category,
+    amount: amount,
+    movement_date: movementDate,
+    payment_method: offering.payment_method || 'Pix',
+    description: description,
+    responsible: payer.name || payer.email || 'Usuario do app',
+    created_by: offering.user_id || null,
+    receipt_url: offering.receipt_url || null,
+    source: source,
+    source_id: sourceId,
+    payer_name: payer.name || null,
+    payer_email: payer.email || null,
+    payer_phone: payer.phone || null,
+    status: offering.status || 'confirmado'
+  };
+
+  if (sourceId) {
+    var existing = await window.supabaseClient
+      .from('cash_movements')
+      .select('id')
+      .eq('source', source)
+      .eq('source_id', sourceId)
+      .maybeSingle();
+    if (!existing.error && existing.data) return { success: true, skipped: true, id: existing.data.id };
+    if (existing.error && !isCashSourceSchemaError(existing.error)) throw existing.error;
+  }
+
+  var result = await window.supabaseClient
+    .from('cash_movements')
+    .insert([fullData]);
+
+  if (result.error && isDuplicateCashMovementError(result.error)) {
+    return { success: true, skipped: true };
+  }
+
+  if (result.error && isCashSourceSchemaError(result.error)) {
+    var fallbackExisting = await window.supabaseClient
+      .from('cash_movements')
+      .select('id')
+      .eq('type', 'entrada')
+      .eq('amount', amount)
+      .eq('movement_date', movementDate)
+      .eq('created_by', offering.user_id)
+      .eq('description', description)
+      .maybeSingle();
+    if (!fallbackExisting.error && fallbackExisting.data) {
+      return { success: true, skipped: true, id: fallbackExisting.data.id };
+    }
+
+    result = await window.supabaseClient
+      .from('cash_movements')
+      .insert([{
+        type: fullData.type,
+        category: fullData.category,
+        amount: fullData.amount,
+        movement_date: fullData.movement_date,
+        payment_method: fullData.payment_method,
+        description: fullData.description + (sourceId ? ' | Ref: ' + sourceId : ''),
+        responsible: fullData.responsible,
+        created_by: fullData.created_by,
+        receipt_url: fullData.receipt_url
+      }]);
+  }
+
+  if (result.error) throw result.error;
+  return { success: true, skipped: false };
+}
+
 async function registrarOfertaConfirmada() {
   if (ofertaIdRegistrado) return ofertaIdRegistrado;
   const userInfo = getCurrentUserInfo();
@@ -526,7 +663,9 @@ async function registrarOfertaConfirmada() {
 
   let result = await window.supabaseClient
     .from('fundraising_contributions')
-    .insert([payload]);
+    .insert([payload])
+    .select('*')
+    .single();
 
   if (result.error && isOfferingSchemaError(result.error)) {
     console.warn('Banco local sem colunas novas de ofertas. Usando registro compativel:', result.error);
@@ -537,14 +676,35 @@ async function registrarOfertaConfirmada() {
         user_id: payload.user_id,
         amount: payload.amount,
         anonymous: payload.anonymous
-      }]);
+      }])
+      .select('*')
+      .single();
   }
 
   if (result.error) throw result.error;
-  ofertaIdRegistrado = payload.receipt_code;
+  var contribution = result.data || payload;
+  ofertaIdRegistrado = contribution.id || contribution.receipt_code || payload.receipt_code;
 
   if (isDestinada) {
     await atualizarEstatisticasCofre(ofertaCofreSelecionado.id, ofertaValorSelecionado);
+  }
+
+  try {
+    await createCashMovementFromOffering({
+      id: contribution.id || null,
+      source_id: contribution.id || null,
+      source: 'fundraising_contribution',
+      goal_id: payload.goal_id,
+      goal_name: isDestinada && ofertaCofreSelecionado ? ofertaCofreSelecionado.name : '',
+      user_id: payload.user_id,
+      amount: payload.amount,
+      status: 'confirmado',
+      payment_method: 'Pix',
+      paid_at: contribution.paid_at || payload.paid_at,
+      created_at: contribution.created_at || payload.paid_at
+    });
+  } catch (cashError) {
+    console.warn('Oferta registrada, mas nao entrou no caixa automaticamente:', cashError);
   }
 
   if (currentSection === 'profile') {
@@ -672,6 +832,9 @@ Object.assign(window, {
   copiarPix,
   gerarCodigoReciboOferta,
   isOfferingSchemaError,
+  isCashSourceSchemaError,
+  isDuplicateCashMovementError,
+  createCashMovementFromOffering,
   registrarOfertaConfirmada,
   atualizarEstatisticasCofre,
   confirmarPagamento

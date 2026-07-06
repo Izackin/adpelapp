@@ -538,12 +538,18 @@ function renderCashMovements() {
   for (var c = 0; c < list.length; c++) {
     var item = list[c];
     var isIncome = item.type === 'entrada';
+    var isAppOffering = item.source === 'offering_app' || item.source === 'fundraising_contribution';
+    var payer = item.payer_name || item.payer_email || item.responsible || '';
     html += '<div class="p-4 bg-gray-50 rounded-lg border border-gray-100">' +
       '<div class="flex flex-col md:flex-row md:items-center justify-between gap-2">' +
       '<div><h4 class="font-semibold text-gray-800">' + escapeHtml(item.category || 'Sem categoria') + '</h4>' +
-      '<p class="text-sm text-gray-500">' + formatDate(item.movement_date) + (item.payment_method ? ' &bull; ' + escapeHtml(item.payment_method) : '') + '</p>' +
+      '<p class="text-sm text-gray-500">' + formatDate(item.movement_date) + (item.payment_method ? ' &bull; ' + escapeHtml(item.payment_method) : '') + (payer ? ' &bull; ' + escapeHtml(payer) : '') + '</p>' +
       (item.description ? '<p class="text-sm text-gray-500 mt-1">' + escapeHtml(item.description) + '</p>' : '') + '</div>' +
+      '<div class="flex flex-wrap items-center md:justify-end gap-2">' +
+      (isAppOffering ? '<span class="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded font-bold">App</span>' : '') +
+      (item.status ? '<span class="text-xs bg-green-100 text-green-700 px-2 py-1 rounded">' + escapeHtml(churchLabel(item.status)) + '</span>' : '') +
       '<strong class="' + (isIncome ? 'text-green-500' : 'text-red-500') + '">' + (isIncome ? '+' : '-') + ' ' + churchMoney(item.amount) + '</strong>' +
+      '</div>' +
       '</div></div>';
   }
   container.innerHTML = html;
