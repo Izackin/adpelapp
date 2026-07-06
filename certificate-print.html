@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Certificado ADPEL</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Playfair+Display:wght@600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+  <script src="supabase.js"></script>
+  <style>
+    :root {
+      --ink: #172033;
+      --muted: #5f6b7a;
+      --blue: #1d4ed8;
+      --gold: #b8860b;
+      --paper: #fffdf7;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background: #050816;
+      color: var(--ink);
+      font-family: Inter, Arial, sans-serif;
+    }
+
+    .print-toolbar {
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+      padding: 1rem clamp(1rem, 4vw, 2rem);
+      background: rgba(2, 6, 23, 0.92);
+      color: #e5e7eb;
+      border-bottom: 1px solid rgba(148, 163, 184, 0.18);
+    }
+
+    .print-toolbar h1 {
+      margin: 0;
+      font-size: 1rem;
+      font-weight: 800;
+    }
+
+    .toolbar-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.65rem;
+      justify-content: flex-end;
+    }
+
+    .toolbar-btn {
+      min-height: 2.75rem;
+      border: 0;
+      border-radius: 0.75rem;
+      padding: 0.75rem 1rem;
+      font-weight: 800;
+      cursor: pointer;
+      color: white;
+      background: #2563eb;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      text-decoration: none;
+    }
+
+    .toolbar-btn.secondary { background: #334155; }
+
+    .page-shell {
+      min-height: calc(100vh - 5rem);
+      padding: clamp(1rem, 3vw, 2.5rem);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .status-card {
+      width: min(34rem, 100%);
+      padding: 2rem;
+      border-radius: 1rem;
+      background: #0f172a;
+      color: #e5e7eb;
+      text-align: center;
+      border: 1px solid rgba(148, 163, 184, 0.2);
+    }
+
+    .certificate-sheet {
+      width: 297mm;
+      height: 210mm;
+      max-width: 100%;
+      aspect-ratio: 297 / 210;
+      background:
+        linear-gradient(135deg, rgba(184, 134, 11, 0.12), transparent 26%),
+        linear-gradient(315deg, rgba(37, 99, 235, 0.10), transparent 28%),
+        var(--paper);
+      box-shadow: 0 2rem 5rem rgba(0, 0, 0, 0.42);
+      padding: 13mm;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .certificate-border {
+      height: 100%;
+      border: 2.5mm double rgba(184, 134, 11, 0.72);
+      padding: 10mm 13mm;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      position: relative;
+    }
+
+    .certificate-border::before {
+      content: "";
+      position: absolute;
+      inset: 4mm;
+      border: 0.35mm solid rgba(29, 78, 216, 0.25);
+      pointer-events: none;
+    }
+
+    .cert-header {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 4mm;
+      width: 100%;
+      margin-bottom: 5mm;
+    }
+
+    .cert-logo {
+      width: 19mm;
+      height: 19mm;
+      border-radius: 50%;
+      object-fit: cover;
+      border: 0.6mm solid rgba(184, 134, 11, 0.5);
+    }
+
+    .church-name {
+      font-weight: 900;
+      font-size: 6mm;
+      color: #0f172a;
+      letter-spacing: 0;
+      text-transform: uppercase;
+    }
+
+    .church-subtitle {
+      margin-top: 1mm;
+      color: var(--muted);
+      font-size: 3.2mm;
+      font-weight: 700;
+    }
+
+    .cert-kicker {
+      margin-top: 1mm;
+      color: var(--gold);
+      font-size: 3.5mm;
+      font-weight: 900;
+      text-transform: uppercase;
+    }
+
+    .cert-title {
+      margin: 2mm 0 3mm;
+      font-family: "Playfair Display", Georgia, serif;
+      font-size: 16mm;
+      line-height: 1.05;
+      color: #10244a;
+      font-weight: 800;
+    }
+
+    .cert-body {
+      width: min(230mm, 100%);
+      color: var(--ink);
+      font-size: 5mm;
+      line-height: 1.65;
+    }
+
+    .recipient-name {
+      margin: 4mm auto;
+      padding: 1mm 16mm 2mm;
+      width: fit-content;
+      max-width: 100%;
+      font-family: "Playfair Display", Georgia, serif;
+      font-size: 13mm;
+      line-height: 1.15;
+      font-weight: 800;
+      color: #0f172a;
+      border-bottom: 0.45mm solid rgba(184, 134, 11, 0.9);
+      overflow-wrap: anywhere;
+    }
+
+    .cert-details {
+      margin: 4mm 0 5mm;
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 2.2mm;
+      color: #243449;
+      font-size: 3.45mm;
+      font-weight: 700;
+    }
+
+    .cert-detail {
+      border: 0.25mm solid rgba(15, 23, 42, 0.16);
+      border-radius: 999px;
+      padding: 1.6mm 3.3mm;
+      background: rgba(255, 255, 255, 0.55);
+    }
+
+    .cert-footer {
+      width: 100%;
+      margin-top: auto;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14mm;
+      align-items: end;
+      color: #243449;
+    }
+
+    .date-line,
+    .signature-block {
+      min-height: 18mm;
+      display: flex;
+      flex-direction: column;
+      justify-content: end;
+      align-items: center;
+      font-size: 3.8mm;
+      font-weight: 600;
+    }
+
+    .signature-line {
+      width: 80mm;
+      max-width: 100%;
+      border-top: 0.4mm solid #1f2937;
+      padding-top: 2mm;
+      font-weight: 800;
+    }
+
+    .cert-code {
+      position: absolute;
+      right: 13mm;
+      bottom: 7mm;
+      color: #64748b;
+      font-size: 2.8mm;
+      font-weight: 700;
+    }
+
+    @media (max-width: 900px) {
+      .print-toolbar { align-items: flex-start; flex-direction: column; }
+      .certificate-sheet {
+        width: 100%;
+        height: auto;
+        min-height: auto;
+      }
+      .certificate-border { padding: 7mm; }
+      .cert-title { font-size: clamp(2.2rem, 9vw, 4.2rem); }
+      .recipient-name { font-size: clamp(1.9rem, 7vw, 3.4rem); }
+      .cert-body { font-size: clamp(1rem, 3.4vw, 1.3rem); }
+      .cert-footer { grid-template-columns: 1fr; gap: 6mm; }
+    }
+
+    @page {
+      size: A4 landscape;
+      margin: 0;
+    }
+
+    @media print {
+      html, body {
+        width: 297mm;
+        height: 210mm;
+        background: white;
+      }
+
+      .print-toolbar,
+      .status-card {
+        display: none !important;
+      }
+
+      .page-shell {
+        display: block;
+        padding: 0;
+        min-height: 0;
+      }
+
+      .certificate-sheet {
+        width: 297mm;
+        height: 210mm;
+        max-width: none;
+        box-shadow: none;
+        page-break-inside: avoid;
+        print-color-adjust: exact;
+        -webkit-print-color-adjust: exact;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="print-toolbar">
+    <h1>Certificado ADPEL</h1>
+    <div class="toolbar-actions">
+      <a class="toolbar-btn secondary" href="admin.html"><i class="fas fa-arrow-left"></i> Voltar ao admin</a>
+      <button class="toolbar-btn" type="button" onclick="window.print()"><i class="fas fa-print"></i> Imprimir / Salvar PDF</button>
+    </div>
+  </div>
+
+  <main class="page-shell">
+    <div id="certificate-print-root" class="status-card">
+      <h2>Carregando certificado...</h2>
+      <p>Aguarde enquanto buscamos os dados.</p>
+    </div>
+  </main>
+
+  <script src="certificate-print.js"></script>
+</body>
+</html>

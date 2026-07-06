@@ -64,7 +64,8 @@ async function handleCertificateSubmit(e) {
     user_id: document.getElementById('cert-user').value,
     title: document.getElementById('cert-title').value.trim(),
     description: document.getElementById('cert-description').value.trim(),
-    completed_at: document.getElementById('cert-completed').value || null
+    completed_at: document.getElementById('cert-completed').value || null,
+    certificate_type: 'curso'
   };
 
   try {
@@ -118,7 +119,8 @@ function renderAdminCertificates() {
       '<p class="text-sm text-gray-500 mt-1">' + escapeHtml(cert.description || '') + '</p>' +
       (cert.completed_at ? '<p class="text-xs text-gray-400 mt-1">Concluído: ' + formatDate(cert.completed_at) + '</p>' : '') +
       '</div>' +
-      '<div class="flex gap-2">' +
+      '<div class="flex flex-wrap justify-end gap-2">' +
+      '<a href="certificate-print.html?id=' + encodeURIComponent(cert.id) + '" target="_blank" rel="noopener" class="px-3 py-2 text-sm font-semibold text-adpel-500 hover:bg-adpel-50 rounded-lg min-h-[36px] flex items-center gap-2" title="Visualizar/Imprimir"><i class="fas fa-print"></i> Visualizar/Imprimir</a>' +
       '<button onclick="editCertificate(\'' + certJson + '\')" class="p-2 text-yellow-600 hover:bg-yellow-50 rounded-lg min-w-[36px] min-h-[36px]"><i class="fas fa-edit"></i></button>' +
       '<button onclick="deleteCertificate(\'' + cert.id + '\')" class="p-2 text-red-500 hover:bg-red-50 rounded-lg min-w-[36px] min-h-[36px]"><i class="fas fa-trash-alt"></i></button>' +
       '</div></div></div>';

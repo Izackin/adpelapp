@@ -20,6 +20,28 @@ var memberMovementsData = [];
 var cashMovementsData = [];
 var churchCertificatesData = [];
 
+if (typeof window.escapeHtml !== 'function') {
+  window.escapeHtml = function(value) {
+    if (value == null) return '';
+    return String(value)
+      .replaceAll('&', '&amp;')
+      .replaceAll('<', '&lt;')
+      .replaceAll('>', '&gt;')
+      .replaceAll('"', '&quot;')
+      .replaceAll("'", '&#039;');
+  };
+}
+
+if (typeof window.formatDate !== 'function') {
+  window.formatDate = function(isoString) {
+    if (!isoString) return '';
+    var dateOnly = String(isoString).split('T')[0];
+    var parts = dateOnly.split('-');
+    if (parts.length !== 3) return '';
+    return parts[2] + '/' + parts[1] + '/' + parts[0];
+  };
+}
+
 // ============================================================
 // NAVIGATION
 // ============================================================
@@ -155,12 +177,47 @@ async function loadAllData() {
     }
 
     // Update recent activity
+    updateAdminDashboardStats();
     updateRecentActivity();
 
   } catch (error) {
     console.error('❌ Erro ao carregar dados:', error);
     if (typeof showToast === 'function') showToast('Erro ao carregar dados', 'error');
   }
+}
+
+function updateAdminDashboardStats() {
+  function setText(id, value) {
+    var el = document.getElementById(id);
+    if (el) el.textContent = value;
+  }
+
+  var month = new Date().toISOString().slice(0, 7);
+  var activeMembers = Array.isArray(membersData) ? membersData.filter(function(member) { return member.status === 'ativo'; }).length : 0;
+  var newMembers = Array.isArray(membersData) ? membersData.filter(function(member) { return String(member.entry_date || '').slice(0, 7) === month; }).length : 0;
+  var exits = Array.isArray(memberMovementsData) ? memberMovementsData.filter(function(item) {
+    var type = item.movement_type || item.type;
+    return String(item.movement_date || '').slice(0, 7) === month && ['saida', 'transferencia', 'afastamento', 'falecimento'].indexOf(type) >= 0;
+  }).length : 0;
+  var balance = 0;
+  if (Array.isArray(cashMovementsData)) {
+    for (var i = 0; i < cashMovementsData.length; i++) {
+      var amount = Number(cashMovementsData[i].amount || 0);
+      if (cashMovementsData[i].type === 'entrada') balance += amount;
+      if (cashMovementsData[i].type === 'saida') balance -= amount;
+    }
+  }
+  var today = new Date().toISOString().slice(0, 10);
+  var upcomingEvents = Array.isArray(agendaData) ? agendaData.filter(function(event) {
+    return String(event.event_date || '').slice(0, 10) >= today;
+  }).length : 0;
+
+  setText('stat-active-members', activeMembers);
+  setText('stat-new-members', newMembers);
+  setText('stat-member-exits', exits);
+  setText('stat-cash-balance', 'R$ ' + balance.toFixed(2).replace('.', ','));
+  setText('stat-certificates', Array.isArray(certificatesData) ? certificatesData.length : 0);
+  setText('stat-upcoming-events', upcomingEvents);
 }
 
 // ============================================================

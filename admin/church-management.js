@@ -574,6 +574,18 @@ function renderCertificateSpecificFields() {
     return;
   }
 
+  if (type === 'curso') {
+    container.innerHTML =
+      fieldHtml('cert-name', 'Nome do aluno', 'text', true) +
+      fieldHtml('cert-course-title', 'Nome do curso', 'text', true) +
+      fieldHtml('cert-date', 'Data de conclusao', 'date', true) +
+      fieldHtml('cert-pastor', 'Responsavel', 'text', false) +
+      fieldHtml('cert-church', 'Igreja', 'text', false) +
+      fieldHtml('cert-city', 'Cidade', 'text', false) +
+      fieldHtml('cert-description-extra', 'Descricao do curso', 'text', false, 'md:col-span-2');
+    return;
+  }
+
   container.innerHTML =
     fieldHtml('cert-name', 'Nome', 'text', true) +
     fieldHtml('cert-date', 'Data', 'date', true) +
@@ -591,16 +603,22 @@ async function handleChurchCertificateSubmit(event) {
   var type = document.getElementById('church-certificate-type').value;
   var payload = collectCertificatePayload();
   var title = getCertificateTitle(type, payload);
+  var completedAt = payload.baptism_date || payload.presentation_date || payload.date || churchToday();
 
   try {
     var data = {
       title: title,
-      description: churchLabel(type),
-      completed_at: payload.baptism_date || payload.presentation_date || payload.date || churchToday(),
+      description: getCertificateDescription(type, payload),
+      completed_at: completedAt,
+      issued_at: completedAt,
       certificate_type: type,
       certificate_data: payload
     };
     var result = await window.supabaseClient.from('certificates').insert(data);
+    if (result.error && String(result.error.message || '').toLowerCase().indexOf('issued_at') >= 0) {
+      delete data.issued_at;
+      result = await window.supabaseClient.from('certificates').insert(data);
+    }
     if (result.error) throw result.error;
     await logChurchAudit('certificate_created', 'certificates', null, data);
     resetChurchCertificateForm();
@@ -612,7 +630,7 @@ async function handleChurchCertificateSubmit(event) {
 }
 
 function collectCertificatePayload() {
-  var ids = ['cert-name', 'cert-age', 'cert-birth-date', 'cert-baptism-date', 'cert-place', 'cert-pastor', 'cert-church', 'cert-city', 'cert-verse', 'cert-child-name', 'cert-father-name', 'cert-mother-name', 'cert-presentation-date', 'cert-date', 'cert-description-extra'];
+  var ids = ['cert-name', 'cert-age', 'cert-birth-date', 'cert-baptism-date', 'cert-place', 'cert-pastor', 'cert-church', 'cert-city', 'cert-verse', 'cert-child-name', 'cert-father-name', 'cert-mother-name', 'cert-presentation-date', 'cert-date', 'cert-course-title', 'cert-description-extra'];
   var payload = {};
   for (var i = 0; i < ids.length; i++) {
     var el = document.getElementById(ids[i]);
@@ -626,7 +644,15 @@ function collectCertificatePayload() {
 
 function getCertificateTitle(type, payload) {
   var name = payload.name || payload.child_name || 'Sem nome';
+  if (type === 'curso') return 'Certificado de Conclusao - ' + name;
   return churchLabel(type) + ' - ' + name;
+}
+
+function getCertificateDescription(type, payload) {
+  if (type === 'curso') {
+    return payload.course_title || payload.description_extra || 'Certificado de Conclusao';
+  }
+  return payload.description_extra || churchLabel(type);
 }
 
 function resetChurchCertificateForm() {
@@ -650,7 +676,10 @@ function renderChurchCertificates() {
       '<div class="flex flex-col md:flex-row md:items-center justify-between gap-2">' +
       '<div><h4 class="font-semibold text-gray-800">' + escapeHtml(cert.title || 'Certificado') + '</h4>' +
       '<p class="text-sm text-gray-500">' + escapeHtml(churchLabel(cert.certificate_type || '')) + (cert.completed_at ? ' &bull; ' + formatDate(cert.completed_at) : '') + '</p></div>' +
-      '<span class="text-xs bg-yellow-100 text-yellow-700 px-2 py-1 rounded">Salvo</span>' +
+      '<div class="flex flex-wrap md:justify-end gap-2">' +
+      '<a href="certificate-print.html?id=' + encodeURIComponent(cert.id) + '" target="_blank" rel="noopener" class="px-3 py-2 text-sm font-semibold text-adpel-500 hover:bg-adpel-50 rounded-lg min-h-[40px] flex items-center gap-2"><i class="fas fa-print"></i> Visualizar/Imprimir</a>' +
+      '<span class="text-xs bg-yellow-100 text-yellow-700 px-2 py-1 rounded flex items-center">Salvo</span>' +
+      '</div>' +
       '</div></div>';
   }
   container.innerHTML = html;

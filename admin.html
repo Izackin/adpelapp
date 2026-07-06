@@ -110,8 +110,56 @@
         <span class="font-bold text-xl tracking-tight">ADPEL Admin</span>
       </div>
 
-      <div class="text-xs font-semibold text-gray-500 uppercase tracking-wider px-3 mb-3">Gerenciamento</div>
-      <nav class="space-y-1.5">
+      <nav class="space-y-5">
+        <div>
+          <div class="text-xs font-semibold text-gray-500 uppercase tracking-wider px-3 mb-2">Dashboard</div>
+          <button onclick="adminNavigateTo('home')" class="w-full flex items-center px-3 py-3 rounded-lg hover:bg-gray-800 active:bg-gray-700 transition group text-gray-300 hover:text-white min-h-[44px]">
+            <i class="fas fa-chart-line w-5 text-center text-lg transition group-hover:text-adpel-400"></i><span class="ml-3 font-medium">Visao Geral</span>
+          </button>
+        </div>
+        <div>
+          <div class="text-xs font-semibold text-gray-500 uppercase tracking-wider px-3 mb-2">Pastor</div>
+          <button onclick="adminNavigateTo('church')" class="w-full flex items-center px-3 py-3 rounded-lg hover:bg-gray-800 active:bg-gray-700 transition group text-gray-300 hover:text-white min-h-[44px]">
+            <i class="fas fa-church w-5 text-center text-lg transition group-hover:text-cyan-400"></i><span class="ml-3 font-medium">Gestao da Igreja</span>
+          </button>
+        </div>
+        <div>
+          <div class="text-xs font-semibold text-gray-500 uppercase tracking-wider px-3 mb-2">Staff</div>
+          <button onclick="adminNavigateTo('home')" class="w-full flex items-center px-3 py-2.5 rounded-lg hover:bg-gray-800 active:bg-gray-700 transition group text-gray-300 hover:text-white min-h-[44px]">
+            <i class="fas fa-house w-5 text-center transition group-hover:text-adpel-400"></i><span class="ml-3 font-medium">Gerenciar Home</span>
+          </button>
+          <button onclick="adminNavigateTo('courses')" class="w-full flex items-center px-3 py-2.5 rounded-lg hover:bg-gray-800 active:bg-gray-700 transition group text-gray-300 hover:text-white min-h-[44px]">
+            <i class="fas fa-graduation-cap w-5 text-center transition group-hover:text-blue-400"></i><span class="ml-3 font-medium">Cursos</span>
+          </button>
+          <button onclick="adminNavigateTo('library')" class="w-full flex items-center px-3 py-2.5 rounded-lg hover:bg-gray-800 active:bg-gray-700 transition group text-gray-300 hover:text-white min-h-[44px]">
+            <i class="fas fa-book w-5 text-center transition group-hover:text-cyan-400"></i><span class="ml-3 font-medium">Biblioteca</span>
+          </button>
+          <button onclick="adminNavigateTo('agenda')" class="w-full flex items-center px-3 py-2.5 rounded-lg hover:bg-gray-800 active:bg-gray-700 transition group text-gray-300 hover:text-white min-h-[44px]">
+            <i class="fas fa-calendar-alt w-5 text-center transition group-hover:text-purple-400"></i><span class="ml-3 font-medium">Agenda/Eventos</span>
+          </button>
+          <button onclick="adminNavigateTo('cofres')" class="w-full flex items-center px-3 py-2.5 rounded-lg hover:bg-gray-800 active:bg-gray-700 transition group text-gray-300 hover:text-white min-h-[44px]">
+            <i class="fas fa-piggy-bank w-5 text-center transition group-hover:text-green-400"></i><span class="ml-3 font-medium">Cofres</span>
+          </button>
+          <button onclick="adminNavigateTo('app-updates')" class="w-full flex items-center px-3 py-2.5 rounded-lg hover:bg-gray-800 active:bg-gray-700 transition group text-gray-300 hover:text-white min-h-[44px]">
+            <i class="fas fa-bullhorn w-5 text-center transition group-hover:text-emerald-400"></i><span class="ml-3 font-medium">Atualizacoes do App</span>
+          </button>
+          <button onclick="adminNavigateTo('notifications')" class="w-full flex items-center px-3 py-2.5 rounded-lg hover:bg-gray-800 active:bg-gray-700 transition group text-gray-300 hover:text-white min-h-[44px]">
+            <i class="fas fa-bell w-5 text-center transition group-hover:text-red-400"></i><span class="ml-3 font-medium">Notificacoes Push</span>
+          </button>
+          <button onclick="adminNavigateTo('certificates')" class="w-full flex items-center px-3 py-2.5 rounded-lg hover:bg-gray-800 active:bg-gray-700 transition group text-gray-300 hover:text-white min-h-[44px]">
+            <i class="fas fa-certificate w-5 text-center transition group-hover:text-yellow-400"></i><span class="ml-3 font-medium">Certificados de Curso</span>
+          </button>
+        </div>
+        <div>
+          <div class="text-xs font-semibold text-gray-500 uppercase tracking-wider px-3 mb-2">Sistema</div>
+          <button onclick="adminNavigateTo('system')" class="w-full flex items-center px-3 py-3 rounded-lg hover:bg-gray-800 active:bg-gray-700 transition group text-gray-300 hover:text-white min-h-[44px]">
+            <i class="fas fa-gear w-5 text-center text-lg transition group-hover:text-slate-300"></i><span class="ml-3 font-medium">Sistema</span>
+          </button>
+        </div>
+      </nav>
+
+      <div class="hidden text-xs font-semibold text-gray-500 uppercase tracking-wider px-3 mb-3">Gerenciamento</div>
+      <nav class="hidden space-y-1.5">
         <button onclick="adminNavigateTo('home')" class="w-full flex items-center px-3 py-3 rounded-lg hover:bg-gray-800 active:bg-gray-700 transition group text-gray-300 hover:text-white min-h-[44px]">
           <i class="fas fa-home w-5 text-center text-lg transition group-hover:text-adpel-400"></i><span class="ml-3 font-medium">Gerenciar Home</span>
         </button>
@@ -189,6 +237,39 @@
             <p class="text-xs md:text-sm text-gray-500 mt-1">Novidades cadastradas</p>
           </div>
         </div>
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
+          <div class="bg-cyan-50 p-4 md:p-6 rounded-xl border border-cyan-100 cursor-pointer hover:bg-cyan-100 active:scale-[0.98] transition select-none" onclick="adminNavigateTo('church')">
+            <h3 class="font-semibold text-cyan-800 mb-2 md:mb-4 flex items-center gap-2 text-sm md:text-base"><i class="fas fa-users"></i> Membros ativos</h3>
+            <div class="text-2xl md:text-3xl font-bold text-cyan-700" id="stat-active-members">0</div>
+            <p class="text-xs md:text-sm text-gray-500 mt-1">Membresia atual</p>
+          </div>
+          <div class="bg-green-50 p-4 md:p-6 rounded-xl border border-green-100 cursor-pointer hover:bg-green-100 active:scale-[0.98] transition select-none" onclick="adminNavigateTo('church')">
+            <h3 class="font-semibold text-green-800 mb-2 md:mb-4 flex items-center gap-2 text-sm md:text-base"><i class="fas fa-user-plus"></i> Novos no mes</h3>
+            <div class="text-2xl md:text-3xl font-bold text-green-700" id="stat-new-members">0</div>
+            <p class="text-xs md:text-sm text-gray-500 mt-1">Entradas do mes</p>
+          </div>
+          <div class="bg-red-50 p-4 md:p-6 rounded-xl border border-red-100 cursor-pointer hover:bg-red-100 active:scale-[0.98] transition select-none" onclick="adminNavigateTo('church')">
+            <h3 class="font-semibold text-red-800 mb-2 md:mb-4 flex items-center gap-2 text-sm md:text-base"><i class="fas fa-user-minus"></i> Saidas no mes</h3>
+            <div class="text-2xl md:text-3xl font-bold text-red-700" id="stat-member-exits">0</div>
+            <p class="text-xs md:text-sm text-gray-500 mt-1">Movimentacoes de saida</p>
+          </div>
+          <div class="bg-yellow-50 p-4 md:p-6 rounded-xl border border-yellow-100 cursor-pointer hover:bg-yellow-100 active:scale-[0.98] transition select-none" onclick="adminNavigateTo('church')">
+            <h3 class="font-semibold text-yellow-800 mb-2 md:mb-4 flex items-center gap-2 text-sm md:text-base"><i class="fas fa-wallet"></i> Saldo do caixa</h3>
+            <div class="text-2xl md:text-3xl font-bold text-yellow-700" id="stat-cash-balance">R$ 0,00</div>
+            <p class="text-xs md:text-sm text-gray-500 mt-1">Entradas menos saidas</p>
+          </div>
+          <div class="bg-purple-50 p-4 md:p-6 rounded-xl border border-purple-100 cursor-pointer hover:bg-purple-100 active:scale-[0.98] transition select-none" onclick="adminNavigateTo('certificates')">
+            <h3 class="font-semibold text-purple-800 mb-2 md:mb-4 flex items-center gap-2 text-sm md:text-base"><i class="fas fa-certificate"></i> Certificados</h3>
+            <div class="text-2xl md:text-3xl font-bold text-purple-700" id="stat-certificates">0</div>
+            <p class="text-xs md:text-sm text-gray-500 mt-1">Emitidos/cadastrados</p>
+          </div>
+          <div class="bg-blue-50 p-4 md:p-6 rounded-xl border border-blue-100 cursor-pointer hover:bg-blue-100 active:scale-[0.98] transition select-none" onclick="adminNavigateTo('agenda')">
+            <h3 class="font-semibold text-blue-800 mb-2 md:mb-4 flex items-center gap-2 text-sm md:text-base"><i class="fas fa-calendar-check"></i> Eventos proximos</h3>
+            <div class="text-2xl md:text-3xl font-bold text-blue-700" id="stat-upcoming-events">0</div>
+            <p class="text-xs md:text-sm text-gray-500 mt-1">Agenda futura</p>
+          </div>
+        </div>
+
         <div class="bg-white p-4 md:p-6 rounded-xl shadow-sm border border-gray-200 mt-6">
           <h3 class="font-bold text-gray-800 mb-4">Recentes</h3>
           <div id="recent-activity" class="space-y-3">
@@ -882,6 +963,27 @@
         <section id="church-tab-reports" class="church-tab-panel hidden space-y-4">
           <div id="church-reports-cards" class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4"></div>
         </section>
+      </div>
+
+      <!-- SYSTEM -->
+      <div id="admin-view-system" class="hidden space-y-6 animate-fade-in">
+        <div class="flex flex-col md:flex-row md:items-center justify-between gap-3 md:gap-4">
+          <div>
+            <h2 class="text-xl md:text-2xl font-bold text-gray-800">Sistema</h2>
+            <p class="text-xs md:text-sm text-gray-500 mt-1">Usuarios, permissoes, auditoria, modulos e multi-igreja.</p>
+          </div>
+        </div>
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 md:p-8">
+          <div class="flex flex-col md:flex-row md:items-center gap-4">
+            <div class="w-14 h-14 rounded-xl bg-gray-100 flex items-center justify-center text-gray-400">
+              <i class="fas fa-gear text-2xl"></i>
+            </div>
+            <div>
+              <h3 class="font-bold text-gray-800 text-lg">Em desenvolvimento</h3>
+              <p class="text-sm text-gray-500 mt-1">Esta area sera usada futuramente para permissoes, auditoria, modulos e multi-igreja.</p>
+            </div>
+          </div>
+        </div>
       </div>
 
       <!-- NOTIFICATIONS MANAGEMENT -->
