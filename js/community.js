@@ -13,7 +13,52 @@ var COMMUNITY_CATEGORIES = {
 
 function isCommunitySchemaError(error) {
   var text = String(error && (error.message || error.details || error.hint || error.code) || '').toLowerCase();
-  return text.indexOf('community_posts') !== -1 || text.indexOf('community_comments') !== -1 || text.indexOf('community_reactions') !== -1 || text.indexOf('42p01') !== -1 || text.indexOf('does not exist') !== -1;
+  var tableError = text.indexOf('42p01') !== -1 || text.indexOf('does not exist') !== -1 || text.indexOf('could not find the table') !== -1;
+  var communityTable = text.indexOf('community_posts') !== -1 || text.indexOf('community_comments') !== -1 || text.indexOf('community_reactions') !== -1;
+  return tableError && communityTable;
+}
+
+function groupByPostId(items) {
+  var map = {};
+  (items || []).forEach(function(item) {
+    if (!item || !item.post_id) return;
+    if (!map[item.post_id]) map[item.post_id] = [];
+    map[item.post_id].push(item);
+  });
+  return map;
+}
+
+function uniqueValues(values) {
+  var seen = {};
+  return (values || []).filter(function(value) {
+    if (!value || seen[value]) return false;
+    seen[value] = true;
+    return true;
+  });
+}
+
+async function loadCommunityProfiles(userIds) {
+  var profilesById = {};
+  var ids = uniqueValues(userIds);
+  if (!ids.length) return profilesById;
+
+  try {
+    var result = await window.supabaseClient
+      .from('profiles')
+      .select('id, full_name, public_name, avatar_url, show_public_profile')
+      .in('id', ids);
+    if (result.error) throw result.error;
+    (result.data || []).forEach(function(profile) {
+      profilesById[profile.id] = profile;
+    });
+  } catch (error) {
+    console.warn('Comunidade carregada, mas houve erro ao buscar perfis:', error);
+    if (typeof showToast === 'function') {
+      showToast('Comunidade carregada, mas houve erro ao buscar perfis. Tente novamente.', 'warning');
+    }
+  }
+
+  return profilesById;
 }
 
 function renderCommunityShell() {
@@ -47,15 +92,54 @@ async function loadCommunityData() {
   try {
     var query = window.supabaseClient
       .from('community_posts')
-      .select('*, profiles:user_id(id, full_name, public_name, avatar_url, show_public_profile), community_reactions(id, user_id, reaction_type), community_comments(id, post_id, user_id, content, status, created_at, profiles:user_id(id, full_name, public_name, avatar_url))')
+      .select('*')
       .eq('status', 'published')
       .order('is_pinned', { ascending: false })
       .order('created_at', { ascending: false })
       .limit(50);
     if (communityFilter !== 'all') query = query.eq('category', communityFilter);
-    var result = await query;
-    if (result.error) throw result.error;
-    communityPostsCache = result.data || [];
+    var postsResult = await query;
+    if (postsResult.error) throw postsResult.error;
+
+    var posts = postsResult.data || [];
+    var postIds = posts.map(function(post) { return post.id; }).filter(Boolean);
+    var reactions = [];
+    var comments = [];
+
+    if (postIds.length) {
+      var reactionsResult = await window.supabaseClient
+        .from('community_reactions')
+        .select('id, post_id, user_id, reaction_type, created_at')
+        .in('post_id', postIds);
+      if (reactionsResult.error) throw reactionsResult.error;
+      reactions = reactionsResult.data || [];
+
+      var commentsResult = await window.supabaseClient
+        .from('community_comments')
+        .select('id, post_id, user_id, content, status, created_at')
+        .in('post_id', postIds)
+        .eq('status', 'published')
+        .order('created_at', { ascending: true });
+      if (commentsResult.error) throw commentsResult.error;
+      comments = commentsResult.data || [];
+    }
+
+    var userIds = posts.map(function(post) { return post.user_id; })
+      .concat(comments.map(function(comment) { return comment.user_id; }));
+    var profilesById = await loadCommunityProfiles(userIds);
+    var reactionsByPost = groupByPostId(reactions);
+    var commentsByPost = groupByPostId(comments);
+
+    communityPostsCache = posts.map(function(post) {
+      var postComments = (commentsByPost[post.id] || []).map(function(comment) {
+        comment.profiles = profilesById[comment.user_id] || {};
+        return comment;
+      });
+      post.profiles = profilesById[post.user_id] || {};
+      post.community_reactions = reactionsByPost[post.id] || [];
+      post.community_comments = postComments;
+      return post;
+    });
     renderCommunityPosts();
   } catch (error) {
     console.error('Erro ao carregar comunidade:', error);
