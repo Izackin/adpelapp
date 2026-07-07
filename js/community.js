@@ -398,11 +398,22 @@ async function createCommunityPost() {
         return;
       }
     }
-    var result = await window.supabaseClient.from('community_posts').insert([{ user_id: userInfo.user.id, content: content, category: category, status: 'published', image_url: imageUrl || null }]);
+    var result = await window.supabaseClient
+      .from('community_posts')
+      .insert([{ user_id: userInfo.user.id, content: content, category: category, status: 'published', image_url: imageUrl || null }])
+      .select('*')
+      .single();
     if (result.error) throw result.error;
+    var newPost = result.data || { id: 'local-post-' + Date.now(), user_id: userInfo.user.id, content: content, category: category, status: 'published', image_url: imageUrl || null, created_at: new Date().toISOString() };
+    newPost.profiles = getCommunityCurrentUserProfile();
+    newPost.community_reactions = [];
+    newPost.community_comments = [];
     showToast('Publicação enviada para a Comunidade ADPEL!', 'success');
-    closeCommunityComposer();
-    await loadCommunityData();
+    await preserveScrollDuring(function() {
+      closeCommunityComposer();
+      communityPostsCache.unshift(newPost);
+      renderCommunityPosts();
+    });
   } catch (error) {
     console.error('Erro ao publicar:', error);
     showToast(isCommunitySchemaError(error) ? 'Execute o SQL da Comunidade ADPEL no Supabase.' : 'Não foi possível publicar agora.', 'error');
@@ -425,7 +436,7 @@ function renderCommunityPosts() {
     var reacted = userInfo.user && reactions.some(function(r) { return r.user_id === userInfo.user.id; });
     var comments = (post.community_comments || []).filter(function(c) { return c.status === 'published'; });
     return [
-      '<article class="community-post">',
+      '<article id="community-post-' + escapeHtml(post.id) + '" class="community-post">',
         '<div class="community-post-header">',
           '<button onclick="openCommunityAuthorProfile(&quot;' + escapeHtml(post.user_id) + '&quot;)" class="community-author-btn">',
             renderCommunityAvatar(author, '', authorName),
@@ -438,9 +449,9 @@ function renderCommunityPosts() {
         '</div>',
         '<div class="community-post-body"><p>' + escapeHtml(post.content) + '</p></div>',
         post.image_url ? '<div class="community-post-image-wrap"><button type="button" onclick="openCommunityImageViewer(&quot;' + escapeHtml(post.image_url) + '&quot;)" class="community-post-image-button" aria-label="Abrir imagem da publicação"><img src="' + escapeHtml(post.image_url) + '" alt="Imagem da publicação" class="community-post-image" loading="lazy"><span class="community-post-image-open"><i class="fas fa-up-right-and-down-left-from-center"></i></span></button></div>' : '',
-        '<div class="community-post-stats">' + reactions.length + ' améns <span>&bull;</span> ' + comments.length + ' comentários</div>',
+        '<div id="community-post-stats-' + escapeHtml(post.id) + '" class="community-post-stats">' + reactions.length + ' améns <span>&bull;</span> ' + comments.length + ' comentários</div>',
         '<div class="community-post-footer">',
-          '<button onclick="toggleAmenReaction(&quot;' + post.id + '&quot;)" class="community-action-btn ' + (reacted ? 'is-active' : '') + '"><i class="fas fa-hands-praying"></i><span>Amém</span></button>',
+          '<button id="community-amen-btn-' + escapeHtml(post.id) + '" onclick="toggleAmenReaction(&quot;' + post.id + '&quot;)" class="community-action-btn ' + (reacted ? 'is-active' : '') + '"><i class="fas fa-hands-praying"></i><span>Amém</span></button>',
           '<button onclick="toggleCommunityComments(&quot;' + post.id + '&quot;)" class="community-action-btn"><i class="fas fa-comment"></i><span>Comentar</span></button>',
         '</div>',
         '<div id="community-comments-' + post.id + '" class="hidden community-comments">' + renderCommunityComments(post, comments) + '</div>',
@@ -494,6 +505,64 @@ function toggleCommunityComments(postId) {
   if (el) el.classList.toggle('hidden');
 }
 
+function getCommunityCurrentUserProfile() {
+  var userInfo = getCurrentUserInfo();
+  var profile = Object.assign({}, userInfo.profile || {});
+  if (userInfo.user && userInfo.user.email && !profile.full_name && !profile.public_name) {
+    profile.full_name = userInfo.user.email;
+  }
+  if (userInfo.user && userInfo.user.id && !profile.id) profile.id = userInfo.user.id;
+  return profile;
+}
+
+function updateCommunityPostStats(postId) {
+  var post = getCommunityPostById(postId);
+  if (!post) return;
+  var userInfo = getCurrentUserInfo();
+  var reactions = (post.community_reactions || []).filter(function(r) { return r.reaction_type === 'amen'; });
+  var comments = (post.community_comments || []).filter(function(c) { return c.status === 'published'; });
+  var stats = document.getElementById('community-post-stats-' + postId);
+  if (stats) stats.innerHTML = reactions.length + ' améns <span>&bull;</span> ' + comments.length + ' comentários';
+  var amenBtn = document.getElementById('community-amen-btn-' + postId);
+  if (amenBtn && userInfo.user) {
+    var reacted = reactions.some(function(r) { return r.user_id === userInfo.user.id; });
+    amenBtn.classList.toggle('is-active', reacted);
+  }
+}
+
+function rerenderCommunityComments(postId) {
+  var post = getCommunityPostById(postId);
+  var container = document.getElementById('community-comments-' + postId);
+  if (!post || !container) return;
+  var comments = (post.community_comments || []).filter(function(c) { return c.status === 'published'; });
+  container.innerHTML = renderCommunityComments(post, comments);
+  container.classList.remove('hidden');
+}
+
+function removeCommunityPostFromDom(postId) {
+  communityPostsCache = communityPostsCache.filter(function(item) { return item.id !== postId; });
+  var card = document.getElementById('community-post-' + postId);
+  if (!card) {
+    renderCommunityPosts();
+    return;
+  }
+  card.style.transition = 'opacity 180ms ease, transform 180ms ease';
+  card.style.opacity = '0';
+  card.style.transform = 'translateY(6px)';
+  setTimeout(function() {
+    if (card.parentNode) card.parentNode.removeChild(card);
+    if (!communityPostsCache.length) renderCommunityPosts();
+  }, 190);
+}
+
+async function preserveScrollDuring(callback) {
+  var scrollY = window.scrollY || window.pageYOffset || 0;
+  await callback();
+  requestAnimationFrame(function() {
+    window.scrollTo({ top: scrollY, behavior: 'auto' });
+  });
+}
+
 async function createCommunityComment(postId) {
   var userInfo = getCurrentUserInfo();
   if (!userInfo.isLoggedIn || !userInfo.user) {
@@ -508,13 +577,28 @@ async function createCommunityComment(postId) {
     return;
   }
   try {
-    var result = await window.supabaseClient.from('community_comments').insert([{ post_id: postId, user_id: userInfo.user.id, content: content, status: 'published' }]);
+    var result = await window.supabaseClient
+      .from('community_comments')
+      .insert([{ post_id: postId, user_id: userInfo.user.id, content: content, status: 'published' }])
+      .select('*')
+      .single();
     if (result.error) throw result.error;
-    await loadCommunityData();
-    setTimeout(function() {
-      var el = document.getElementById('community-comments-' + postId);
-      if (el) el.classList.remove('hidden');
-    }, 50);
+    var post = getCommunityPostById(postId);
+    if (!post) return;
+    var comment = result.data || {
+      id: 'local-comment-' + Date.now(),
+      post_id: postId,
+      user_id: userInfo.user.id,
+      content: content,
+      status: 'published',
+      created_at: new Date().toISOString()
+    };
+    comment.profiles = getCommunityCurrentUserProfile();
+    if (!Array.isArray(post.community_comments)) post.community_comments = [];
+    post.community_comments.push(comment);
+    if (input) input.value = '';
+    rerenderCommunityComments(postId);
+    updateCommunityPostStats(postId);
   } catch (error) {
     showToast('Não foi possível comentar agora.', 'error');
   }
@@ -528,15 +612,46 @@ async function toggleAmenReaction(postId) {
     return;
   }
   var post = communityPostsCache.find(function(item) { return item.id === postId; });
+  if (!post) return;
   var reactions = post && Array.isArray(post.community_reactions) ? post.community_reactions : [];
   var existing = reactions.find(function(r) { return r.user_id === userInfo.user.id && r.reaction_type === 'amen'; });
+  if (!Array.isArray(post.community_reactions)) post.community_reactions = [];
   try {
-    var result = existing
-      ? await window.supabaseClient.from('community_reactions').delete().eq('id', existing.id)
-      : await window.supabaseClient.from('community_reactions').insert([{ post_id: postId, user_id: userInfo.user.id, reaction_type: 'amen' }]);
-    if (result.error) throw result.error;
-    await loadCommunityData();
+    if (existing) {
+      post.community_reactions = post.community_reactions.filter(function(r) { return r.id !== existing.id; });
+      updateCommunityPostStats(postId);
+      var deleteResult = await window.supabaseClient.from('community_reactions').delete().eq('id', existing.id);
+      if (deleteResult.error) throw deleteResult.error;
+      return;
+    }
+
+    var tempReaction = {
+      id: 'temp-amen-' + Date.now(),
+      post_id: postId,
+      user_id: userInfo.user.id,
+      reaction_type: 'amen',
+      created_at: new Date().toISOString()
+    };
+    post.community_reactions.push(tempReaction);
+    updateCommunityPostStats(postId);
+    var insertResult = await window.supabaseClient
+      .from('community_reactions')
+      .insert([{ post_id: postId, user_id: userInfo.user.id, reaction_type: 'amen' }])
+      .select('id, post_id, user_id, reaction_type, created_at')
+      .single();
+    if (insertResult.error) throw insertResult.error;
+    if (insertResult.data) {
+      post.community_reactions = post.community_reactions.map(function(r) {
+        return r.id === tempReaction.id ? insertResult.data : r;
+      });
+    }
   } catch (error) {
+    if (existing) {
+      post.community_reactions.push(existing);
+    } else {
+      post.community_reactions = post.community_reactions.filter(function(r) { return String(r.id).indexOf('temp-amen-') !== 0; });
+    }
+    updateCommunityPostStats(postId);
     showToast('Não foi possível atualizar o Amém.', 'error');
   }
 }
@@ -624,7 +739,7 @@ async function hideCommunityPost(postId) {
       .single();
     if (result.error) throw result.error;
     showToast('Publicação ocultada.', 'success');
-    await loadCommunityData();
+    removeCommunityPostFromDom(postId);
   } catch (error) {
     showToast('Não foi possível ocultar a publicação.', 'error');
   }
@@ -644,7 +759,7 @@ async function deleteCommunityPost(postId) {
       .single();
     if (result.error) throw result.error;
     showToast('Publicação removida.', 'success');
-    await loadCommunityData();
+    removeCommunityPostFromDom(postId);
   } catch (error) {
     showToast('Não foi possível remover a publicação.', 'error');
   }
@@ -674,6 +789,11 @@ Object.assign(window, {
   resizeCommunityImage,
   uploadCommunityImage,
   updateCommunityCounter,
+  getCommunityCurrentUserProfile,
+  updateCommunityPostStats,
+  rerenderCommunityComments,
+  removeCommunityPostFromDom,
+  preserveScrollDuring,
   createCommunityPost,
   renderCommunityPosts,
   toggleCommunityComments,
