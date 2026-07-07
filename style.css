@@ -1361,6 +1361,37 @@ textarea::placeholder {
   background: rgba(250, 204, 21, 0.1);
 }
 
+.notification-item.is-comment .notification-icon {
+  color: #67e8f9;
+  background: rgba(6, 182, 212, 0.12);
+}
+
+.notification-item.is-amen .notification-icon {
+  color: var(--gold);
+  background: rgba(34, 197, 94, 0.12);
+  border: 1px solid rgba(250, 204, 21, 0.14);
+}
+
+.notification-item.is-system .notification-icon {
+  color: #c4b5fd;
+  background: rgba(139, 92, 246, 0.12);
+}
+
+.notification-item.is-event .notification-icon {
+  color: #93c5fd;
+  background: rgba(37, 99, 235, 0.12);
+}
+
+.notification-item.is-course .notification-icon {
+  color: #fbbf24;
+  background: rgba(245, 158, 11, 0.12);
+}
+
+.notification-item.is-offering .notification-icon {
+  color: #86efac;
+  background: rgba(34, 197, 94, 0.12);
+}
+
 .notification-copy {
   min-width: 0;
   display: grid;

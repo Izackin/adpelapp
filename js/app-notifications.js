@@ -124,12 +124,25 @@ function renderNotificationsPanel() {
   ].join('');
 }
 
+function getNotificationIcon(type) {
+  var map = {
+    community_comment: { icon: 'fa-comment', className: 'is-comment' },
+    community_amen: { icon: 'fa-hands-praying', className: 'is-amen' },
+    system: { icon: 'fa-bell', className: 'is-system' },
+    event: { icon: 'fa-calendar', className: 'is-event' },
+    course: { icon: 'fa-graduation-cap', className: 'is-course' },
+    offering: { icon: 'fa-hand-holding-heart', className: 'is-offering' }
+  };
+  return map[type] || map.system;
+}
+
 function renderNotificationItem(notification) {
   var isUnread = !notification.read_at;
+  var icon = getNotificationIcon(notification.type);
   return [
-    '<button onclick="markNotificationAsRead(&quot;' + escapeHtml(notification.id) + '&quot;)" class="notification-item ' + (isUnread ? 'is-unread' : '') + '">',
+    '<button onclick="markNotificationAsRead(&quot;' + escapeHtml(notification.id) + '&quot;)" class="notification-item ' + escapeHtml(icon.className) + ' ' + (isUnread ? 'is-unread' : '') + '">',
       '<span class="notification-unread-dot"></span>',
-      '<span class="notification-icon"><i class="fas fa-comment"></i></span>',
+      '<span class="notification-icon"><i class="fas ' + escapeHtml(icon.icon) + '"></i></span>',
       '<span class="notification-copy">',
         '<strong>' + escapeHtml(notification.title || 'Nova notificação') + '</strong>',
         '<span>' + escapeHtml(notification.body || '') + '</span>',
@@ -232,6 +245,7 @@ Object.assign(window, {
   updateNotificationBadge: updateNotificationBadge,
   openNotificationsPanel: openNotificationsPanel,
   closeNotificationsPanel: closeNotificationsPanel,
+  getNotificationIcon: getNotificationIcon,
   markNotificationAsRead: markNotificationAsRead,
   markAllNotificationsAsRead: markAllNotificationsAsRead
 });

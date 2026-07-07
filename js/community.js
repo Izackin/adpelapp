@@ -645,6 +645,9 @@ async function toggleAmenReaction(postId) {
         return r.id === tempReaction.id ? insertResult.data : r;
       });
     }
+    if (typeof loadUserNotifications === 'function') {
+      setTimeout(loadUserNotifications, 800);
+    }
   } catch (error) {
     if (existing) {
       post.community_reactions.push(existing);
