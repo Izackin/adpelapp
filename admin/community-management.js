@@ -162,6 +162,7 @@ function renderAdminCommunity() {
           '<span class="admin-community-status ' + status.classes + '">' + escapeHtml(status.label) + '</span>',
         '</div>',
         '<p class="admin-community-content">' + escapeHtml(post.content || '') + '</p>',
+        post.image_url ? '<div class="admin-community-thumb"><img src="' + escapeHtml(post.image_url) + '" alt="Imagem da publicação"></div>' : '',
         '<div class="admin-community-stats">',
           '<span><i class="fas fa-hands-praying"></i> ' + reactions + ' améns</span>',
           '<span><i class="fas fa-comment"></i> ' + comments + ' comentários</span>',

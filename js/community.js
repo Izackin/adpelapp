@@ -2,6 +2,8 @@ var communityPostsCache = [];
 var communityCommentsCache = {};
 var communityFilter = 'all';
 var openCommunityMenuId = null;
+var selectedCommunityImageFile = null;
+var selectedCommunityImagePreviewUrl = '';
 
 function isCommunitySchemaError(error) {
   var text = String(error && (error.message || error.details || error.hint || error.code) || '').toLowerCase();
@@ -144,6 +146,11 @@ function renderCommunityComposerForm() {
     '<div class="community-composer-expanded">',
       '<textarea id="community-post-content" maxlength="800" rows="4" oninput="updateCommunityCounter()" placeholder="Compartilhe algo com a comunidade..." class="community-composer-textarea"></textarea>',
       '<input id="community-post-category" type="hidden" value="comunhao">',
+      '<div class="community-image-picker">',
+        '<button type="button" onclick="document.getElementById(&quot;community-post-image&quot;).click()" class="community-image-picker-btn"><i class="fas fa-image"></i> Adicionar imagem</button>',
+        '<input id="community-post-image" type="file" accept="image/jpeg,image/jpg,image/png,image/webp" onchange="handleCommunityImageChange(event)" class="hidden">',
+        '<div id="community-image-preview" class="hidden community-image-preview"></div>',
+      '</div>',
       '<div class="community-composer-toolbar">',
         '<span id="community-char-counter" class="community-char-counter">0/800</span>',
         '<div class="community-composer-actions">',
@@ -244,11 +251,124 @@ function openCommunityComposer() {
 }
 
 function closeCommunityComposer() {
+  removeCommunityImage();
   var composer = document.getElementById('community-composer');
   if (composer) {
     composer.classList.add('hidden');
     composer.innerHTML = '';
   }
+}
+
+function handleCommunityImageChange(event) {
+  var input = event && event.target ? event.target : null;
+  var file = input && input.files && input.files[0] ? input.files[0] : null;
+  if (!file) return;
+
+  var allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
+  var name = String(file.name || '').toLowerCase();
+  var validExtension = /\.(jpg|jpeg|png|webp)$/.test(name);
+  if (allowedTypes.indexOf(file.type) === -1 || !validExtension) {
+    input.value = '';
+    removeCommunityImage();
+    showToast('Envie apenas imagens JPG, PNG ou WEBP.', 'warning');
+    return;
+  }
+
+  if (file.size > 5 * 1024 * 1024) {
+    input.value = '';
+    removeCommunityImage();
+    showToast('A imagem deve ter no máximo 5MB.', 'warning');
+    return;
+  }
+
+  removeCommunityImage(false);
+  selectedCommunityImageFile = file;
+  selectedCommunityImagePreviewUrl = URL.createObjectURL(file);
+  var preview = document.getElementById('community-image-preview');
+  if (preview) {
+    preview.classList.remove('hidden');
+    preview.innerHTML = [
+      '<img src="' + escapeHtml(selectedCommunityImagePreviewUrl) + '" alt="Preview da imagem">',
+      '<button type="button" onclick="removeCommunityImage()" class="community-image-remove"><i class="fas fa-times"></i><span>Remover imagem</span></button>'
+    ].join('');
+  }
+}
+
+function removeCommunityImage(clearInput) {
+  if (selectedCommunityImagePreviewUrl && selectedCommunityImagePreviewUrl.indexOf('blob:') === 0) {
+    URL.revokeObjectURL(selectedCommunityImagePreviewUrl);
+  }
+  selectedCommunityImageFile = null;
+  selectedCommunityImagePreviewUrl = '';
+  var input = document.getElementById('community-post-image');
+  if (input && clearInput !== false) input.value = '';
+  var preview = document.getElementById('community-image-preview');
+  if (preview) {
+    preview.classList.add('hidden');
+    preview.innerHTML = '';
+  }
+}
+
+function resizeCommunityImage(file) {
+  return new Promise(function(resolve, reject) {
+    var image = new Image();
+    var url = URL.createObjectURL(file);
+    image.onload = function() {
+      URL.revokeObjectURL(url);
+      var maxSize = 1200;
+      var width = image.width;
+      var height = image.height;
+      if (width > height && width > maxSize) {
+        height = Math.round((height * maxSize) / width);
+        width = maxSize;
+      } else if (height >= width && height > maxSize) {
+        width = Math.round((width * maxSize) / height);
+        height = maxSize;
+      }
+
+      var canvas = document.createElement('canvas');
+      canvas.width = width;
+      canvas.height = height;
+      var ctx = canvas.getContext('2d');
+      ctx.drawImage(image, 0, 0, width, height);
+
+      canvas.toBlob(function(blob) {
+        if (!blob) {
+          reject(new Error('Não foi possível processar a imagem.'));
+          return;
+        }
+        resolve({ blob: blob, contentType: 'image/webp' });
+      }, 'image/webp', 0.82);
+    };
+    image.onerror = function() {
+      URL.revokeObjectURL(url);
+      reject(new Error('Não foi possível ler a imagem selecionada.'));
+    };
+    image.src = url;
+  });
+}
+
+async function uploadCommunityImage(file, userId) {
+  if (!window.supabaseClient || !window.supabaseClient.storage) {
+    throw new Error('Supabase Storage indisponível.');
+  }
+  var resized = await resizeCommunityImage(file);
+  var path = userId + '/' + Date.now() + '.webp';
+  var result = await window.supabaseClient.storage
+    .from('community-media')
+    .upload(path, resized.blob, {
+      cacheControl: '3600',
+      upsert: false,
+      contentType: resized.contentType
+    });
+  if (result.error) throw result.error;
+
+  var publicResult = window.supabaseClient.storage
+    .from('community-media')
+    .getPublicUrl(path);
+  var publicUrl = publicResult && publicResult.data ? publicResult.data.publicUrl : '';
+  if (!publicUrl) throw new Error('Não foi possível obter a URL pública da imagem.');
+  return publicUrl + '?v=' + Date.now();
 }
 
 function updateCommunityCounter() {
@@ -268,7 +388,17 @@ async function createCommunityPost() {
     return;
   }
   try {
-    var result = await window.supabaseClient.from('community_posts').insert([{ user_id: userInfo.user.id, content: content, category: category, status: 'published' }]);
+    var imageUrl = null;
+    if (selectedCommunityImageFile) {
+      try {
+        imageUrl = await uploadCommunityImage(selectedCommunityImageFile, userInfo.user.id);
+      } catch (uploadError) {
+        console.error('Erro ao enviar imagem da comunidade:', uploadError);
+        showToast('Não foi possível enviar a imagem. Tente novamente.', 'error');
+        return;
+      }
+    }
+    var result = await window.supabaseClient.from('community_posts').insert([{ user_id: userInfo.user.id, content: content, category: category, status: 'published', image_url: imageUrl || null }]);
     if (result.error) throw result.error;
     showToast('Publicação enviada para a Comunidade ADPEL!', 'success');
     closeCommunityComposer();
@@ -307,6 +437,7 @@ function renderCommunityPosts() {
           renderCommunityPostMenu(post, userInfo),
         '</div>',
         '<div class="community-post-body"><p>' + escapeHtml(post.content) + '</p></div>',
+        post.image_url ? '<div class="community-post-image-wrap"><button type="button" onclick="openCommunityImageViewer(&quot;' + escapeHtml(post.image_url) + '&quot;)" class="community-post-image-button" aria-label="Abrir imagem da publicação"><img src="' + escapeHtml(post.image_url) + '" alt="Imagem da publicação" class="community-post-image" loading="lazy"><span class="community-post-image-open"><i class="fas fa-up-right-and-down-left-from-center"></i></span></button></div>' : '',
         '<div class="community-post-stats">' + reactions.length + ' améns <span>&bull;</span> ' + comments.length + ' comentários</div>',
         '<div class="community-post-footer">',
           '<button onclick="toggleAmenReaction(&quot;' + post.id + '&quot;)" class="community-action-btn ' + (reacted ? 'is-active' : '') + '"><i class="fas fa-hands-praying"></i><span>Amém</span></button>',
@@ -428,6 +559,39 @@ function getCommunityPostById(postId) {
   return communityPostsCache.find(function(item) { return item.id === postId; });
 }
 
+function ensureCommunityImageViewer() {
+  var viewer = document.getElementById('community-image-viewer');
+  if (!viewer) {
+    viewer = document.createElement('div');
+    viewer.id = 'community-image-viewer';
+    viewer.className = 'community-image-viewer hidden';
+    document.body.appendChild(viewer);
+  }
+  return viewer;
+}
+
+function openCommunityImageViewer(imageUrl) {
+  if (!imageUrl) return;
+  var safeUrl = escapeHtml(imageUrl);
+  var viewer = ensureCommunityImageViewer();
+  viewer.className = 'community-image-viewer';
+  viewer.innerHTML = [
+    '<button type="button" onclick="closeCommunityImageViewer()" class="community-image-viewer-close" aria-label="Fechar imagem"><i class="fas fa-times"></i></button>',
+    '<div class="community-image-viewer-stage" onclick="if(event.target === this) closeCommunityImageViewer()">',
+      '<img src="' + safeUrl + '" alt="Imagem da publicação" class="community-image-viewer-img">',
+    '</div>',
+    '<a href="' + safeUrl + '" target="_blank" rel="noopener" class="community-image-viewer-open"><i class="fas fa-arrow-up-right-from-square"></i> Abrir em nova aba</a>'
+  ].join('');
+}
+
+function closeCommunityImageViewer() {
+  var viewer = document.getElementById('community-image-viewer');
+  if (viewer) {
+    viewer.classList.add('hidden');
+    viewer.innerHTML = '';
+  }
+}
+
 async function copyCommunityPostText(postId) {
   var post = getCommunityPostById(postId);
   if (!post) return;
@@ -496,11 +660,19 @@ document.addEventListener('click', function(event) {
   openCommunityMenuId = null;
 });
 
+document.addEventListener('keydown', function(event) {
+  if (event.key === 'Escape') closeCommunityImageViewer();
+});
+
 Object.assign(window, {
   loadCommunityData,
   setCommunityFilter,
   openCommunityComposer,
   closeCommunityComposer,
+  handleCommunityImageChange,
+  removeCommunityImage,
+  resizeCommunityImage,
+  uploadCommunityImage,
   updateCommunityCounter,
   createCommunityPost,
   renderCommunityPosts,
@@ -509,6 +681,8 @@ Object.assign(window, {
   toggleAmenReaction,
   openCommunityAuthorProfile,
   toggleCommunityMenu,
+  openCommunityImageViewer,
+  closeCommunityImageViewer,
   copyCommunityPostText,
   hideCommunityPost,
   deleteCommunityPost
