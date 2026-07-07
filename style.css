@@ -1743,7 +1743,33 @@ textarea::placeholder {
 }
 
 .community-post-highlight {
-  box-shadow: 0 0 0 2px rgba(217, 119, 6, 0.65), 0 0 35px rgba(217, 119, 6, 0.22) !important;
+  animation: communityPostHighlight 2s ease;
+  box-shadow:
+    0 0 0 2px rgba(217, 119, 6, 0.75),
+    0 0 35px rgba(217, 119, 6, 0.28) !important;
+}
+
+@keyframes communityPostHighlight {
+  0% {
+    transform: scale(1);
+    box-shadow:
+      0 0 0 0 rgba(217, 119, 6, 0),
+      0 0 0 rgba(217, 119, 6, 0);
+  }
+
+  18% {
+    transform: scale(1.015);
+    box-shadow:
+      0 0 0 2px rgba(217, 119, 6, 0.85),
+      0 0 38px rgba(217, 119, 6, 0.35);
+  }
+
+  100% {
+    transform: scale(1);
+    box-shadow:
+      0 0 0 2px rgba(217, 119, 6, 0.15),
+      0 0 0 rgba(217, 119, 6, 0);
+  }
 }
 
 .community-post-header {
