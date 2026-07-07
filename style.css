@@ -1199,6 +1199,230 @@ textarea::placeholder {
   border: 1px solid var(--border-soft) !important;
 }
 
+.notification-bell {
+  position: relative;
+  width: 2.55rem;
+  height: 2.55rem;
+  display: inline-grid;
+  place-items: center;
+  border: 1px solid rgba(148, 163, 184, 0.16);
+  border-radius: 0.85rem;
+  background: rgba(15, 23, 42, 0.72);
+  color: rgba(226, 232, 240, 0.86);
+  transition: transform 0.18s ease, border-color 0.18s ease, background 0.18s ease;
+}
+
+.notification-bell:hover {
+  transform: translateY(-1px);
+  border-color: rgba(250, 204, 21, 0.28);
+  background: rgba(37, 99, 235, 0.18);
+  color: var(--text-primary);
+}
+
+.notification-badge {
+  position: absolute;
+  top: -0.25rem;
+  right: -0.25rem;
+  min-width: 1.15rem;
+  height: 1.15rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 0.25rem;
+  border: 2px solid rgba(5, 8, 22, 0.98);
+  border-radius: 999px;
+  background: linear-gradient(135deg, #ef4444, var(--gold));
+  color: white;
+  font-size: 0.64rem;
+  font-weight: 900;
+  line-height: 1;
+}
+
+.notification-badge.hidden {
+  display: none;
+}
+
+.notifications-panel {
+  position: fixed;
+  top: 5.25rem;
+  right: 1rem;
+  z-index: 110;
+  width: min(24rem, calc(100vw - 2rem));
+}
+
+.notifications-panel.hidden {
+  display: none;
+}
+
+.notifications-panel-inner {
+  overflow: hidden;
+  border: 1px solid rgba(148, 163, 184, 0.16);
+  border-radius: 1.15rem;
+  background:
+    radial-gradient(circle at 90% 0%, rgba(250, 204, 21, 0.12), transparent 16rem),
+    linear-gradient(180deg, rgba(15, 23, 42, 0.98), rgba(8, 17, 31, 0.98));
+  box-shadow: 0 28px 80px rgba(0, 0, 0, 0.44);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+}
+
+.notifications-panel-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1rem 1rem 0.75rem;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.12);
+}
+
+.notifications-panel-head h3 {
+  color: var(--text-primary);
+  font-size: 1.12rem;
+  font-weight: 900;
+}
+
+.notifications-close {
+  width: 2.55rem;
+  height: 2.55rem;
+  display: grid;
+  place-items: center;
+  border-radius: 0.8rem;
+  background: rgba(148, 163, 184, 0.08);
+  color: var(--text-secondary);
+}
+
+.notifications-panel-actions {
+  padding: 0.65rem 1rem 0;
+}
+
+.notifications-panel-actions button {
+  min-height: 2.35rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0 0.7rem;
+  border: 1px solid rgba(96, 165, 250, 0.18);
+  border-radius: 0.75rem;
+  background: rgba(37, 99, 235, 0.12);
+  color: #bfdbfe;
+  font-size: 0.8rem;
+  font-weight: 850;
+}
+
+.notifications-list {
+  max-height: min(28rem, calc(100vh - 9rem));
+  overflow-y: auto;
+  padding: 0.75rem;
+}
+
+.notification-item {
+  position: relative;
+  width: 100%;
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: start;
+  gap: 0.75rem;
+  min-height: 4.4rem;
+  margin-bottom: 0.55rem;
+  padding: 0.78rem;
+  border: 1px solid rgba(148, 163, 184, 0.12);
+  border-radius: 0.95rem;
+  background: rgba(15, 23, 42, 0.62);
+  color: var(--text-secondary);
+  text-align: left;
+}
+
+.notification-item.is-unread {
+  border-color: rgba(250, 204, 21, 0.22);
+  background: rgba(37, 99, 235, 0.16);
+}
+
+.notification-unread-dot {
+  position: absolute;
+  top: 0.78rem;
+  left: 0.45rem;
+  width: 0.42rem;
+  height: 0.42rem;
+  border-radius: 999px;
+  background: transparent;
+}
+
+.notification-item.is-unread .notification-unread-dot {
+  background: var(--gold);
+}
+
+.notification-icon {
+  width: 2.35rem;
+  height: 2.35rem;
+  display: grid;
+  place-items: center;
+  border-radius: 0.78rem;
+  color: var(--gold);
+  background: rgba(250, 204, 21, 0.1);
+}
+
+.notification-copy {
+  min-width: 0;
+  display: grid;
+  gap: 0.18rem;
+}
+
+.notification-copy strong {
+  color: var(--text-primary);
+  font-size: 0.9rem;
+  font-weight: 900;
+}
+
+.notification-copy span,
+.notification-item time {
+  color: var(--text-muted);
+  font-size: 0.78rem;
+  line-height: 1.35;
+}
+
+.notification-item time {
+  white-space: nowrap;
+}
+
+.notification-empty {
+  display: grid;
+  place-items: center;
+  min-height: 10rem;
+  padding: 1.5rem;
+  color: var(--text-secondary);
+  text-align: center;
+}
+
+.notification-empty i {
+  width: 3.5rem;
+  height: 3.5rem;
+  display: grid;
+  place-items: center;
+  margin-bottom: 0.8rem;
+  border-radius: 1rem;
+  color: var(--gold);
+  background: rgba(250, 204, 21, 0.1);
+}
+
+@media (max-width: 640px) {
+  .notifications-panel {
+    top: auto;
+    right: 0;
+    left: 0;
+    bottom: 0;
+    width: 100%;
+    padding: 0 0.75rem calc(0.75rem + env(safe-area-inset-bottom, 0px));
+  }
+
+  .notifications-panel-inner {
+    border-radius: 1.2rem 1.2rem 0.9rem 0.9rem;
+  }
+
+  .notifications-list {
+    max-height: min(70vh, 34rem);
+  }
+}
+
 /* Comunidade ADPEL */
 .community-shell {
   display: grid;

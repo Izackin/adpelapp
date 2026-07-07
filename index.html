@@ -29,6 +29,7 @@
   <script src="js/profile.js" defer></script>
   <script src="js/community.js" defer></script>
   <script src="js/certificates.js" defer></script>
+  <script src="js/app-notifications.js" defer></script>
   <script src="notifications.js" defer></script>
   <script src="text-fix.js" defer></script>
   <script src="script.js" defer></script>
@@ -242,8 +243,9 @@
           <div class="hidden" id="user-menu">
             <div class="flex items-center gap-3">
               <span class="text-sm text-gray-600" id="user-name">Usuário</span>
-              <button onclick="requestPushPermission()" title="Ativar notificações" class="text-gray-400 hover:text-adpel-600 transition p-1">
+              <button onclick="openNotificationsPanel()" id="notification-bell" title="Notificações" class="notification-bell">
                 <i class="fas fa-bell"></i>
+                <span id="notification-badge" class="notification-badge hidden"></span>
               </button>
               <button onclick="window.location.href='admin.html'" class="px-3 py-1 bg-gray-100 text-gray-700 rounded-lg text-sm hover:bg-gray-200 transition hidden" id="admin-link">
                 <i class="fas fa-cog"></i>

@@ -80,6 +80,9 @@ async function initAuth() {
       if (window.ADPELJourney && typeof window.ADPELJourney.init === 'function') {
         window.ADPELJourney.init();
       }
+      if (typeof loadUserNotifications === 'function') {
+        setTimeout(() => loadUserNotifications(), 400);
+      }
       // Resetar debounce da home para forçar recarregamento com novos dados do usuário
       _lastHomeLoad = 0;
       if (typeof verificarAtualizacoesPendentes === 'function') {
@@ -102,6 +105,9 @@ async function initAuth() {
       }
       if (window.ADPELJourney && typeof window.ADPELJourney.renderJourneyWidgets === 'function') {
         window.ADPELJourney.renderJourneyWidgets(null);
+      }
+      if (typeof loadUserNotifications === 'function') {
+        loadUserNotifications();
       }
       showToast('Você foi desconectado.', 'info');
     }
