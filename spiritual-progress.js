@@ -633,13 +633,13 @@
   }
 
   function renderJourneyWidgets(progress) {
-    renderJourneyCard(progress);
-    renderJourneyProfile(progress);
-    renderMedals(progress);
+    renderJourneyCardPremium(progress);
+    renderJourneyProfilePremium(progress);
+    renderMedalsPremium(progress);
     if (progress) {
-      getDailyChallenges(progress).then(renderDailyChallenges);
+      getDailyChallenges(progress).then(renderDailyChallengesPremium);
     } else {
-      renderDailyChallenges([]);
+      renderDailyChallengesPremium([]);
     }
   }
 
@@ -647,16 +647,16 @@
     var container = document.getElementById('daily-challenges-content');
     if (!container) return;
     if (challengeTableUnavailable) {
-      container.innerHTML = '<div class="text-sm text-gray-500 bg-gray-50 rounded-lg p-3">Desafios diarios serao ativados apos criar as tabelas no Supabase.</div>';
+      container.innerHTML = '<div class="journey-empty-note">Missões diárias serão ativadas após criar as tabelas no Supabase.</div>';
       return;
     }
     if (challenges === null) {
-      container.innerHTML = '<div class="text-sm text-gray-500 bg-gray-50 rounded-lg p-3">Desafios diarios ainda nao disponiveis.</div>';
+      container.innerHTML = '<div class="journey-empty-note">Missões diárias ainda não disponíveis.</div>';
       return;
     }
     var list = (challenges || dailyChallengesCache || []).slice(0, 3);
     if (!list.length) {
-      container.innerHTML = '<div class="text-sm text-gray-500 bg-gray-50 rounded-lg p-3">Nenhum desafio ativo para seu nivel hoje.</div>';
+      container.innerHTML = '<div class="journey-empty-note">Nenhuma missão ativa para seu nível hoje.</div>';
       return;
     }
 
@@ -664,30 +664,26 @@
       var percent = Math.min(100, Math.round((challenge.current_count / challenge.target_count) * 100));
       var meta = getChallengeMeta(challenge.activity_type);
       var button = challenge.completed
-        ? '<button disabled class="px-3 py-2 rounded-lg bg-emerald-600 text-white text-xs font-bold cursor-default inline-flex items-center gap-1"><i class="fas fa-check"></i> Concluido</button>'
-        : '<button onclick="ADPELJourney.goToChallengeTarget(&quot;' + escapeHtml(challenge.activity_type) + '&quot;)" class="px-3 py-2 rounded-lg bg-adpel-700 text-white text-xs font-bold hover:bg-adpel-800 transition inline-flex items-center gap-1"><i class="fas fa-arrow-right"></i> ' + escapeHtml(meta.label) + '</button>';
+        ? '<button disabled class="journey-challenge-action is-done"><i class="fas fa-check"></i> Concluída</button>'
+        : '<button onclick="ADPELJourney.goToChallengeTarget(&quot;' + escapeHtml(challenge.activity_type) + '&quot;)" class="journey-challenge-action"><i class="fas fa-arrow-right"></i> ' + escapeHtml(meta.label) + '</button>';
       return [
-        '<div class="border rounded-xl p-3 shadow-sm ' + (challenge.completed ? 'bg-emerald-50 border-emerald-200' : 'bg-white border-gray-200') + '">',
-          '<div class="flex items-start gap-3">',
-            '<div class="w-10 h-10 rounded-xl ' + (challenge.completed ? 'bg-emerald-600 text-white' : 'bg-adpel-700 text-white') + ' flex items-center justify-center shrink-0 shadow-sm">',
-              '<i class="fas ' + escapeHtml(challenge.icon || meta.icon) + '"></i>',
-            '</div>',
-            '<div class="flex-1 min-w-0">',
-              '<div class="flex items-start justify-between gap-3">',
-                '<div class="min-w-0">',
-                  '<h4 class="font-bold text-gray-900 text-sm leading-snug">' + escapeHtml(challenge.title) + '</h4>',
-                  challenge.description ? '<p class="text-xs text-gray-600 mt-1 leading-relaxed">' + escapeHtml(challenge.description) + '</p>' : '',
-                '</div>',
-                button,
+        '<article class="journey-challenge-card ' + (challenge.completed ? 'is-completed' : '') + '">',
+          '<div class="journey-challenge-icon"><i class="fas ' + escapeHtml(challenge.icon || meta.icon) + '"></i></div>',
+          '<div class="journey-challenge-main">',
+            '<div class="journey-challenge-head">',
+              '<div class="min-w-0">',
+                '<h4>' + escapeHtml(challenge.title) + '</h4>',
+                challenge.description ? '<p>' + escapeHtml(challenge.description) + '</p>' : '',
               '</div>',
-              '<div class="mt-3 flex items-center gap-3">',
-                '<div class="flex-1 h-2.5 rounded-full bg-gray-200 overflow-hidden"><div class="h-full ' + (challenge.completed ? 'bg-emerald-600' : 'bg-adpel-700') + ' rounded-full" style="width:' + percent + '%"></div></div>',
-                '<span class="text-xs font-bold text-gray-700 whitespace-nowrap">' + challenge.current_count + '/' + challenge.target_count + '</span>',
-              '</div>',
-              '<p class="text-xs text-emerald-700 font-bold mt-2"><i class="fas fa-star mr-1"></i>+' + challenge.xp_reward + ' XP</p>',
+              button,
             '</div>',
+            '<div class="journey-challenge-progress">',
+              '<div class="journey-progress-track"><div class="journey-progress-fill" style="width:' + percent + '%"></div></div>',
+              '<span>' + challenge.current_count + '/' + challenge.target_count + '</span>',
+            '</div>',
+            '<div class="journey-challenge-reward"><i class="fas fa-star"></i> +' + challenge.xp_reward + ' XP</div>',
           '</div>',
-        '</div>'
+        '</article>'
       ].join('');
     }).join('');
   }
@@ -857,6 +853,189 @@
     }).join('');
   }
 
+  function renderDailyChallengesPremium(challenges) {
+    var container = document.getElementById('daily-challenges-content');
+    if (!container) return;
+    if (challengeTableUnavailable) {
+      container.innerHTML = '<div class="journey-empty-note">Missões diárias serão ativadas após criar as tabelas no Supabase.</div>';
+      return;
+    }
+    if (challenges === null) {
+      container.innerHTML = '<div class="journey-empty-note">Missões diárias ainda não disponíveis.</div>';
+      return;
+    }
+    var list = (challenges || dailyChallengesCache || []).slice(0, 3);
+    if (!list.length) {
+      container.innerHTML = '<div class="journey-empty-note">Nenhuma missão ativa para seu nível hoje.</div>';
+      return;
+    }
+
+    container.innerHTML = list.map(function (challenge) {
+      var percent = Math.min(100, Math.round((challenge.current_count / challenge.target_count) * 100));
+      var meta = getChallengeMeta(challenge.activity_type);
+      var button = challenge.completed
+        ? '<button disabled class="journey-challenge-action is-done"><i class="fas fa-check"></i> Concluída</button>'
+        : '<button onclick="ADPELJourney.goToChallengeTarget(&quot;' + escapeHtml(challenge.activity_type) + '&quot;)" class="journey-challenge-action"><i class="fas fa-arrow-right"></i> ' + escapeHtml(meta.label) + '</button>';
+      return [
+        '<article class="journey-challenge-card ' + (challenge.completed ? 'is-completed' : '') + '">',
+          '<div class="journey-challenge-icon"><i class="fas ' + escapeHtml(challenge.icon || meta.icon) + '"></i></div>',
+          '<div class="journey-challenge-main">',
+            '<div class="journey-challenge-head">',
+              '<div class="min-w-0">',
+                '<h4>' + escapeHtml(challenge.title) + '</h4>',
+                challenge.description ? '<p>' + escapeHtml(challenge.description) + '</p>' : '',
+              '</div>',
+              button,
+            '</div>',
+            '<div class="journey-challenge-progress">',
+              '<div class="journey-progress-track"><div class="journey-progress-fill" style="width:' + percent + '%"></div></div>',
+              '<span>' + challenge.current_count + '/' + challenge.target_count + '</span>',
+            '</div>',
+            '<div class="journey-challenge-reward"><i class="fas fa-star"></i> +' + challenge.xp_reward + ' XP</div>',
+          '</div>',
+        '</article>'
+      ].join('');
+    }).join('');
+  }
+
+  function renderJourneyCardPremium(progress) {
+    var container = document.getElementById('journey-card-content');
+    if (!container) return;
+    var userInfo = getUserInfo();
+    if (!userInfo.isLoggedIn) {
+      container.innerHTML = '<div class="journey-empty-note text-center"><p>Entre para acompanhar sua caminhada espiritual.</p><button onclick="openModal(&quot;login-modal&quot;)" class="journey-challenge-action mt-3">Entrar</button></div>';
+      return;
+    }
+
+    var safeProgress = normalizeProgress(progress || currentProgressCache);
+    var level = getLevelInfo(safeProgress.xp);
+    var nextMedal = getNextMedal(safeProgress);
+    var avatar = safeProgress.avatar;
+    var initials = String(safeProgress.user_name || 'M').trim().charAt(0).toUpperCase();
+    var remainingLabel = level.next ? level.remainingXp + ' pontos para o próximo nível' : 'Nível máximo alcançado';
+
+    container.innerHTML = [
+      '<div class="journey-shell">',
+        '<section class="journey-hero-card">',
+          '<div class="journey-hero-copy">',
+            '<p class="app-eyebrow">Minha Caminhada</p>',
+            '<h3>Acompanhe sua evolução espiritual na ADPEL</h3>',
+            '<p>' + escapeHtml(remainingLabel) + '</p>',
+          '</div>',
+          '<div class="journey-member-row">',
+            '<div class="journey-avatar">',
+              avatar ? '<img src="' + escapeHtml(avatar) + '" alt="' + escapeHtml(safeProgress.user_name || 'Perfil') + '">' : escapeHtml(initials),
+            '</div>',
+            '<div class="min-w-0">',
+              '<strong>' + escapeHtml(safeProgress.user_name || 'Membro') + '</strong>',
+              '<span class="journey-level-pill">Nível ' + level.level + ' · ' + escapeHtml(level.title) + '</span>',
+            '</div>',
+          '</div>',
+        '</section>',
+        '<div class="journey-stats-grid">',
+          '<div class="journey-stat-card"><i class="fas fa-seedling"></i><strong>' + safeProgress.total_points + '</strong><span>Pontos de caminhada</span></div>',
+          '<div class="journey-stat-card"><i class="fas fa-fire"></i><strong>' + safeProgress.streak_days + '</strong><span>Sequência</span></div>',
+          '<div class="journey-stat-card"><i class="fas fa-layer-group"></i><strong>' + level.progressPercent + '%</strong><span>Evolução</span></div>',
+        '</div>',
+        '<section class="journey-progress-card">',
+          '<div class="journey-progress-label"><span>Progresso até o próximo nível</span><strong>' + level.progressPercent + '%</strong></div>',
+          '<div class="journey-progress-track"><div class="journey-progress-fill" style="width:' + level.progressPercent + '%"></div></div>',
+          '<div class="journey-next-medal"><span>Próxima medalha</span><strong>' + escapeHtml(nextMedal ? nextMedal.title : 'Todas conquistadas') + '</strong></div>',
+        '</section>',
+        '<section class="journey-daily-section">',
+          '<div class="journey-section-head">',
+            '<div><p class="app-eyebrow">Missão de Hoje</p><h3>Continue sua jornada</h3></div>',
+            '<span>máx. 3</span>',
+          '</div>',
+          '<div id="daily-challenges-content" class="journey-challenges-list">',
+            '<div class="journey-empty-note">Carregando missões diárias...</div>',
+          '</div>',
+          '<div class="journey-actions">',
+            '<button onclick="ADPELJourney.completeDailyMission()" class="journey-primary-action"><i class="fas fa-check"></i> Missão diária</button>',
+            '<button onclick="navigateTo(&quot;ranking&quot;)" class="journey-secondary-action"><i class="fas fa-ranking-star"></i> Ver ranking</button>',
+          '</div>',
+        '</section>',
+      '</div>'
+    ].join('');
+  }
+
+  function renderJourneyProfilePremium(progress) {
+    var container = document.getElementById('profile-journey-content');
+    if (!container) return;
+    var userInfo = getUserInfo();
+    if (!userInfo.isLoggedIn) {
+      container.innerHTML = '';
+      return;
+    }
+    var safeProgress = normalizeProgress(progress || currentProgressCache);
+    var level = getLevelInfo(safeProgress.xp);
+    container.innerHTML = [
+      '<div class="journey-stats-grid">',
+        '<div class="journey-stat-card"><i class="fas fa-layer-group"></i><strong>' + level.level + '</strong><span>' + escapeHtml(level.title) + '</span></div>',
+        '<div class="journey-stat-card"><i class="fas fa-seedling"></i><strong>' + safeProgress.total_points + '</strong><span>Pontos</span></div>',
+        '<div class="journey-stat-card"><i class="fas fa-fire"></i><strong>' + safeProgress.streak_days + '</strong><span>Sequência</span></div>',
+        '<div class="journey-stat-card"><i class="fas fa-chart-line"></i><strong>' + level.progressPercent + '%</strong><span>Evolução</span></div>',
+      '</div>'
+    ].join('');
+  }
+
+  function renderMedalsPremium(progress) {
+    var container = document.getElementById('medals-grid');
+    if (!container) return;
+    if (!getUserInfo().isLoggedIn) {
+      container.innerHTML = '';
+      return;
+    }
+    var medals = getEarnedMedals(progress || currentProgressCache || {});
+    container.innerHTML = medals.map(function (medal) {
+      return [
+        '<article class="journey-medal-card ' + (medal.earned ? 'is-earned' : '') + '">',
+          '<div class="journey-medal-icon"><i class="fas ' + medal.icon + '"></i></div>',
+          '<h4>' + escapeHtml(medal.title) + '</h4>',
+          '<p>' + (medal.earned ? 'Conquistada' : 'Em andamento') + '</p>',
+          medal.target ? '<div class="journey-progress-track"><div class="journey-progress-fill" style="width:' + medal.percent + '%"></div></div>' : '',
+        '</article>'
+      ].join('');
+    }).join('');
+  }
+
+  async function renderRankingPremium() {
+    var container = document.getElementById('ranking-list');
+    if (!container) return;
+    container.innerHTML = '<div class="journey-empty-note text-center">Carregando ranking...</div>';
+    var ranking = await getRanking();
+    if (!ranking.length) {
+      container.innerHTML = '<div class="journey-empty-note text-center">Ranking ainda não disponível.</div>';
+      return;
+    }
+    var userInfo = getUserInfo();
+
+    container.innerHTML = ranking.map(function (item, index) {
+      var level = getLevelInfo(item.xp);
+      var avatar = item.avatar_url || item.avatar || '';
+      var initials = String(item.user_name || 'M').trim().charAt(0).toUpperCase();
+      var click = item.user_id ? ' onclick="openPublicProfile(&quot;' + escapeHtml(item.user_id) + '&quot;)"' : '';
+      var medal = index === 0 ? '1' : index === 1 ? '2' : index === 2 ? '3' : String(index + 1);
+      var current = userInfo.user && userInfo.user.id === item.user_id;
+      return [
+        '<article class="journey-ranking-item rank-' + (index + 1) + ' ' + (current ? 'is-current-user' : '') + '"' + click + '>',
+          '<div class="journey-ranking-position">' + medal + '</div>',
+          '<div class="journey-avatar">',
+            avatar ? '<img src="' + escapeHtml(avatar) + '" alt="' + escapeHtml(item.user_name || 'Membro') + '">' : escapeHtml(initials),
+          '</div>',
+          '<div class="journey-ranking-copy">',
+            '<h4>' + escapeHtml(item.user_name || 'Membro') + '</h4>',
+            '<p>Nível ' + level.level + ' · ' + escapeHtml(level.title) + '</p>',
+          '</div>',
+          '<div class="journey-ranking-score">',
+            '<strong>' + item.total_points + '</strong>',
+            '<span>' + item.streak_days + ' dias</span>',
+          '</div>',
+        '</article>'
+      ].join('');
+    }).join('');
+  }
+
   async function initJourney() {
     var progress = await getOrCreateProgress();
     renderJourneyWidgets(progress);
@@ -868,8 +1047,8 @@
     MEDALS: MEDALS,
     init: initJourney,
     renderJourneyWidgets: renderJourneyWidgets,
-    renderRanking: renderRanking,
-    renderDailyChallenges: renderDailyChallenges,
+    renderRanking: renderRankingPremium,
+    renderDailyChallenges: renderDailyChallengesPremium,
     goToChallengeTarget: goToChallengeTarget,
     registerBibleRead: registerBibleRead,
     registerChapterRead: registerChapterRead,
