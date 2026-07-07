@@ -452,7 +452,12 @@ async function hideCommunityPost(postId) {
   var userInfo = getCurrentUserInfo();
   if (!userInfo.isMaster) return;
   try {
-    var result = await window.supabaseClient.from('community_posts').update({ status: 'hidden' }).eq('id', postId);
+    var result = await window.supabaseClient
+      .from('community_posts')
+      .update({ status: 'hidden', updated_at: new Date().toISOString() })
+      .eq('id', postId)
+      .select('id')
+      .single();
     if (result.error) throw result.error;
     showToast('Publicação ocultada.', 'success');
     await loadCommunityData();
@@ -467,7 +472,12 @@ async function deleteCommunityPost(postId) {
   if (!post || (!userInfo.isMaster && (!userInfo.user || userInfo.user.id !== post.user_id))) return;
   if (!confirm('Deseja remover esta publicação?')) return;
   try {
-    var result = await window.supabaseClient.from('community_posts').delete().eq('id', postId);
+    var result = await window.supabaseClient
+      .from('community_posts')
+      .update({ status: 'removed', updated_at: new Date().toISOString() })
+      .eq('id', postId)
+      .select('id')
+      .single();
     if (result.error) throw result.error;
     showToast('Publicação removida.', 'success');
     await loadCommunityData();
