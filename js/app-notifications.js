@@ -201,19 +201,31 @@ async function markAllNotificationsAsRead() {
 function openNotificationTarget(notification) {
   if (!notification) return;
   closeNotificationsPanel();
+  if (notification.entity_type === 'community_post') {
+    if (typeof navigateTo === 'function') {
+      navigateTo('community');
+      var attempts = 0;
+      var scrollToCommunityPost = function() {
+        attempts += 1;
+        var card = document.getElementById('community-post-' + notification.entity_id);
+        if (card) {
+          card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          card.classList.add('community-post-highlight');
+          setTimeout(function() {
+            card.classList.remove('community-post-highlight');
+          }, 2000);
+          return;
+        }
+        if (attempts < 6) setTimeout(scrollToCommunityPost, 300);
+      };
+      setTimeout(scrollToCommunityPost, 500);
+    }
+    return;
+  }
   if (notification.url && notification.url.charAt(0) === '#') {
     var section = notification.url.replace('#', '').split('?')[0];
     if (section && typeof navigateTo === 'function') navigateTo(section);
     return;
-  }
-  if (notification.entity_type === 'community_post') {
-    if (typeof navigateTo === 'function') {
-      navigateTo('community');
-      setTimeout(function() {
-        var card = document.getElementById('community-post-' + notification.entity_id);
-        if (card) card.scrollIntoView({ behavior: 'smooth', block: 'center' });
-      }, 700);
-    }
   }
 }
 

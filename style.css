@@ -1742,6 +1742,10 @@ textarea::placeholder {
   padding: 1rem;
 }
 
+.community-post-highlight {
+  box-shadow: 0 0 0 2px rgba(217, 119, 6, 0.65), 0 0 35px rgba(217, 119, 6, 0.22) !important;
+}
+
 .community-post-header {
   display: grid;
   grid-template-columns: auto 1fr auto;
