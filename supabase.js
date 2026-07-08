@@ -14,13 +14,14 @@
 // AUTH FUNCTIONS
 // ==========================
 
-async function signUp(email, password, fullName, profileData) {
-  const metadata = Object.assign({ full_name: fullName }, profileData || {});
+async function signUp(email, password, fullName) {
   const { data, error } = await supabase.auth.signUp({
     email: email,
     password: password,
     options: {
-      data: metadata
+      data: {
+        full_name: fullName
+      }
     }
   });
   if (error) throw error;

@@ -48,11 +48,6 @@ window.openModal = function(modalId) {
       }
     };
     window.login = async function() {
-      var loginForm = document.getElementById('login-form');
-      if (loginForm && typeof loginForm.requestSubmit === 'function') {
-        loginForm.requestSubmit();
-        return;
-      }
       var email = (document.getElementById('login-email')?.value || '').replace(/undefined|null/gi, '').trim();
       var password = (document.getElementById('login-password')?.value || '').replace(/undefined|null/gi, '');
       if (!email || !password) {
