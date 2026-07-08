@@ -461,7 +461,7 @@ function renderCommunityPosts() {
 }
 
 function renderCommunityPostMenu(post, userInfo) {
-  var isAuthor = userInfo.user && userInfo.user.id === post.user_id;
+  var isAuthor = !!(userInfo.user && userInfo.user.id === post.user_id);
   var isMaster = !!userInfo.isMaster;
   var items = [
     '<button onclick="openCommunityAuthorProfile(&quot;' + escapeHtml(post.user_id) + '&quot;)"><i class="fas fa-user"></i> Ver perfil</button>',
@@ -513,6 +513,10 @@ function getCommunityCurrentUserProfile() {
   }
   if (userInfo.user && userInfo.user.id && !profile.id) profile.id = userInfo.user.id;
   return profile;
+}
+
+function canManageCommunityPost(post, userInfo) {
+  return !!(post && userInfo && (userInfo.isMaster || (userInfo.user && userInfo.user.id === post.user_id)));
 }
 
 function updateCommunityPostStats(postId) {
@@ -751,13 +755,37 @@ async function hideCommunityPost(postId) {
 async function deleteCommunityPost(postId) {
   var userInfo = getCurrentUserInfo();
   var post = getCommunityPostById(postId);
-  if (!post || (!userInfo.isMaster && (!userInfo.user || userInfo.user.id !== post.user_id))) return;
+  if (!postId || !userInfo.isLoggedIn || !userInfo.user) {
+    showToast('Faça login para remover publicações.', 'warning');
+    openModal('login-modal');
+    return;
+  }
+
+  try {
+    var check = await window.supabaseClient
+      .from('community_posts')
+      .select('id, user_id, status')
+      .eq('id', postId)
+      .single();
+    if (check.error) throw check.error;
+    post = check.data || post;
+  } catch (error) {
+    showToast('Não foi possível validar a publicação.', 'error');
+    return;
+  }
+
+  if (!canManageCommunityPost(post, userInfo)) {
+    showToast('Você só pode excluir suas próprias publicações.', 'warning');
+    return;
+  }
   if (!confirm('Deseja remover esta publicação?')) return;
   try {
-    var result = await window.supabaseClient
+    var query = window.supabaseClient
       .from('community_posts')
       .update({ status: 'removed', updated_at: new Date().toISOString() })
-      .eq('id', postId)
+      .eq('id', postId);
+    if (!userInfo.isMaster) query = query.eq('user_id', userInfo.user.id);
+    var result = await query
       .select('id')
       .single();
     if (result.error) throw result.error;

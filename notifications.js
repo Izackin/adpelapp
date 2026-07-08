@@ -4,6 +4,17 @@
 // ⚠️ SUBSTITUA esta chave pela sua VAPID Public Key gerada
 const VAPID_PUBLIC_KEY = 'BHEIiMKvGsyRkJUuEdmV7DjcQc10TQ-2TJYLRaDmfhneT-kaEPHV-JF-0-3uGc7Y0xIobi3N42NnDcGS-21-Rsc';
 
+function isPushSupported() {
+  return 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window;
+}
+
+async function ensureServiceWorkerRegistration() {
+  if (!('serviceWorker' in navigator)) return null;
+  const existing = await navigator.serviceWorker.getRegistration();
+  if (existing) return existing;
+  return navigator.serviceWorker.register('sw.js');
+}
+
 function urlBase64ToUint8Array(base64String) {
   const padding = '='.repeat((4 - base64String.length % 4) % 4);
   const base64 = (base64String + padding).replace(/\-/g, '+').replace(/_/g, '/');
@@ -25,11 +36,12 @@ function arrayBufferToBase64(buffer) {
 }
 
 async function initPushNotifications() {
-  if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
+  if (!isPushSupported()) {
     console.log('[Push] API não suportada neste navegador.');
     return;
   }
   try {
+    await ensureServiceWorkerRegistration();
     const reg = await navigator.serviceWorker.ready;
     const existingSub = await reg.pushManager.getSubscription();
     if (existingSub) {
@@ -42,11 +54,12 @@ async function initPushNotifications() {
 }
 
 async function requestPushPermission() {
-  if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
+  if (!isPushSupported()) {
     if (typeof showToast === 'function') showToast('Seu dispositivo/navegador não suporta notificações push.', 'warning');
     return;
   }
   try {
+    await ensureServiceWorkerRegistration();
     const permission = await Notification.requestPermission();
     if (permission !== 'granted') {
       if (typeof showToast === 'function') showToast('Permissão negada. Ative nas configurações do navegador se mudar de ideia.', 'info');
@@ -54,10 +67,13 @@ async function requestPushPermission() {
     }
 
     const reg = await navigator.serviceWorker.ready;
-    const sub = await reg.pushManager.subscribe({
-      userVisibleOnly: true,
-      applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY)
-    });
+    let sub = await reg.pushManager.getSubscription();
+    if (!sub) {
+      sub = await reg.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY)
+      });
+    }
 
     await savePushSubscription(sub);
     if (typeof showToast === 'function') showToast('✅ Notificações ativadas! Você receberá avisos da ADPEL.', 'success');

@@ -37,6 +37,7 @@ async function sendMasterNotification(e) {
       }
       throw error;
     }
+    if (data && data.sent && !data.sentCount) data.sentCount = data.sent;
 
     if (typeof showToast === 'function') showToast(`✅ Notificação enviada para ${data?.sentCount || 0} dispositivo(s)!`, 'success');
     document.getElementById('notification-form').reset();

@@ -83,6 +83,9 @@ async function initAuth() {
       if (typeof loadUserNotifications === 'function') {
         setTimeout(() => loadUserNotifications(), 400);
       }
+      if (typeof initPushNotifications === 'function') {
+        setTimeout(() => initPushNotifications(), 700);
+      }
       // Resetar debounce da home para forçar recarregamento com novos dados do usuário
       _lastHomeLoad = 0;
       if (typeof verificarAtualizacoesPendentes === 'function') {
@@ -247,6 +250,9 @@ function bindAuthForms() {
           // Atualizar banner de boas-vindas
           if (typeof updateBannerWelcome === 'function') {
             updateBannerWelcome();
+          }
+          if (typeof initPushNotifications === 'function') {
+            setTimeout(() => initPushNotifications(), 700);
           }
           console.log('✅ Login OK. isMaster:', getCurrentUserInfo().isMaster);
           // Removido reload — UI já atualiza dinamicamente

@@ -1,4 +1,4 @@
-const CACHE_VERSION = 'v1.0.3';
+const CACHE_VERSION = 'v1.0.4';
 const CACHE_NAME = 'adpel-pwa-' + CACHE_VERSION;
 
 const ASSETS = [
@@ -91,16 +91,23 @@ self.addEventListener('fetch', e => {
 // PUSH NOTIFICATIONS
 // ==========================
 self.addEventListener('push', (event) => {
+  let data = {};
   try {
-    const data = event.data ? event.data.json() : {};
+    data = event.data ? event.data.json() : {};
+  } catch (e) {
+    data = { body: event.data ? event.data.text() : '' };
+  }
+
+  try {
     const title = data.title || 'ADPEL Digital';
+    const targetUrl = new URL(data.url || '/', self.location.origin).href;
     const options = {
       body: data.body || 'Você recebeu uma nova mensagem.',
-      icon: data.icon || 'https://huggingface.co/spaces/IzaqueE/deepsite-project-6tv0m/resolve/main/images/adpel.logo.png',
-      badge: 'https://huggingface.co/spaces/IzaqueE/deepsite-project-6tv0m/resolve/main/images/adpel.logo.png',
+      icon: data.icon || './images/adpel.logo.png',
+      badge: data.badge || './images/adpel.logo.png',
       vibrate: [100, 50, 100],
       requireInteraction: true,
-      data: { url: data.url || self.location.origin + '/' }
+      data: { url: targetUrl }
     };
     event.waitUntil(self.registration.showNotification(title, options));
   } catch (e) {
@@ -110,11 +117,11 @@ self.addEventListener('push', (event) => {
 
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
-  const urlToOpen = event.notification.data?.url || self.location.origin + '/';
+  const urlToOpen = new URL(event.notification.data?.url || '/', self.location.origin).href;
   event.waitUntil(
     clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
       for (const client of clientList) {
-        if (client.url === urlToOpen && 'focus' in client) return client.focus();
+        if (new URL(client.url).href === urlToOpen && 'focus' in client) return client.focus();
       }
       if (clients.openWindow) return clients.openWindow(urlToOpen);
     })

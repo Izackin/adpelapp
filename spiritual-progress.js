@@ -127,6 +127,53 @@
     };
   }
 
+  async function loadJourneyProfile(userId) {
+    if (!userId || !window.supabaseClient) return null;
+    try {
+      var result = await window.supabaseClient
+        .from('profiles')
+        .select('id, full_name, public_name, avatar_url')
+        .eq('id', userId)
+        .maybeSingle();
+      if (result.error) throw result.error;
+      return result.data || null;
+    } catch (error) {
+      var text = String(error && (error.message || error.details || error.code) || '').toLowerCase();
+      var missingAvatarColumn = text.indexOf('avatar_url') !== -1 || text.indexOf('42703') !== -1 || text.indexOf('pgrst204') !== -1;
+      if (!missingAvatarColumn) {
+        console.warn('[Minha Caminhada] Nao foi possivel carregar a foto do perfil:', error);
+        return null;
+      }
+      try {
+        var fallback = await window.supabaseClient
+          .from('profiles')
+          .select('id, full_name, photo_url')
+          .eq('id', userId)
+          .maybeSingle();
+        return fallback.data || null;
+      } catch (fallbackError) {
+        try {
+          var basic = await window.supabaseClient
+            .from('profiles')
+            .select('id, full_name')
+            .eq('id', userId)
+            .maybeSingle();
+          return basic.data || null;
+        } catch (basicError) {
+          return null;
+        }
+      }
+    }
+  }
+
+  function applyJourneyProfile(progress, profile) {
+    if (!progress || !profile) return progress;
+    var avatar = profile.avatar_url || profile.photo_url || '';
+    if (avatar) progress.avatar = avatar;
+    progress.user_name = profile.public_name || profile.full_name || progress.user_name || 'Membro';
+    return progress;
+  }
+
   function normalizeProgress(progress) {
     var userInfo = getUserInfo();
     var base = defaultProgress(userInfo);
@@ -362,10 +409,12 @@
       if (result.error) throw result.error;
       if (result.data) {
         currentProgressCache = normalizeProgress(result.data);
+        currentProgressCache = applyJourneyProfile(currentProgressCache, await loadJourneyProfile(user.id));
         return currentProgressCache;
       }
 
       var newProgress = defaultProgress(userInfo);
+      newProgress = applyJourneyProfile(newProgress, await loadJourneyProfile(user.id));
       var insert = await window.supabaseClient
         .from('spiritual_progress')
         .insert([newProgress])
