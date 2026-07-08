@@ -133,9 +133,11 @@ function updateAuthUI(isLoggedIn) {
   const adminLink = document.getElementById('admin-link');
   const adminLinkMobile = document.getElementById('admin-link-mobile');
   
-  // Restrito ao email master@adpel.com ou role master
-  const isMaster = (currentUser?.email?.toLowerCase() === 'master@adpel.com') || (currentProfile?.role === 'master');
-  console.log('🔍 updateAuthUI:', { isLoggedIn, email: currentUser?.email, role: currentProfile?.role, isMaster });
+  // Restrito ao perfil com role master.
+  const isMaster = typeof isUserMaster === 'function'
+    ? isUserMaster({ user: currentUser, profile: currentProfile })
+    : currentProfile?.role === 'master';
+  if (typeof adpelDebugLog === 'function') adpelDebugLog('updateAuthUI', { isLoggedIn: !!isLoggedIn, isMaster: !!isMaster });
   
   if (isLoggedIn && currentUser) {
     // Só esconde se realmente tiver um usuário logado
@@ -254,7 +256,7 @@ function bindAuthForms() {
           if (typeof initPushNotifications === 'function') {
             setTimeout(() => initPushNotifications(), 700);
           }
-          console.log('✅ Login OK. isMaster:', getCurrentUserInfo().isMaster);
+          if (typeof adpelDebugLog === 'function') adpelDebugLog('Login OK', { isMaster: getCurrentUserInfo().isMaster });
           // Removido reload — UI já atualiza dinamicamente
         }
       } catch (error) {
@@ -380,12 +382,12 @@ function showLoading(show, formId) {
 function getCurrentUserInfo() {
   const user = currentUser || null;
   const profile = currentProfile || null;
-  const userEmail = user?.email ? user.email.toLowerCase() : '';
-  const profileRole = profile && profile.role ? profile.role : '';
-  const isMaster = (userEmail === 'master@adpel.com') || (profileRole === 'master');
+  const role = typeof getUserRole === 'function' ? getUserRole({ user, profile }) : String(profile && profile.role ? profile.role : '').toLowerCase();
+  const isMaster = typeof isUserMaster === 'function' ? isUserMaster({ user, profile }) : role === 'master';
   return {
     user,
     profile,
+    role,
     isLoggedIn: !!user,
     isMaster: isMaster
   };

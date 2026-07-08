@@ -606,7 +606,7 @@ function openStudyModal(encodedStudy) {
 
   if (study.content && contentSection && contentDiv) {
     contentSection.classList.remove('hidden');
-    contentDiv.innerHTML = study.content;
+    contentDiv.innerHTML = escapeHtml(study.content).replace(/\n/g, '<br>');
   } else if (contentSection) {
     contentSection.classList.add('hidden');
   }

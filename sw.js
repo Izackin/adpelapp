@@ -100,7 +100,8 @@ self.addEventListener('push', (event) => {
 
   try {
     const title = data.title || 'ADPEL Digital';
-    const targetUrl = new URL(data.url || '/', self.location.origin).href;
+    const requestedUrl = new URL(data.url || '/', self.location.origin);
+    const targetUrl = requestedUrl.origin === self.location.origin ? requestedUrl.href : self.location.origin + '/';
     const options = {
       body: data.body || 'Você recebeu uma nova mensagem.',
       icon: data.icon || './images/adpel.logo.png',
@@ -117,7 +118,8 @@ self.addEventListener('push', (event) => {
 
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
-  const urlToOpen = new URL(event.notification.data?.url || '/', self.location.origin).href;
+  const requestedUrl = new URL(event.notification.data?.url || '/', self.location.origin);
+  const urlToOpen = requestedUrl.origin === self.location.origin ? requestedUrl.href : self.location.origin + '/';
   event.waitUntil(
     clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
       for (const client of clientList) {

@@ -515,7 +515,7 @@ function getCommunityCurrentUserProfile() {
   return profile;
 }
 
-function canManageCommunityPost(post, userInfo) {
+function canManageCommunityPostLocal(post, userInfo) {
   return !!(post && userInfo && (userInfo.isMaster || (userInfo.user && userInfo.user.id === post.user_id)));
 }
 
@@ -774,7 +774,10 @@ async function deleteCommunityPost(postId) {
     return;
   }
 
-  if (!canManageCommunityPost(post, userInfo)) {
+  var canManage = typeof window.canManageCommunityPost === 'function'
+    ? window.canManageCommunityPost(post, userInfo)
+    : canManageCommunityPostLocal(post, userInfo);
+  if (!canManage) {
     showToast('Você só pode excluir suas próprias publicações.', 'warning');
     return;
   }

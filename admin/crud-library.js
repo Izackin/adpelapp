@@ -60,7 +60,11 @@ async function handleLibrarySubmit(e) {
   try {
     if (fileInput && fileInput.files && fileInput.files[0]) {
       var file = fileInput.files[0];
-      var fileExt = file.name.split('.').pop();
+      var validation = typeof validateAdpelUploadFile === 'function'
+        ? validateAdpelUploadFile(file, { allowedExtensions: ['pdf', 'doc', 'docx'], maxSize: 20 * 1024 * 1024 })
+        : { ok: true };
+      if (!validation.ok) { throw new Error(validation.message); }
+      var fileExt = file.name.split('.').pop().toLowerCase();
       var fileName = 'library/' + Date.now() + '_' + Math.random().toString(36).substr(2, 9) + '.' + fileExt;
       var uploadResult = await window.supabaseClient.storage.from('uploads').upload(fileName, file);
       if (uploadResult.error) { throw uploadResult.error; }

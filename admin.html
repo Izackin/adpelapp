@@ -11,6 +11,7 @@
   <link rel="stylesheet" href="style.css">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
   <script src="https://cdn.tailwindcss.com"></script>
+  <script src="js/permissions.js"></script>
   <script src="text-fix.js" defer></script>
   
   <script>
@@ -1093,8 +1094,7 @@
         .replace(/[^a-z0-9]+/g, '-')
         .replace(/^-+|-+$/g, '');
     }
-    
-    console.log('✅ Funções utilitárias carregadas');
+    if (typeof adpelDebugLog === 'function') adpelDebugLog('Funcoes utilitarias carregadas');
   </script>
   
   <!-- Scripts externos - carregados na ordem correta -->
@@ -1103,7 +1103,7 @@
   <script>
     // Verificar se Supabase carregou
     if (typeof window.supabase !== 'undefined' && window.supabase !== null) {
-      console.log('✅ Supabase carregado');
+      if (typeof adpelDebugLog === 'function') adpelDebugLog('Supabase carregado');
     } else {
       console.warn('⚠️ Supabase não disponível.');
       if (typeof showToast === 'function') {
@@ -1125,7 +1125,7 @@
   
   <script>
     // Verificar se supabase.js inicializou corretamente
-    console.log('🔍 Verificando window.supabaseClient:', !!window.supabaseClient);
+    if (typeof adpelDebugLog === 'function') adpelDebugLog('Verificando supabaseClient', { ready: !!window.supabaseClient });
     if (!window.supabaseClient) {
       console.error('❌ window.supabaseClient não está disponível. Verifique se supabase.js foi carregado antes de admin.js.');
     }
@@ -1133,7 +1133,7 @@
     // Verificar se admin.js carregou (agora com esperar 3s para garantir)
     setTimeout(() => {
       if (typeof adminNavigateTo !== 'undefined') {
-        console.log('✅ AdminJS carregou com sucesso!');
+        if (typeof adpelDebugLog === 'function') adpelDebugLog('AdminJS carregou');
       } else {
         console.error('❌ AdminJS falhou ao carregar');
         var errDiv = document.getElementById('admin-load-error');
@@ -1204,7 +1204,7 @@
           .eq('id', session.user.id)
           .single();
         
-        const isMaster = (session.user.email?.toLowerCase() === 'master@adpel.com') || (profile?.role === 'master');
+        const isMaster = typeof isUserMaster === 'function' ? isUserMaster({ user: session.user, profile: profile }) : profile?.role === 'master';
         
         if (!isMaster) {
           showGate();
@@ -1214,8 +1214,6 @@
         showApp();
       } catch (e) {
         console.error('Erro na verificação de acesso admin:', e);
-        console.error('Mensagem:', e.message);
-        console.error('Stack:', e.stack);
         showGate();
       }
     })();

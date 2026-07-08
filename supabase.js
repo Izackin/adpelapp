@@ -278,8 +278,7 @@ function saveLocalData(key, data) {
     },
     local: { get: getLocalData, save: saveLocalData, keys: LOCAL_KEYS }
   };
-
-  // Logs de verificacao temporarios
-  console.log('✅ supabase.js: Cliente inicializado');
-  console.log('🔍 window.supabaseClient disponivel:', !!window.supabaseClient);
+  if (typeof adpelDebugLog === 'function') {
+    adpelDebugLog('supabase.js inicializado', { clientReady: !!window.supabaseClient });
+  }
 })();

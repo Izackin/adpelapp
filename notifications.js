@@ -1,7 +1,7 @@
-// notifications.js - Inscrição Push para PWA ADPEL
-// Os usuários precisam ativar as notificações manualmente
+﻿// notifications.js - InscriÃ§Ã£o Push para PWA ADPEL
+// Os usuÃ¡rios precisam ativar as notificaÃ§Ãµes manualmente
 
-// ⚠️ SUBSTITUA esta chave pela sua VAPID Public Key gerada
+// âš ï¸ SUBSTITUA esta chave pela sua VAPID Public Key gerada
 const VAPID_PUBLIC_KEY = 'BHEIiMKvGsyRkJUuEdmV7DjcQc10TQ-2TJYLRaDmfhneT-kaEPHV-JF-0-3uGc7Y0xIobi3N42NnDcGS-21-Rsc';
 
 function isPushSupported() {
@@ -37,7 +37,7 @@ function arrayBufferToBase64(buffer) {
 
 async function initPushNotifications() {
   if (!isPushSupported()) {
-    console.log('[Push] API não suportada neste navegador.');
+    if (typeof adpelDebugLog === 'function') adpelDebugLog('[Push] API nao suportada');
     return;
   }
   try {
@@ -46,23 +46,29 @@ async function initPushNotifications() {
     const existingSub = await reg.pushManager.getSubscription();
     if (existingSub) {
       await savePushSubscription(existingSub);
-      console.log('[Push] Inscrição existente confirmada.');
+      if (typeof adpelDebugLog === 'function') adpelDebugLog('[Push] Inscricao existente confirmada');
     }
   } catch (err) {
-    console.error('[Push] Erro ao verificar inscrição:', err);
+    console.error('[Push] Erro ao verificar inscriÃ§Ã£o:', err);
   }
 }
 
 async function requestPushPermission() {
   if (!isPushSupported()) {
-    if (typeof showToast === 'function') showToast('Seu dispositivo/navegador não suporta notificações push.', 'warning');
+    if (typeof showToast === 'function') showToast('Seu dispositivo/navegador nÃ£o suporta notificaÃ§Ãµes push.', 'warning');
+    return;
+  }
+  const userInfo = (typeof getCurrentUserInfo === 'function') ? getCurrentUserInfo() : {};
+  if (!userInfo.user || !userInfo.user.id) {
+    if (typeof showToast === 'function') showToast('Faça login para ativar notificações neste dispositivo.', 'warning');
+    if (typeof openModal === 'function') openModal('login-modal');
     return;
   }
   try {
     await ensureServiceWorkerRegistration();
     const permission = await Notification.requestPermission();
     if (permission !== 'granted') {
-      if (typeof showToast === 'function') showToast('Permissão negada. Ative nas configurações do navegador se mudar de ideia.', 'info');
+      if (typeof showToast === 'function') showToast('PermissÃ£o negada. Ative nas configuraÃ§Ãµes do navegador se mudar de ideia.', 'info');
       return;
     }
 
@@ -76,10 +82,10 @@ async function requestPushPermission() {
     }
 
     await savePushSubscription(sub);
-    if (typeof showToast === 'function') showToast('✅ Notificações ativadas! Você receberá avisos da ADPEL.', 'success');
+    if (typeof showToast === 'function') showToast('âœ… NotificaÃ§Ãµes ativadas! VocÃª receberÃ¡ avisos da ADPEL.', 'success');
   } catch (err) {
-    console.error('[Push] Erro ao ativar notificações:', err);
-    if (typeof showToast === 'function') showToast('Erro ao ativar notificações.', 'error');
+    console.error('[Push] Erro ao ativar notificaÃ§Ãµes:', err);
+    if (typeof showToast === 'function') showToast('Erro ao ativar notificaÃ§Ãµes.', 'error');
   }
 }
 
@@ -88,6 +94,7 @@ async function savePushSubscription(subscription) {
   try {
     const userInfo = (typeof getCurrentUserInfo === 'function') ? getCurrentUserInfo() : {};
     const userId = userInfo.user?.id || null;
+    if (!userId) return;
 
     const subData = {
       user_id: userId,
@@ -102,11 +109,11 @@ async function savePushSubscription(subscription) {
 
     if (error) throw error;
   } catch (err) {
-    console.error('[Push] Erro ao salvar subscrição:', err);
+    console.error('[Push] Erro ao salvar subscriÃ§Ã£o:', err);
   }
 }
 
-// Inicializa silenciosamente após carregamento
+// Inicializa silenciosamente apÃ³s carregamento
 document.addEventListener('DOMContentLoaded', () => {
   setTimeout(initPushNotifications, 2500);
 });

@@ -1,7 +1,7 @@
-let ofertaValorSelecionado = 0;
+﻿let ofertaValorSelecionado = 0;
 let ofertaTipo = null; // 'livre' ou 'destinada'
 let ofertaCofreSelecionado = null; // objeto do cofre escolhido
-let ofertaIdRegistrado = null; // ID da contribuição registrada
+let ofertaIdRegistrado = null; // ID da contribuiÃ§Ã£o registrada
 let ofertaEtapaAtual = 1; // 1=tipo, 2=cofres, 3=valor, 4=pix, 5=sucesso
 
 function restorePageScroll() {
@@ -22,18 +22,16 @@ function openOfertaModal(options) {
     modal.classList.add('flex');
     restorePageScroll();
   }
-  // Esconder footer no mobile para não aparecer atrás do modal
+  // Esconder footer no mobile para nÃ£o aparecer atrÃ¡s do modal
   const footer = document.querySelector('footer');
   if (footer) footer.classList.add('hidden');
 
   resetOfertaSelecao();
   mostrarEtapa('tipo');
 
-  // Carregar cofres se necessário
+  // Carregar cofres se necessÃ¡rio
   if (typeof loadCofresData === 'function' && (!Array.isArray(cofresData) || cofresData.length === 0)) {
-    loadCofresData().then(() => {
-      console.log('✅ Cofres carregados para o modal');
-    });
+    loadCofresData();
   }
 }
 
@@ -125,12 +123,12 @@ function selecionarCofreOferta(cofreId) {
   var cofres = (typeof cofresData !== 'undefined' && Array.isArray(cofresData)) ? cofresData : [];
   var cofre = cofres.find(function(c) { return c.id === cofreId; });
   if (!cofre) {
-    showToast('Cofre não encontrado.', 'error');
+    showToast('Cofre nÃ£o encontrado.', 'error');
     return;
   }
 
   ofertaCofreSelecionado = cofre;
-  // Avançar para etapa de valor
+  // AvanÃ§ar para etapa de valor
   mostrarEtapa('valor');
 
   showToast('Cofre selecionado: ' + (cofre.name || 'Objetivo'), 'info');
@@ -148,7 +146,7 @@ function closeOfertaModal() {
   if (footer) footer.classList.remove('hidden');
 
   resetOfertaSelecao();
-  // Garantir que volte para etapa tipo na próxima abertura
+  // Garantir que volte para etapa tipo na prÃ³xima abertura
   mostrarEtapa('tipo');
 }
 
@@ -187,7 +185,7 @@ function resetOfertaSelecao() {
   const valorSelecionado = document.getElementById('oferta-valor-selecionado');
   if (valorSelecionado) valorSelecionado.classList.add('hidden');
 
-  // Resetar área PIX
+  // Resetar Ã¡rea PIX
   const pixContainer = document.getElementById('oferta-pix-container');
   const pixQrcode = document.getElementById('pix-qrcode');
   const pixCodigo = document.getElementById('pix-codigo');
@@ -285,11 +283,10 @@ async function processarOferta() {
 
         if (data && data.length > 0) {
           ofertaIdRegistrado = data[0].id;
-          console.log('✅ Oferta registrada ID:', ofertaIdRegistrado);
         }
       } catch (e) {
         console.error('Erro ao registrar oferta destinada:', e);
-        // Não bloqueia - continua para gerar PIX mesmo se falhar registro
+        // NÃ£o bloqueia - continua para gerar PIX mesmo se falhar registro
       }
     }
   }
@@ -300,7 +297,7 @@ async function processarOferta() {
   // Atualizar label do destino no container PIX
   const pixContainer = document.getElementById('oferta-pix-container');
   if (pixContainer) {
-    // Adicionar label de destino se não existir
+    // Adicionar label de destino se nÃ£o existir
     var destinoEl = document.getElementById('pix-destino-label');
     if (!destinoEl) {
       destinoEl = document.createElement('p');
@@ -319,7 +316,7 @@ async function processarOferta() {
   var descricaoRaw = '';
   if (ofertaTipo === 'destinada' && ofertaCofreSelecionado) {
     var nomeCofre = String(ofertaCofreSelecionado.name || 'Cofre');
-    // Limpar nome do cofre contra corrupção
+    // Limpar nome do cofre contra corrupÃ§Ã£o
     nomeCofre = nomeCofre
       .replace(/undefinednull/gi, '')
       .replace(/undefined/gi, '')
@@ -330,7 +327,7 @@ async function processarOferta() {
   } else {
     descricaoRaw = 'OFERTA ADPEL';
   }
-  // Sanitizar descrição final (apenas alfanumérico, já será sanitizado em sanitizarTxId)
+  // Sanitizar descriÃ§Ã£o final (apenas alfanumÃ©rico, jÃ¡ serÃ¡ sanitizado em sanitizarTxId)
   var descricao = String(descricaoRaw)
     .replace(/undefinednull/gi, '')
     .replace(/undefined/gi, '')
@@ -339,9 +336,8 @@ async function processarOferta() {
   if (!descricao || descricao.length < 2) descricao = 'OFERTAADPEL';
 
   const pixPayload = gerarPixPayload(ofertaValorSelecionado, descricao);
-  console.log('🔑 PIX PAYLOAD:', pixPayload);
 
-  // Exibir código PIX no textarea
+  // Exibir cÃ³digo PIX no textarea
   document.getElementById('pix-codigo').value = pixPayload;
 
   // Gerar QR Code
@@ -357,15 +353,15 @@ async function processarOferta() {
 }
 
 // ==========================
-// FUNÇÕES PIX - BR Code EMV
+// FUNÃ‡Ã•ES PIX - BR Code EMV
 // ==========================
 
 // ==========================
 // CONSTANTES PIX (configure aqui)
 // ==========================
 const PIX_KEY  = 'adpel.ssantoandre@gmail.com';  // Chave PIX da igreja (email)
-const PIX_NAME = 'ADPEL ASSEMBLEIA DE DEUS';     // Máximo 25 caracteres, sem acentos
-const PIX_CITY = 'GOIANIA';                      // Sem acentos, máximo 15 caracteres
+const PIX_NAME = 'ADPEL ASSEMBLEIA DE DEUS';     // MÃ¡ximo 25 caracteres, sem acentos
+const PIX_CITY = 'GOIANIA';                      // Sem acentos, mÃ¡ximo 15 caracteres
 
 function emv(id, value) {
    value = String(value)
@@ -412,7 +408,7 @@ function gerarPixPayload(valor, descricao) {
     emv('59', merchantNameClean) +
     emv('60', cityClean) +
 
-    // TXID obrigatório para maior compatibilidade
+    // TXID obrigatÃ³rio para maior compatibilidade
     emv(
       '62',
       emv('05', '***')
@@ -424,12 +420,10 @@ function gerarPixPayload(valor, descricao) {
     .toUpperCase()
     .padStart(4, '0');
 
-  console.log('🔑 PIX PAYLOAD:', payload);
-
   return payload;
 }
 
-// Função auxiliar para remover acentos
+// FunÃ§Ã£o auxiliar para remover acentos
 function removerAcentos(str) {
   if (!str) return '';
   return String(str).normalize('NFD').replace(/[\u0300-\u036f]/g, '');
@@ -438,9 +432,9 @@ function removerAcentos(str) {
 function sanitizarTxId(descricao) {
    if (!descricao) return '';
    let limpo = removerAcentos(descricao);
-   // Remove tudo que não for letra, número ou espaço
+   // Remove tudo que nÃ£o for letra, nÃºmero ou espaÃ§o
    limpo = limpo.replace(/[^A-Za-z0-9 ]/g, '');
-   // Remove espaços extras
+   // Remove espaÃ§os extras
    limpo = limpo.replace(/\s+/g, ' ').trim();
    // Limita a 25 caracteres
    limpo = limpo.substring(0, 25);
@@ -475,15 +469,15 @@ function copiarPix() {
 
   try {
     navigator.clipboard.writeText(textarea.value).then(() => {
-      showToast('Código PIX copiado! Cole no seu app bancário.', 'success');
+      showToast('CÃ³digo PIX copiado! Cole no seu app bancÃ¡rio.', 'success');
     }).catch(() => {
       // Fallback para navegadores antigos
       document.execCommand('copy');
-      showToast('Código PIX copiado!', 'success');
+      showToast('CÃ³digo PIX copiado!', 'success');
     });
   } catch (e) {
     document.execCommand('copy');
-    showToast('Código PIX copiado!', 'success');
+    showToast('CÃ³digo PIX copiado!', 'success');
   }
 
   // Desselecionar
@@ -735,12 +729,12 @@ async function confirmarPagamento() {
     return;
   }
 
-  // Registrar oferta livre no banco (se não foi registrada antes)
+  // Registrar oferta livre no banco (se nÃ£o foi registrada antes)
   if (false && ofertaTipo === 'livre' && !ofertaIdRegistrado) {
     const userInfo = getCurrentUserInfo();
     if (userInfo.isLoggedIn && userInfo.user) {
       try {
-        // Para ofertas livres, registramos na tabela de contribuições com goal_id null
+        // Para ofertas livres, registramos na tabela de contribuiÃ§Ãµes com goal_id null
         // ou podemos criar uma tabela separada no futuro
         const { data, error } = await window.supabaseClient
           .from('fundraising_contributions')
@@ -754,12 +748,11 @@ async function confirmarPagamento() {
 
         if (error) {
           console.warn('Erro ao registrar oferta livre:', error);
-          // Não bloqueia
+          // NÃ£o bloqueia
         }
 
         if (data && data.length > 0) {
           ofertaIdRegistrado = data[0].id;
-          console.log('✅ Oferta livre registrada ID:', ofertaIdRegistrado);
         }
       } catch (e) {
         console.error('Erro ao registrar oferta livre:', e);
@@ -781,30 +774,30 @@ async function confirmarPagamento() {
 
   if (msgEl) {
     if (ofertaTipo === 'destinada' && ofertaCofreSelecionado) {
-      msgEl.textContent = 'Sua oferta foi destinada para "' + (ofertaCofreSelecionado.name || 'Cofre') + '". Deus abençoe!';
+      msgEl.textContent = 'Sua oferta foi destinada para "' + (ofertaCofreSelecionado.name || 'Cofre') + '". Deus abenÃ§oe!';
     } else {
       msgEl.textContent = '"Senhor, eu devolvo, porque sei que o Senhor me deu primeiro"';
     }
   }
 
-  // Mostrar ID para referência futura (preparação para API de verificação)
+  // Mostrar ID para referÃªncia futura (preparaÃ§Ã£o para API de verificaÃ§Ã£o)
   if (idEl && ofertaIdRegistrado) {
     idEl.textContent = 'Ref: ' + ofertaIdRegistrado;
   } else if (idEl) {
     idEl.textContent = '';
   }
 
-  showToast('Deus abençoe sua oferta!', 'success');
+  showToast('Deus abenÃ§oe sua oferta!', 'success');
   if (window.ADPELJourney && typeof window.ADPELJourney.registerSpiritualActivity === 'function') {
     window.ADPELJourney.registerSpiritualActivity('offering_made');
   } else if (window.ADPELJourney && typeof window.ADPELJourney.registerOffering === 'function') {
     window.ADPELJourney.registerOffering();
   }
 
-  // TODO: Futuramente, aqui será feita a verificação via API de pagamento
+  // TODO: Futuramente, aqui serÃ¡ feita a verificaÃ§Ã£o via API de pagamento
   // Exemplo:
   // await verificarPagamentoPIX(ofertaIdRegistrado);
-  // ou webhook receberá a confirmação e atualizará o status no banco
+  // ou webhook receberÃ¡ a confirmaÃ§Ã£o e atualizarÃ¡ o status no banco
 }
 
 Object.assign(window, {
