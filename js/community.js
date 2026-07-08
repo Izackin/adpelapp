@@ -44,7 +44,7 @@ function getCommunityInitials(name) {
 
 function renderCommunityAvatar(profile, sizeClass, fallback) {
   var name = getCommunityProfileDisplay(profile, fallback);
-  var avatar = profile && profile.avatar_url ? profile.avatar_url : '';
+  var avatar = profile && (profile.avatar_url || profile.photo_url) ? (profile.avatar_url || profile.photo_url) : '';
   return '<span class="community-avatar ' + (sizeClass || '') + '">' +
     (avatar ? '<img src="' + escapeHtml(avatar) + '" alt="' + escapeHtml(name) + '">' : escapeHtml(getCommunityInitials(name))) +
   '</span>';
@@ -83,11 +83,11 @@ async function loadCommunityProfiles(userIds) {
   try {
     var result = await window.supabaseClient
       .from('profiles')
-      .select('id, full_name, public_name, avatar_url, bio, ministry, show_public_profile')
+      .select('id, full_name, public_name, avatar_url, photo_url, bio, ministry, show_public_profile')
       .in('id', ids);
     if (result.error) {
       var text = String(result.error && (result.error.message || result.error.details || result.error.hint || result.error.code) || '').toLowerCase();
-      var missingOptionalProfileFields = text.indexOf('bio') !== -1 || text.indexOf('ministry') !== -1 || text.indexOf('42703') !== -1 || text.indexOf('pgrst204') !== -1;
+      var missingOptionalProfileFields = text.indexOf('photo_url') !== -1 || text.indexOf('bio') !== -1 || text.indexOf('ministry') !== -1 || text.indexOf('42703') !== -1 || text.indexOf('pgrst204') !== -1;
       if (missingOptionalProfileFields) {
         result = await window.supabaseClient
           .from('profiles')

@@ -24,6 +24,7 @@ function isProfileSchemaError(error) {
   return text.indexOf('public_name') !== -1 ||
     text.indexOf('bio') !== -1 ||
     text.indexOf('avatar_url') !== -1 ||
+    text.indexOf('photo_url') !== -1 ||
     text.indexOf('favorite_verse') !== -1 ||
     text.indexOf('ministry') !== -1 ||
     text.indexOf('instagram') !== -1 ||
@@ -64,7 +65,7 @@ function renderProfile(userInfo) {
   const displayName = escapeHtml(rawName);
   const displayEmail = escapeHtml(user.email || '');
   const roleLabel = userInfo.isMaster ? 'Administrador' : 'Membro';
-  const avatar = profile.avatar_url || profile.avatar || '';
+  const avatar = profile.avatar_url || profile.photo_url || profile.avatar || '';
   const initials = String(rawName || 'M').trim().charAt(0).toUpperCase();
 
   container.innerHTML = [
@@ -584,15 +585,29 @@ async function loadPublicProfile(userId) {
   try {
     let profileResult = await window.supabaseClient
       .from('profiles')
-      .select('id, full_name, public_name, bio, avatar_url, favorite_verse, ministry, phone, instagram, show_phone, show_public_profile')
+        .select('id, full_name, public_name, bio, avatar_url, photo_url, favorite_verse, ministry, phone, instagram, show_phone, show_public_profile')
       .eq('id', userId)
       .single();
     if (profileResult.error && isProfileSchemaError(profileResult.error)) {
       profileResult = await window.supabaseClient
         .from('profiles')
-        .select('id, full_name')
+        .select('id, full_name, public_name, bio, avatar_url, favorite_verse, ministry, phone, instagram, show_phone, show_public_profile')
         .eq('id', userId)
         .single();
+      if (profileResult.error && isProfileSchemaError(profileResult.error)) {
+        profileResult = await window.supabaseClient
+          .from('profiles')
+          .select('id, full_name, photo_url')
+          .eq('id', userId)
+          .single();
+      }
+      if (profileResult.error && isProfileSchemaError(profileResult.error)) {
+        profileResult = await window.supabaseClient
+          .from('profiles')
+          .select('id, full_name')
+          .eq('id', userId)
+          .single();
+      }
     }
     if (profileResult.error) throw profileResult.error;
 
@@ -631,7 +646,7 @@ function renderPublicProfile(profile, progress) {
 
   const safeProgress = progress || {};
   const name = profile.public_name || profile.full_name || safeProgress.user_name || 'Membro';
-  const avatar = profile.avatar_url || safeProgress.avatar || '';
+  const avatar = profile.avatar_url || profile.photo_url || safeProgress.avatar || '';
   const level = publicProfileLevelInfo(safeProgress.xp);
   const medals = publicProfileMedals(safeProgress);
   const initials = String(name).trim().charAt(0).toUpperCase();

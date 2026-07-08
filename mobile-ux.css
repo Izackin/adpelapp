@@ -259,3 +259,368 @@
     scroll-behavior: auto !important;
   }
 }
+
+/* Etapa responsiva: Home, Comunidade, Perfil e Minha Caminhada */
+@media (max-width: 767px) {
+  html,
+  body {
+    max-width: 100%;
+    overflow-x: hidden;
+  }
+
+  main {
+    padding-bottom: calc(6.25rem + env(safe-area-inset-bottom, 0px)) !important;
+  }
+
+  #home,
+  #community,
+  #profile,
+  #ranking {
+    width: 100%;
+    max-width: 100%;
+    gap: 1rem !important;
+  }
+
+  #home > *,
+  #community > *,
+  #profile > *,
+  #ranking > * {
+    min-width: 0;
+  }
+
+  #home .grid,
+  #profile .grid,
+  #ranking .grid {
+    min-width: 0;
+  }
+
+  #home > .bg-gradient-to-br:first-of-type {
+    margin-inline: -0.15rem;
+    padding: 1.15rem !important;
+    min-height: auto !important;
+    border-radius: 1.15rem !important;
+  }
+
+  #home > .bg-gradient-to-br:first-of-type blockquote {
+    max-width: 100%;
+    padding-right: 0 !important;
+    font-size: 1.12rem !important;
+    line-height: 1.45 !important;
+  }
+
+  .app-home-greeting {
+    gap: 0.75rem !important;
+  }
+
+  .app-home-greeting h1 {
+    font-size: 1.45rem !important;
+    line-height: 1.12 !important;
+  }
+
+  .app-home-greeting p {
+    overflow-wrap: anywhere;
+  }
+
+  .app-quick-card,
+  #continue-section > div + div > *,
+  #home-events-container > *,
+  #news-container > *,
+  #books-grid > *,
+  #certificates-list > *,
+  #cofres-list > * {
+    max-width: 100%;
+    min-width: 0;
+  }
+
+  #continue-section > div + div,
+  #books-grid,
+  #certificates-list,
+  #cofres-list {
+    grid-template-columns: minmax(0, 1fr) !important;
+    gap: 0.9rem !important;
+  }
+
+  #home-events-container,
+  #news-container {
+    scroll-padding-inline: 0.75rem;
+  }
+
+  #journey-card {
+    margin-inline: -0.05rem;
+    overflow: hidden;
+    border-radius: 1.15rem !important;
+  }
+
+  .journey-shell {
+    gap: 0.8rem;
+  }
+
+  .journey-hero-card,
+  .journey-progress-card,
+  .journey-daily-section,
+  .journey-stat-card,
+  .journey-challenge-card,
+  .journey-medal-card,
+  .journey-ranking-item {
+    max-width: 100%;
+    min-width: 0;
+  }
+
+  .journey-hero-card {
+    padding: 0.9rem;
+    border-radius: 1rem;
+  }
+
+  .journey-member-row {
+    align-items: center;
+    gap: 0.75rem;
+  }
+
+  .journey-member-row > div:last-child,
+  .journey-ranking-copy,
+  .journey-challenge-main {
+    min-width: 0;
+  }
+
+  .journey-avatar {
+    width: 3.25rem;
+    height: 3.25rem;
+    font-size: 1.05rem;
+  }
+
+  .journey-hero-copy h3,
+  .journey-section-head h3 {
+    font-size: 1.08rem;
+  }
+
+  .journey-level-pill {
+    max-width: 100%;
+    white-space: normal;
+    line-height: 1.25;
+  }
+
+  .journey-stats-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.55rem;
+  }
+
+  .journey-stat-card {
+    padding: 0.72rem 0.55rem;
+  }
+
+  .journey-stat-card strong {
+    font-size: 1.05rem;
+  }
+
+  .journey-stat-card span {
+    display: block;
+    line-height: 1.2;
+  }
+
+  .journey-progress-label,
+  .journey-next-medal,
+  .journey-section-head {
+    align-items: flex-start;
+    gap: 0.65rem;
+  }
+
+  .journey-challenge-card {
+    grid-template-columns: auto minmax(0, 1fr);
+    padding: 0.75rem;
+  }
+
+  .journey-actions {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .journey-primary-action,
+  .journey-secondary-action,
+  .journey-challenge-action {
+    min-height: 44px;
+    width: 100%;
+  }
+
+  .journey-ranking-item {
+    grid-template-columns: auto auto minmax(0, 1fr);
+    padding: 0.78rem;
+  }
+
+  .journey-ranking-score {
+    grid-column: 3;
+    text-align: left;
+  }
+
+  .profile-shell,
+  .profile-cover,
+  .profile-section-card,
+  .profile-offering-card {
+    max-width: 100%;
+    min-width: 0;
+  }
+
+  .profile-cover {
+    padding: 0.95rem;
+    border-radius: 1.1rem;
+  }
+
+  .profile-cover-main {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    align-items: center;
+    gap: 0.8rem;
+  }
+
+  .profile-avatar-xl {
+    width: 4.85rem;
+    height: 4.85rem;
+    font-size: 1.75rem;
+    box-shadow: 0 12px 24px rgba(0, 0, 0, 0.28), 0 0 0 5px rgba(37, 99, 235, 0.1);
+  }
+
+  .profile-cover-info h3 {
+    font-size: 1.28rem !important;
+    overflow-wrap: anywhere;
+  }
+
+  .profile-ministry,
+  .profile-owner-email,
+  .profile-cover-level {
+    max-width: 100%;
+    overflow-wrap: anywhere;
+  }
+
+  .profile-cover-actions,
+  .profile-edit-actions,
+  .profile-stat-grid,
+  .profile-offering-metrics {
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+
+  .profile-tabs {
+    margin-inline: -0.1rem;
+    padding-bottom: 0.65rem;
+  }
+
+  .profile-tab-btn {
+    min-height: 44px;
+  }
+
+  .profile-section-head,
+  .profile-certificate-item,
+  .profile-offering-row,
+  .profile-privacy-card {
+    align-items: flex-start;
+  }
+
+  .profile-certificate-item,
+  .profile-offering-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .profile-certificate-item a,
+  .profile-offering-row p {
+    justify-self: start;
+  }
+
+  .profile-edit-form {
+    max-height: calc(100dvh - 8rem);
+    padding-bottom: calc(1rem + env(safe-area-inset-bottom, 0px));
+  }
+
+  .community-shell {
+    width: 100%;
+    max-width: 100%;
+  }
+
+  .community-composer-card,
+  .community-post,
+  .community-empty,
+  .community-loading {
+    max-width: 100%;
+    min-width: 0;
+  }
+
+  .community-post {
+    overflow: visible;
+  }
+
+  .community-post-header {
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    align-items: start;
+  }
+
+  .community-meta {
+    flex-wrap: wrap;
+  }
+
+  .community-meta span:first-child {
+    max-width: 100%;
+  }
+
+  .community-menu-wrap {
+    justify-self: end;
+  }
+
+  .community-menu {
+    right: 0;
+    max-width: min(15rem, calc(100vw - 1.5rem));
+    transform: translateX(0);
+  }
+
+  .community-post-image-wrap {
+    border-radius: 1rem;
+  }
+
+  .community-post-image {
+    max-height: 70vh;
+    border-radius: 0.9rem;
+  }
+
+  .community-post-footer {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .community-action-btn,
+  .community-menu-trigger,
+  .community-primary-btn,
+  .community-secondary-btn,
+  .community-comment-submit,
+  .community-image-picker-btn {
+    min-height: 44px;
+  }
+
+  .community-comment {
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+
+  .community-comment-input-row {
+    gap: 0.55rem;
+  }
+}
+
+@media (max-width: 380px) {
+  .journey-stats-grid,
+  .community-post-footer {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .community-composer-actions {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .profile-cover-main {
+    grid-template-columns: minmax(0, 1fr);
+    justify-items: center;
+    text-align: center;
+  }
+
+  .profile-cover-info {
+    width: 100%;
+  }
+
+  .profile-role-badge,
+  .profile-cover-level {
+    margin-inline: auto;
+  }
+}
