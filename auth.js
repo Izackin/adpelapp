@@ -28,6 +28,78 @@ let _profileCache = null;
 let _profileCacheTime = 0;
 const PROFILE_CACHE_TTL = 30000; // 30 segundos
 
+function cleanAuthText(value) {
+  return String(value || '').replace(/undefinednull/gi, '').replace(/undefined/gi, '').replace(/\bnull\b/gi, '').trim();
+}
+
+function normalizeAuthResult(result) {
+  if (!result) return null;
+  return result.data && (result.data.user || result.data.session) ? result.data : result;
+}
+
+function isProfileColumnError(error) {
+  const text = String(error && (error.message || error.details || error.hint || error.code) || '').toLowerCase();
+  return text.indexOf('public_name') !== -1 ||
+    text.indexOf('favorite_verse') !== -1 ||
+    text.indexOf('ministry') !== -1 ||
+    text.indexOf('phone') !== -1 ||
+    text.indexOf('show_phone') !== -1 ||
+    text.indexOf('show_public_profile') !== -1 ||
+    text.indexOf('show_in_ranking') !== -1 ||
+    text.indexOf('pgrst204') !== -1 ||
+    text.indexOf('42703') !== -1;
+}
+
+async function upsertUserProfile(user, profileInput) {
+  if (!window.supabaseClient || !user || !user.id) return null;
+  const metadata = user.user_metadata || {};
+  const input = profileInput || {};
+  const hasExplicitInput = Object.keys(input).some(function(key) {
+    return cleanAuthText(input[key]);
+  });
+  try {
+    const existing = await window.supabaseClient
+      .from('profiles')
+      .select('*')
+      .eq('id', user.id)
+      .maybeSingle();
+    if (existing.data && !hasExplicitInput) return existing.data;
+  } catch (existingError) {}
+
+  const fullName = cleanAuthText(input.full_name || metadata.full_name || user.email || 'Membro');
+  const profileData = {
+    id: user.id,
+    full_name: fullName,
+    public_name: cleanAuthText(input.public_name || metadata.public_name || fullName) || null,
+    phone: cleanAuthText(input.phone || metadata.phone) || null,
+    ministry: cleanAuthText(input.ministry || metadata.ministry) || null,
+    favorite_verse: cleanAuthText(input.favorite_verse || metadata.favorite_verse) || null,
+    show_phone: false,
+    show_public_profile: true,
+    show_in_ranking: true,
+    updated_at: new Date().toISOString()
+  };
+
+  try {
+    const result = await window.supabaseClient
+      .from('profiles')
+      .upsert(profileData, { onConflict: 'id' })
+      .select('*')
+      .single();
+    if (result.error) throw result.error;
+    return result.data;
+  } catch (error) {
+    if (!isProfileColumnError(error)) throw error;
+    const fallback = await window.supabaseClient
+      .from('profiles')
+      .upsert({ id: user.id, full_name: fullName }, { onConflict: 'id' })
+      .select('*')
+      .single();
+    if (fallback.error) throw fallback.error;
+    return fallback.data;
+  }
+}
+
 async function initAuth() {
   // Forçar botão visível imediatamente (será corrigido pela updateAuthUI se necessário)
   var authButtons = document.getElementById('auth-buttons');
@@ -39,6 +111,7 @@ async function initAuth() {
     if (session && session.user) {
       currentUser = session.user;
       try {
+        await upsertUserProfile(session.user);
         if (_profileCache && (Date.now() - _profileCacheTime < PROFILE_CACHE_TTL)) {
           currentProfile = _profileCache;
         } else {
@@ -65,6 +138,7 @@ async function initAuth() {
     if (event === 'SIGNED_IN' && session) {
       currentUser = session.user;
       try {
+        await upsertUserProfile(session.user);
         currentProfile = await ADPEL.profile.getProfile();
         _profileCache = currentProfile;
         _profileCacheTime = Date.now();
@@ -198,7 +272,9 @@ function bindAuthForms() {
         const msgArea = document.getElementById('login-message-area');
         if (msgArea) msgArea.classList.add('hidden');
         
-        const { data, error } = await ADPEL.auth.signIn(email, password);
+        const signInResult = await ADPEL.auth.signIn(email, password);
+        const data = normalizeAuthResult(signInResult);
+        const error = signInResult && signInResult.error;
         
         if (error) {
           showLoading(false, 'login');
@@ -271,8 +347,12 @@ function bindAuthForms() {
   if (registerForm) {
     registerForm.addEventListener('submit', async (e) => {
       e.preventDefault();
-      const name = document.getElementById('register-name').value.trim();
-      const email = document.getElementById('register-email').value.trim();
+      const name = cleanAuthText(document.getElementById('register-name').value);
+      const publicName = cleanAuthText(document.getElementById('register-public-name')?.value || name);
+      const phone = cleanAuthText(document.getElementById('register-phone')?.value || '');
+      const ministry = cleanAuthText(document.getElementById('register-ministry')?.value || '');
+      const favoriteVerse = cleanAuthText(document.getElementById('register-favorite-verse')?.value || '');
+      const email = cleanAuthText(document.getElementById('register-email').value);
       const password = document.getElementById('register-password').value;
       const confirmPassword = document.getElementById('register-confirm').value;
       
@@ -300,7 +380,14 @@ function bindAuthForms() {
       
       try {
         showLoading(true, 'register');
-        const { data, error } = await ADPEL.auth.signUp(email, password, name);
+        const signUpResult = await ADPEL.auth.signUp(email, password, name, {
+          public_name: publicName,
+          phone: phone,
+          ministry: ministry,
+          favorite_verse: favoriteVerse
+        });
+        const data = normalizeAuthResult(signUpResult);
+        const error = signUpResult && signUpResult.error;
         
         if (error) {
           showLoading(false, 'register');
@@ -316,10 +403,36 @@ function bindAuthForms() {
           return;
         }
         
+        if (data && data.user) {
+          try {
+            const createdProfile = await upsertUserProfile(data.user, {
+              full_name: name,
+              public_name: publicName,
+              phone: phone,
+              ministry: ministry,
+              favorite_verse: favoriteVerse
+            });
+            if (createdProfile) {
+              currentUser = data.user;
+              currentProfile = createdProfile;
+              _profileCache = createdProfile;
+              _profileCacheTime = Date.now();
+            }
+          } catch (profileError) {
+            console.warn('Cadastro criado, mas o perfil será completado no primeiro login:', profileError);
+          }
+        }
+
         showLoading(false, 'register');
         closeModal('register-modal');
-        showToast('Cadastro realizado com sucesso!', 'success');
-        setTimeout(() => openModal('login-modal'), 300);
+        showToast(data && data.session ? 'Cadastro realizado com sucesso!' : 'Cadastro realizado! Verifique seu email e faça login.', 'success');
+        setTimeout(() => {
+          if (data && data.session) {
+            updateAuthUI(true);
+          } else {
+            openModal('login-modal');
+          }
+        }, 300);
       } catch (error) {
         showLoading(false, 'register');
         showToast('Erro ao registrar. Tente novamente.', 'error');
@@ -368,13 +481,14 @@ if (typeof closeModal === 'undefined') {
 
 // Loading state
 function showLoading(show, formId) {
-  const btn = document.querySelector(`#${formId} button[type="submit"]`);
+  const formSelector = formId === 'login' ? '#login-form' : formId === 'register' ? '#register-form' : `#${formId}`;
+  const btn = document.querySelector(`${formSelector} button[type="submit"], ${formSelector} #login-submit-btn`);
   const spinner = document.querySelector(`#${formId} .spinner`);
   if (btn) {
     btn.disabled = show;
     btn.innerHTML = show 
       ? '<i class="fas fa-spinner fa-spin mr-2"></i> Aguarde...'
-      : (formId === 'login-form' ? 'Entrar' : 'Criar Conta');
+      : (formId === 'login' || formId === 'login-form' ? 'Entrar' : 'Criar Conta');
   }
 }
 

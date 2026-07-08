@@ -1058,7 +1058,7 @@
           <button type="button" onclick="sendPasswordReset()" class="w-full py-2 bg-adpel-100 text-adpel-700 rounded-lg text-sm font-bold hover:bg-adpel-200 transition">Enviar link</button>
           <button type="button" onclick="toggleResetPassword(false)" class="w-full py-1 text-xs text-gray-500 hover:text-gray-700">Voltar ao login</button>
         </div>
-        <button type="button" id="login-submit-btn" onclick="login()" class="w-full py-3 bg-adpel-600 text-white rounded-xl font-bold hover:bg-adpel-700 transition">
+        <button type="submit" id="login-submit-btn" class="w-full py-3 bg-adpel-600 text-white rounded-xl font-bold hover:bg-adpel-700 transition">
           Entrar
         </button>
         <p id="login-register-text" class="text-center text-sm text-gray-500">
@@ -1075,7 +1075,7 @@
 
   <!-- REGISTER MODAL -->
   <div id="register-modal" class="hidden fixed inset-0 z-50 items-start sm:items-center justify-center bg-black/50 backdrop-blur-sm overflow-y-auto py-4 sm:py-0">
-    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md mx-4 overflow-hidden animate-fade-in" style="background-color: #ffffff !important; color: #1e293b !important;">
+    <div class="auth-premium-card bg-white rounded-2xl shadow-2xl w-full max-w-lg mx-4 overflow-hidden animate-fade-in" style="background-color: #ffffff !important; color: #1e293b !important;">
       <div class="bg-gradient-to-r from-green-600 to-green-500 p-6 text-white text-center" style="background: linear-gradient(to right, #16a34a, #22c55e) !important; color: white !important;">
         <div class="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center mx-auto mb-4">
           <i class="fas fa-user-plus text-3xl"></i>
@@ -1089,8 +1089,26 @@
           <input type="text" id="register-name" required class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none" placeholder="Seu nome" style="background-color: #f8fafc !important; color: #0f172a !important; border-color: #cbd5e1 !important;">
         </div>
         <div>
+          <label class="block text-sm font-medium mb-1" style="color: #334155 !important;">Nome no perfil</label>
+          <input type="text" id="register-public-name" class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none" placeholder="Como deseja aparecer no app" style="background-color: #f8fafc !important; color: #0f172a !important; border-color: #cbd5e1 !important;">
+        </div>
+        <div>
           <label class="block text-sm font-medium mb-1" style="color: #334155 !important;">E-mail</label>
           <input type="email" id="register-email" required class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none" placeholder="seu@email.com" style="background-color: #f8fafc !important; color: #0f172a !important; border-color: #cbd5e1 !important;">
+        </div>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label class="block text-sm font-medium mb-1" style="color: #334155 !important;">Telefone</label>
+            <input type="tel" id="register-phone" class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none" placeholder="(00) 00000-0000" style="background-color: #f8fafc !important; color: #0f172a !important; border-color: #cbd5e1 !important;">
+          </div>
+          <div>
+            <label class="block text-sm font-medium mb-1" style="color: #334155 !important;">Ministério/função</label>
+            <input type="text" id="register-ministry" class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none" placeholder="Ex.: Louvor, Jovens" style="background-color: #f8fafc !important; color: #0f172a !important; border-color: #cbd5e1 !important;">
+          </div>
+        </div>
+        <div>
+          <label class="block text-sm font-medium mb-1" style="color: #334155 !important;">Versículo favorito</label>
+          <input type="text" id="register-favorite-verse" class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none" placeholder="Ex.: Salmos 23:1" style="background-color: #f8fafc !important; color: #0f172a !important; border-color: #cbd5e1 !important;">
         </div>
         <div>
           <label class="block text-sm font-medium mb-1" style="color: #334155 !important;">Senha</label>
