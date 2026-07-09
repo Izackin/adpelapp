@@ -461,7 +461,8 @@ function renderCommunityPosts() {
 }
 
 function renderCommunityPostMenu(post, userInfo) {
-  var isAuthor = !!(userInfo.user && userInfo.user.id === post.user_id);
+  userInfo = userInfo || {};
+  var isAuthor = !!(userInfo.user && String(userInfo.user.id) === String(post.user_id));
   var isMaster = !!userInfo.isMaster;
   var items = [
     '<button onclick="openCommunityAuthorProfile(&quot;' + escapeHtml(post.user_id) + '&quot;)"><i class="fas fa-user"></i> Ver perfil</button>',
@@ -516,7 +517,7 @@ function getCommunityCurrentUserProfile() {
 }
 
 function canManageCommunityPostLocal(post, userInfo) {
-  return !!(post && userInfo && (userInfo.isMaster || (userInfo.user && userInfo.user.id === post.user_id)));
+  return !!(post && userInfo && (userInfo.isMaster || (userInfo.user && String(userInfo.user.id) === String(post.user_id))));
 }
 
 function updateCommunityPostStats(postId) {
