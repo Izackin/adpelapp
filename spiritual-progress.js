@@ -52,6 +52,7 @@
   };
 
   var currentProgressCache = null;
+  var progressRequestPromise = null;
   var rankingCache = [];
   var progressTableUnavailable = false;
   var challengeTableUnavailable = false;
@@ -440,7 +441,7 @@
     return progress || currentProgressCache;
   }
 
-  async function getOrCreateProgress() {
+  async function getOrCreateProgressInternal() {
     var userInfo = await resolveUserInfo();
     if (!userInfo.isLoggedIn || !userInfo.user || progressTableUnavailable || !window.supabaseClient) return null;
 
@@ -467,6 +468,24 @@
         .select('*')
         .single();
 
+      if (insert.error && insert.error.code === '23505') {
+        var retry = await window.supabaseClient
+          .from('spiritual_progress')
+          .select('*')
+          .eq('user_id', user.id)
+          .maybeSingle();
+
+        if (retry.error) throw retry.error;
+        if (!retry.data) throw insert.error;
+
+        currentProgressCache = normalizeProgress(retry.data);
+        currentProgressCache = applyJourneyProfile(
+          currentProgressCache,
+          await loadJourneyProfile(user.id)
+        );
+        return currentProgressCache;
+      }
+
       if (insert.error) throw insert.error;
       currentProgressCache = normalizeProgress(insert.data);
       return currentProgressCache;
@@ -479,6 +498,20 @@
       }
       console.error('[Minha Caminhada] Erro ao carregar progresso:', error);
       return null;
+    }
+  }
+
+  async function getOrCreateProgress() {
+    if (progressRequestPromise) {
+      return progressRequestPromise;
+    }
+
+    progressRequestPromise = getOrCreateProgressInternal();
+
+    try {
+      return await progressRequestPromise;
+    } finally {
+      progressRequestPromise = null;
     }
   }
 

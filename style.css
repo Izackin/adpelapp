@@ -2969,6 +2969,44 @@ textarea::placeholder {
 }
 
 @media (max-width: 767px) {
+  section:not(.active-section),
+  #home > section,
+  #home > div,
+  img[loading="lazy"] {
+    content-visibility: visible !important;
+    contain-intrinsic-size: auto !important;
+  }
+
+  html,
+  body {
+    min-height: 100%;
+    background: #050816 !important;
+  }
+
+  html body {
+    background: linear-gradient(180deg, #050816 0%, #020617 100%) !important;
+  }
+
+  body::before {
+    display: none !important;
+  }
+
+  #app-container,
+  main,
+  section {
+    background-color: transparent;
+  }
+
+  #featured-courses img,
+  #continue-grid img,
+  #home-events-container img,
+  #news-container img {
+    display: block;
+    width: 100%;
+    object-fit: cover;
+    background-color: #0b1220;
+  }
+
   .app-home-greeting {
     align-items: flex-start;
   }

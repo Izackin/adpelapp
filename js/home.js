@@ -163,11 +163,18 @@ function renderFeaturedCourses(courses) {
     return;
   }
   if (section) section.classList.remove('hidden');
-  container.innerHTML = courses.map(course => `
+  const isMobile = window.matchMedia('(max-width: 767px)').matches;
+  container.innerHTML = courses.map((course, index) => {
+    const isPriorityImage = isMobile && index < 2;
+    const imageAttributes = isMobile
+      ? (isPriorityImage ? 'loading="eager" fetchpriority="high" decoding="async"' : 'loading="lazy" fetchpriority="low" decoding="async"')
+      : '';
+
+    return `
     <div class="min-w-[292px] max-w-[320px] flex-shrink-0 snap-start bg-white rounded-xl shadow-sm overflow-hidden hover:shadow-lg transition group border border-gray-100">
       <div class="relative h-40 bg-gradient-to-br from-blue-500 to-blue-700 cursor-pointer" onclick="if(!getCurrentUserInfo().isLoggedIn){openModal('login-modal');return;} openCourseModal('${encodeURIComponent(JSON.stringify(course))}')">
         ${course.thumbnail_url 
-          ? `<img src="${course.thumbnail_url}" class="w-full h-full object-cover" alt="${escapeHtml(course.title)}">`
+          ? `<img src="${course.thumbnail_url}" width="640" height="360" ${imageAttributes} class="w-full h-full object-cover" alt="${escapeHtml(course.title)}">`
           : `<div class="w-full h-full flex items-center justify-center text-white/50"><i class="fas fa-graduation-cap text-5xl"></i></div>`}
         <div class="absolute inset-0 bg-gradient-to-t from-black/65 via-black/10 to-transparent"></div>
         <div class="absolute top-3 left-3 bg-amber-400 text-slate-950 px-2 py-1 rounded text-xs font-black shadow-sm">Lançamento</div>
@@ -186,5 +193,6 @@ function renderFeaturedCourses(courses) {
         </div>
       </div>
     </div>
-  `).join('');
+  `;
+  }).join('');
 }
