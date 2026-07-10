@@ -1,33 +1,51 @@
-//=============================================================== script.js - ADPEL Digital Platform v3.0.0
+//=============================================================== script.js - ADPEL Digital Platform v3.1.0
 //============== Núcleo de inicialização e helpers compartilhados
 
-document.addEventListener('DOMContentLoaded', () => {
-  // initAuth já é chamada por auth.js; aqui esperamos um pouco e carregamos a home
-  setTimeout(() => {
-    initApp();
-    // Garantir que o banner seja atualizado após auth
-    if (typeof updateBannerWelcome === 'function') {
-      updateBannerWelcome();
-    }
-  }, 300);
+function loadReleasePolishStyles() {
+  if (document.querySelector('link[data-adpel-release-polish]')) return;
+
+  const link = document.createElement('link');
+  link.rel = 'stylesheet';
+  link.href = 'release-polish.css';
+  link.dataset.adpelReleasePolish = 'true';
+  document.head.appendChild(link);
+}
+
+async function waitForAuthBootstrap(timeoutMs = 2000) {
+  const startedAt = Date.now();
+
+  while (typeof currentUser === 'undefined' && Date.now() - startedAt < timeoutMs) {
+    await new Promise(resolve => setTimeout(resolve, 50));
+  }
+}
+
+document.addEventListener('DOMContentLoaded', async () => {
+  loadReleasePolishStyles();
 
   if (typeof initNavigation === 'function') {
     initNavigation();
   }
+
+  await waitForAuthBootstrap();
+  await initApp();
+
+  if (typeof updateBannerWelcome === 'function') {
+    updateBannerWelcome();
+  }
 });
 
 async function initApp() {
-  // O auth.js já inicializou a autenticação; aqui apenas esperamos a UI ficar pronta
-  // e carregamos os dados da home.
-  // Se auth.js ainda não terminou, esperamos um pouco.
-  if (typeof currentUser === 'undefined') {
-    await new Promise(resolve => setTimeout(resolve, 500));
-  }
   await loadHomeData();
+
   if (window.ADPELJourney && typeof window.ADPELJourney.init === 'function') {
-    await window.ADPELJourney.init();
+    window.ADPELJourney.init().catch(error => {
+      console.error('Erro ao iniciar jornada:', error);
+    });
   }
-  verificarAtualizacoesPendentes();
+
+  if (typeof verificarAtualizacoesPendentes === 'function') {
+    verificarAtualizacoesPendentes();
+  }
 }
 
 function isContentVisibleNow(item) {
