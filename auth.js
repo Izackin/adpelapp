@@ -18,6 +18,45 @@ function safeErrorMsg(error) {
   return msg;
 }
 
+function getRegistrationErrorMessage(error) {
+  const message = error && typeof error.message === 'string' ? error.message : '';
+  const normalizedMessage = message.toLowerCase();
+  const code = String(error && error.code ? error.code : '').toLowerCase();
+  const status = Number(error && error.status ? error.status : 0);
+
+  if (code === 'user_already_exists' || normalizedMessage.includes('already registered') || normalizedMessage.includes('already exists') || normalizedMessage.includes('already been registered')) {
+    return 'Este e-mail já está cadastrado. Faça login ou recupere sua senha.';
+  }
+  if (code === 'weak_password' || normalizedMessage.includes('password should be at least') || normalizedMessage.includes('weak password')) {
+    return 'A senha é muito fraca. Use pelo menos 6 caracteres.';
+  }
+  if (status === 429 || code.includes('rate_limit') || normalizedMessage.includes('rate limit') || normalizedMessage.includes('too many requests')) {
+    return 'Muitas tentativas de cadastro. Aguarde alguns minutos e tente novamente.';
+  }
+  if (code === 'signup_disabled' || normalizedMessage.includes('signups not allowed') || normalizedMessage.includes('signup is disabled') || normalizedMessage.includes('email signups are disabled')) {
+    return 'Novos cadastros estão desativados no momento. Entre em contato com a igreja.';
+  }
+  if (error && (error.name === 'TypeError' || normalizedMessage.includes('failed to fetch') || normalizedMessage.includes('network') || normalizedMessage.includes('load failed'))) {
+    return 'Não foi possível conectar ao servidor. Verifique sua internet e tente novamente.';
+  }
+  if (normalizedMessage.includes('database error saving new user') || normalizedMessage.includes('profile')) {
+    return 'Sua conta não pôde ser concluída porque houve uma falha ao criar o perfil. Tente novamente ou fale com a igreja.';
+  }
+  if (code === 'unexpected_failure' || status >= 500 || normalizedMessage.includes('database') || normalizedMessage.includes('internal server error')) {
+    return 'O servidor encontrou um erro interno. Tente novamente em alguns minutos.';
+  }
+  return 'Não foi possível realizar o cadastro. Tente novamente.';
+}
+
+function isExistingRegistrationResult(data) {
+  return !!(
+    data &&
+    data.user &&
+    Array.isArray(data.user.identities) &&
+    data.user.identities.length === 0
+  );
+}
+
 document.addEventListener('DOMContentLoaded', () => {
   initAuth();
 });
@@ -210,7 +249,7 @@ function bindAuthForms() {
           if (errMsg.includes('Invalid login credentials') || errMsg.includes('User not found')) {
             if (msgArea) {
               msgArea.className = 'text-sm text-center p-3 rounded-lg bg-blue-50 text-blue-700 block';
-              msgArea.innerHTML = `Este email não possui cadastro ou a senha está incorreta. <button type="button" onclick="closeModal('login-modal');openModal('register-modal')" class="font-bold underline hover:text-blue-900 ml-1">Criar conta</button>`;
+              msgArea.innerHTML = `Este email não possui cadastro ou a senha está incorreta. <button type="button" onclick="showRegisterModal(event)" class="font-bold underline hover:text-blue-900 ml-1">Criar conta</button>`;
             }
             showToast('Email ou senha incorretos. Verifique seus dados.', 'error');
           } else if (errMsg.includes('Email not confirmed')) {
@@ -271,6 +310,8 @@ function bindAuthForms() {
   if (registerForm) {
     registerForm.addEventListener('submit', async (e) => {
       e.preventDefault();
+      if (registerForm.dataset.submitting === 'true') return;
+
       const name = document.getElementById('register-name').value.trim();
       const email = document.getElementById('register-email').value.trim();
       const password = document.getElementById('register-password').value;
@@ -297,32 +338,74 @@ function bindAuthForms() {
         showToast('Digite um email válido.', 'error');
         return;
       }
-      
+
+      registerForm.dataset.submitting = 'true';
+      showLoading(true, 'register-form');
+
       try {
-        showLoading(true, 'register');
         const { data, error } = await ADPEL.auth.signUp(email, password, name);
-        
+
         if (error) {
-          showLoading(false, 'register');
-          
-          // Mensagens de erro específicas para cadastro
-          if (error.message.includes('already registered') || error.message.includes('already exists')) {
-            showToast('Este email já está cadastrado. Faça login.', 'info');
-          } else if (error.message.includes('Password should be at least')) {
-            showToast('A senha precisa ter pelo menos 6 caracteres.', 'error');
+          console.error('Erro técnico ao cadastrar usuário:', error);
+          showToast(getRegistrationErrorMessage(error), 'error');
+          return;
+        }
+
+        if (!data || !data.user) {
+          const invalidResultError = new Error('Supabase signUp retornou sucesso sem usuário.');
+          console.error('Resposta técnica inesperada no cadastro:', invalidResultError, data);
+          showToast('Não foi possível confirmar a criação da conta. Tente novamente.', 'error');
+          return;
+        }
+
+        // Com confirmação de e-mail habilitada, o Supabase pode ocultar que o
+        // endereço já existe retornando um usuário sem identidades vinculadas.
+        if (isExistingRegistrationResult(data)) {
+          console.error('Cadastro recusado: e-mail já cadastrado.', { userId: data.user.id });
+          showToast('Este e-mail já está cadastrado. Faça login ou recupere sua senha.', 'info');
+          return;
+        }
+
+        closeModal('register-modal');
+        registerForm.reset();
+
+        if (data.session) {
+          currentUser = data.user;
+          let profileError = null;
+
+          try {
+            currentProfile = await ADPEL.profile.getProfile();
+            if (!currentProfile) {
+              profileError = new Error('Perfil não encontrado após cadastro com sessão ativa.');
+            }
+          } catch (error) {
+            profileError = error;
+            currentProfile = null;
+          }
+
+          if (profileError) {
+            console.error('Falha técnica ao carregar o perfil após o cadastro:', profileError);
+          }
+
+          _profileCache = currentProfile;
+          _profileCacheTime = Date.now();
+          updateAuthUI(true);
+
+          if (profileError) {
+            showToast('Conta criada e conectada, mas o perfil não pôde ser carregado. Fale com a igreja.', 'warning');
           } else {
-            showToast('Erro ao registrar: ' + error.message, 'error');
+            showToast('Cadastro realizado! Você já está conectado.', 'success');
           }
           return;
         }
-        
-        showLoading(false, 'register');
-        closeModal('register-modal');
-        showToast(data && data.session ? 'Cadastro realizado com sucesso!' : 'Cadastro realizado! Verifique seu email e faça login.', 'success');
-        setTimeout(() => openModal('login-modal'), 300);
+
+        showToast('Cadastro realizado! Confirme seu e-mail antes de entrar.', 'success');
       } catch (error) {
-        showLoading(false, 'register');
-        showToast('Erro ao registrar. Tente novamente.', 'error');
+        console.error('Erro técnico inesperado ao cadastrar usuário:', error);
+        showToast(getRegistrationErrorMessage(error), 'error');
+      } finally {
+        registerForm.dataset.submitting = 'false';
+        showLoading(false, 'register-form');
       }
     });
   }
@@ -341,28 +424,7 @@ function bindAuthForms() {
   }
 }
 
-// Modal functions (APENAS SE openModal AINDA NÃO EXISTIR)
-if (typeof openModal === 'undefined') {
-  function openModal(modalId) {
-    const modal = document.getElementById(modalId);
-    if (modal) {
-      modal.classList.remove('hidden');
-      modal.classList.add('flex');
-      document.body.style.overflow = 'hidden';
-    }
-  }
-}
-
-if (typeof closeModal === 'undefined') {
-  function closeModal(modalId) {
-    const modal = document.getElementById(modalId);
-    if (modal) {
-      modal.classList.add('hidden');
-      modal.classList.remove('flex');
-      document.body.style.overflow = '';
-    }
-  }
-}
+// Os modais globais são definidos somente em js/bootstrap.js.
 
 
 

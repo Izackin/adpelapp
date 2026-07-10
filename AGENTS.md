@@ -160,6 +160,8 @@ Nao existe servidor proprio neste repositorio. Toda operacao administrativa atua
 
 O perfil complementar fica em `profiles`, vinculado ao `auth.users` pelo mesmo `id`. O admin/master e identificado por `profiles.role = 'master'` ou pelo email hardcoded `master@adpel.com`.
 
+Novos usuarios recebem automaticamente um registro em `profiles` pelo trigger `on_auth_user_created`, definido na migration `20260710120000_fix_user_registration_profile_trigger.sql`. O trigger copia `raw_user_meta_data.full_name`, aplica a role segura `member` e nunca promove permissoes administrativas. A mesma migration protege a coluna `role` contra promocao pelo proprio membro, preservando alteracoes feitas por master ou pelo backend administrativo.
+
 ### Database
 
 Tabelas e views identificadas:

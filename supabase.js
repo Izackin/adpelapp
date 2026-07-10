@@ -15,17 +15,20 @@
 // ==========================
 
 async function signUp(email, password, fullName) {
-  const { data, error } = await supabase.auth.signUp({
-    email: email,
-    password: password,
-    options: {
-      data: {
-        full_name: fullName
+  try {
+    const { data, error } = await supabase.auth.signUp({
+      email: email,
+      password: password,
+      options: {
+        data: {
+          full_name: fullName
+        }
       }
-    }
-  });
-  if (error) throw error;
-  return data;
+    });
+    return { data, error };
+  } catch (error) {
+    return { data: null, error };
+  }
 }
 
 async function signIn(email, password) {

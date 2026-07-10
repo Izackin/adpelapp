@@ -2870,3 +2870,118 @@ textarea::placeholder {
     padding: 1rem !important;
   }
 }
+
+/* Modais de autenticacao: camada e comportamento compartilhados. */
+body.modal-open {
+  overflow: hidden;
+}
+
+#login-modal,
+#register-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 999999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  overflow-y: auto;
+  background: rgba(2, 6, 23, 0.82);
+}
+
+#login-modal.hidden,
+#register-modal.hidden {
+  display: none !important;
+}
+
+#login-modal:not(.hidden),
+#register-modal:not(.hidden) {
+  display: flex !important;
+}
+
+#login-modal-content,
+#register-modal-content {
+  width: min(100%, 28rem);
+  max-height: calc(100dvh - 2rem);
+  overflow-y: auto;
+  border: 1px solid rgba(148, 163, 184, 0.26) !important;
+  border-radius: 1rem;
+  background: linear-gradient(180deg, #101b31, #08111f) !important;
+  color: #e5edf9 !important;
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.46);
+}
+
+.auth-modal-header {
+  position: relative;
+  overflow: hidden;
+  padding: 1.5rem;
+  text-align: center;
+  color: #fff;
+  background: linear-gradient(135deg, #102a5c, #2563eb) !important;
+  border-bottom: 1px solid rgba(250, 204, 21, 0.35);
+}
+
+.auth-modal-header::after {
+  content: '';
+  position: absolute;
+  right: 1.25rem;
+  bottom: 0;
+  width: 4rem;
+  height: 2px;
+  background: #facc15;
+}
+
+#login-modal-content label,
+#register-modal-content label {
+  color: #dbeafe !important;
+}
+
+#login-modal-content input,
+#register-modal-content input {
+  min-height: 2.9rem;
+  color: #f8fafc !important;
+  background: rgba(2, 6, 23, 0.72) !important;
+  border: 1px solid rgba(148, 163, 184, 0.34) !important;
+}
+
+#login-modal-content input::placeholder,
+#register-modal-content input::placeholder {
+  color: #94a3b8 !important;
+}
+
+#login-modal-content .text-gray-500,
+#login-modal-content .text-gray-600,
+#register-modal-content .text-gray-500,
+#register-modal-content .text-gray-600 {
+  color: #b6c2d4 !important;
+}
+
+.auth-modal-link {
+  color: #facc15 !important;
+}
+
+#login-modal-content button[type="submit"],
+#register-modal-content button[type="submit"],
+#login-submit-btn {
+  background: linear-gradient(135deg, #2563eb, #1d4ed8) !important;
+  color: #fff !important;
+}
+
+@media (max-width: 767px) {
+  #login-modal,
+  #register-modal {
+    align-items: flex-start;
+    padding:
+      max(0.75rem, env(safe-area-inset-top))
+      0.75rem
+      max(1rem, env(safe-area-inset-bottom));
+  }
+
+  #login-modal-content,
+  #register-modal-content {
+    width: 100%;
+    max-height: calc(100dvh - 1.5rem);
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+}

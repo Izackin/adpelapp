@@ -47,6 +47,7 @@ self.addEventListener('fetch', e => {
     url.endsWith('/admin.js') ||
     url.endsWith('/script.js') ||
     url.endsWith('/data-layer.js') ||
+    url.endsWith('/auth.js') ||
     url.endsWith('/supabase.js')
   ) {
     e.respondWith(fetch(request));
