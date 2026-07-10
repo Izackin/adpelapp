@@ -369,6 +369,7 @@
   .journey-hero-card {
     padding: 0.9rem;
     border-radius: 1rem;
+    grid-template-columns: minmax(0, 1fr);
   }
 
   .journey-member-row {
@@ -400,12 +401,16 @@
   }
 
   .journey-stats-grid {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-columns: minmax(0, 1fr);
     gap: 0.55rem;
   }
 
   .journey-stat-card {
-    padding: 0.72rem 0.55rem;
+    display: grid;
+    grid-template-columns: auto auto minmax(0, 1fr);
+    align-items: center;
+    column-gap: 0.65rem;
+    padding: 0.68rem 0.75rem;
   }
 
   .journey-stat-card strong {
@@ -415,6 +420,24 @@
   .journey-stat-card span {
     display: block;
     line-height: 1.2;
+  }
+
+  .journey-stat-card i {
+    margin-bottom: 0;
+  }
+
+  .journey-stat-card small {
+    grid-column: 3;
+  }
+
+  .journey-start-card,
+  .journey-progress-summary {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .journey-start-action {
+    width: 100%;
   }
 
   .journey-progress-label,
