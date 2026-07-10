@@ -56,6 +56,7 @@
   var progressTableUnavailable = false;
   var challengeTableUnavailable = false;
   var dailyChallengesCache = [];
+  var dailyChallengesLoadError = null;
   var eventMemory = {};
 
   function getUserInfo() {
@@ -291,9 +292,42 @@
     };
   }
 
+  function getDailyChallengesErrorCategory(error, fallbackCategory) {
+    var code = String(error && error.code || '').toLowerCase();
+    var message = String(error && error.message || '').toLowerCase();
+    var details = String(error && error.details || '').toLowerCase();
+    var combined = code + ' ' + message + ' ' + details;
+
+    if (Number(error && error.status) === 401 || Number(error && error.status) === 403 || code === '42501' || combined.indexOf('permission') !== -1 || combined.indexOf('not authorized') !== -1 || combined.indexOf('row-level security') !== -1 || combined.indexOf('rls') !== -1) {
+      return 'RLS/permissão';
+    }
+    if (combined.indexOf('relationship') !== -1 || combined.indexOf('relation between') !== -1 || code === 'pgrst200' || code === 'pgrst201') {
+      return 'relacionamento daily_challenges';
+    }
+    if (Number(error && error.status) === 0 || error && (error.name === 'TypeError' || combined.indexOf('failed to fetch') !== -1 || combined.indexOf('network') !== -1 || combined.indexOf('load failed') !== -1)) {
+      return 'rede';
+    }
+    return fallbackCategory;
+  }
+
+  function handleDailyChallengesLoadError(stage, error, fallbackCategory) {
+    var category = getDailyChallengesErrorCategory(error, fallbackCategory);
+    dailyChallengesLoadError = { stage: stage, category: category };
+    console.error('[Minha Caminhada] Falha nas missões diárias', {
+      etapa: stage,
+      categoria: category,
+      code: error && error.code,
+      message: error && error.message,
+      details: error && error.details,
+      hint: error && error.hint
+    });
+    return [];
+  }
+
   async function getDailyChallenges(progress) {
     if (!progress || !window.supabaseClient || challengeTableUnavailable) return [];
     var today = todayKey();
+    var stage = 'ler user_daily_challenges';
     try {
       var existing = await window.supabaseClient
         .from('user_daily_challenges')
@@ -302,13 +336,15 @@
         .eq('challenge_date', today)
         .order('created_at', { ascending: true });
 
-      if (existing.error) throw existing.error;
+      if (existing.error) return handleDailyChallengesLoadError(stage, existing.error, 'leitura user_daily_challenges');
       var rows = (existing.data || []).slice(0, 3);
       if (rows.length >= 3) {
+        dailyChallengesLoadError = null;
         dailyChallengesCache = rows.map(normalizeChallenge);
         return dailyChallengesCache;
       }
 
+      stage = 'consultar daily_challenges';
       var available = await window.supabaseClient
         .from('daily_challenges')
         .select('*')
@@ -316,7 +352,7 @@
         .lte('level_min', Number(progress.level) || 1)
         .gte('level_max', Number(progress.level) || 1);
 
-      if (available.error) throw available.error;
+      if (available.error) return handleDailyChallengesLoadError(stage, available.error, 'leitura daily_challenges');
 
       var existingIds = rows.map(function (row) { return row.challenge_id; });
       var missingPool = (available.data || []).filter(function (item) {
@@ -325,6 +361,7 @@
       var picked = pickDailyChallenges(missingPool, progress).slice(0, Math.max(0, 3 - rows.length));
 
       if (picked.length) {
+        stage = 'inserir atribuições';
         var inserts = picked.map(function (challenge) {
           return {
             user_id: progress.user_id,
@@ -339,20 +376,21 @@
         var insert = await window.supabaseClient
           .from('user_daily_challenges')
           .insert(inserts);
-        if (insert.error) throw insert.error;
+        if (insert.error) return handleDailyChallengesLoadError(stage, insert.error, 'inserção de atribuições');
         return getDailyChallenges(progress);
       }
 
+      dailyChallengesLoadError = null;
       dailyChallengesCache = rows.map(normalizeChallenge);
       return dailyChallengesCache;
     } catch (error) {
       if (isMissingChallengeTableError(error)) {
         challengeTableUnavailable = true;
+        dailyChallengesLoadError = null;
         renderDailyChallenges(null);
         return [];
       }
-      console.error('[Minha Caminhada] Erro ao carregar desafios diarios:', error);
-      return [];
+      return handleDailyChallengesLoadError(stage, error, stage === 'inserir atribuições' ? 'inserção de atribuições' : stage === 'consultar daily_challenges' ? 'leitura daily_challenges' : 'leitura user_daily_challenges');
     }
   }
 
@@ -720,6 +758,11 @@
   function renderDailyChallenges(challenges) {
     var container = document.getElementById('daily-challenges-content');
     if (!container) return;
+    if (dailyChallengesLoadError) {
+      container.innerHTML = '<div class="journey-empty-note">Não foi possível carregar suas missões agora. Tente novamente.</div>';
+      setDailyMissionAvailability(false);
+      return;
+    }
     if (challengeTableUnavailable) {
       container.innerHTML = '<div class="journey-empty-note">Suas missões diárias estarão disponíveis em breve.</div>';
       setDailyMissionAvailability(false);
@@ -935,6 +978,11 @@
   function renderDailyChallengesPremium(challenges) {
     var container = document.getElementById('daily-challenges-content');
     if (!container) return;
+    if (dailyChallengesLoadError) {
+      container.innerHTML = '<div class="journey-empty-note">Não foi possível carregar suas missões agora. Tente novamente.</div>';
+      setDailyMissionAvailability(false);
+      return;
+    }
     if (challengeTableUnavailable) {
       container.innerHTML = '<div class="journey-empty-note">Suas missões diárias estarão disponíveis em breve.</div>';
       setDailyMissionAvailability(false);
