@@ -51,11 +51,24 @@ window.openModal = function(modalId) {
         event.stopPropagation();
       }
 
+      var registerModal = document.getElementById('register-modal');
+
+      if (!registerModal) {
+        console.error('Modal #register-modal não encontrado');
+        return;
+      }
+
+      if (registerModal.parentElement !== document.body) {
+        document.body.appendChild(registerModal);
+      }
+
       window.closeModal('login-modal');
       window.openModal('register-modal');
 
-      var firstInput = document.getElementById('register-name');
-      if (firstInput) window.setTimeout(function() { firstInput.focus(); }, 50);
+      window.setTimeout(function() {
+        var firstInput = document.getElementById('register-name');
+        if (firstInput) firstInput.focus();
+      }, 50);
     };
     window.showLoginModal = function(event) {
       if (event) {
@@ -98,6 +111,12 @@ window.openModal = function(modalId) {
       if (loginModal && loginModal.parentElement !== document.body) {
         document.body.appendChild(loginModal);
         console.log('✅ #login-modal movido para filho direto do body');
+      }
+
+      var registerModal = document.getElementById('register-modal');
+      if (registerModal && registerModal.parentElement !== document.body) {
+        document.body.appendChild(registerModal);
+        console.log('#register-modal movido para filho direto do body');
       }
       
       // Oferta modal: reestruturar (pix e sucesso para fora de etapa-valor) e mover para body
