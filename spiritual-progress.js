@@ -682,10 +682,27 @@
     return getEarnedMedals(progress).find(function (medal) { return !medal.earned; }) || null;
   }
 
+  function setDailyMissionAvailability(isAvailable) {
+    var button = document.getElementById('journey-daily-action');
+    if (!button) return;
+
+    button.disabled = !isAvailable;
+    button.setAttribute('aria-disabled', isAvailable ? 'false' : 'true');
+    button.classList.toggle('is-unavailable', !isAvailable);
+
+    if (isAvailable) {
+      button.setAttribute('onclick', 'ADPELJourney.completeDailyMission()');
+      button.innerHTML = '<i class="fas fa-check"></i> Missão diária';
+    } else {
+      button.removeAttribute('onclick');
+      button.innerHTML = '<i class="fas fa-clock"></i> Missões em breve';
+    }
+  }
+
   function renderJourneyUnavailable() {
     var card = document.getElementById('journey-card-content');
     if (card) {
-      card.innerHTML = '<div class="text-center py-6"><p class="text-sm text-gray-500">Minha Caminhada sera ativada apos criar a tabela no Supabase.</p></div>';
+      card.innerHTML = '<div class="journey-empty-note text-center">Sua caminhada espiritual estará disponível em breve.</div>';
     }
   }
 
@@ -704,18 +721,23 @@
     var container = document.getElementById('daily-challenges-content');
     if (!container) return;
     if (challengeTableUnavailable) {
-      container.innerHTML = '<div class="journey-empty-note">Missões diárias serão ativadas após criar as tabelas no Supabase.</div>';
+      container.innerHTML = '<div class="journey-empty-note">Suas missões diárias estarão disponíveis em breve.</div>';
+      setDailyMissionAvailability(false);
       return;
     }
     if (challenges === null) {
-      container.innerHTML = '<div class="journey-empty-note">Missões diárias ainda não disponíveis.</div>';
+      container.innerHTML = '<div class="journey-empty-note">Suas missões diárias estarão disponíveis em breve.</div>';
+      setDailyMissionAvailability(false);
       return;
     }
     var list = (challenges || dailyChallengesCache || []).slice(0, 3);
     if (!list.length) {
       container.innerHTML = '<div class="journey-empty-note">Nenhuma missão ativa para seu nível hoje.</div>';
+      setDailyMissionAvailability(false);
       return;
     }
+
+    setDailyMissionAvailability(true);
 
     container.innerHTML = list.map(function (challenge) {
       var percent = Math.min(100, Math.round((challenge.current_count / challenge.target_count) * 100));
@@ -914,18 +936,23 @@
     var container = document.getElementById('daily-challenges-content');
     if (!container) return;
     if (challengeTableUnavailable) {
-      container.innerHTML = '<div class="journey-empty-note">Missões diárias serão ativadas após criar as tabelas no Supabase.</div>';
+      container.innerHTML = '<div class="journey-empty-note">Suas missões diárias estarão disponíveis em breve.</div>';
+      setDailyMissionAvailability(false);
       return;
     }
     if (challenges === null) {
-      container.innerHTML = '<div class="journey-empty-note">Missões diárias ainda não disponíveis.</div>';
+      container.innerHTML = '<div class="journey-empty-note">Suas missões diárias estarão disponíveis em breve.</div>';
+      setDailyMissionAvailability(false);
       return;
     }
     var list = (challenges || dailyChallengesCache || []).slice(0, 3);
     if (!list.length) {
       container.innerHTML = '<div class="journey-empty-note">Nenhuma missão ativa para seu nível hoje.</div>';
+      setDailyMissionAvailability(false);
       return;
     }
+
+    setDailyMissionAvailability(true);
 
     container.innerHTML = list.map(function (challenge) {
       var percent = Math.min(100, Math.round((challenge.current_count / challenge.target_count) * 100));
@@ -969,16 +996,17 @@
     var nextMedal = getNextMedal(safeProgress);
     var avatar = safeProgress.avatar;
     var initials = String(safeProgress.user_name || 'M').trim().charAt(0).toUpperCase();
-    var remainingLabel = level.next ? level.remainingXp + ' pontos para o próximo nível' : 'Nível máximo alcançado';
+    var isStarting = Number(safeProgress.total_points) === 0 && Number(safeProgress.streak_days) === 0 && level.progressPercent === 0;
+    var currentXp = Number(safeProgress.xp) || 0;
+    var progressPoints = level.next ? currentXp + ' de ' + level.next.minXp + ' pontos' : currentXp + ' pontos';
+    var progressStatus = level.next ? level.progressPercent + '% para o próximo nível' : 'Nível máximo alcançado';
+    var dailyAction = challengeTableUnavailable
+      ? '<button id="journey-daily-action" type="button" disabled aria-disabled="true" class="journey-primary-action is-unavailable"><i class="fas fa-clock"></i> Missões em breve</button>'
+      : '<button id="journey-daily-action" type="button" aria-disabled="false" onclick="ADPELJourney.completeDailyMission()" class="journey-primary-action"><i class="fas fa-check"></i> Missão diária</button>';
 
     container.innerHTML = [
       '<div class="journey-shell">',
         '<section class="journey-hero-card">',
-          '<div class="journey-hero-copy">',
-            '<p class="app-eyebrow">Minha Caminhada</p>',
-            '<h3>Acompanhe sua evolução espiritual na ADPEL</h3>',
-            '<p>' + escapeHtml(remainingLabel) + '</p>',
-          '</div>',
           '<div class="journey-member-row">',
             '<div class="journey-avatar">',
               avatar ? '<img src="' + escapeHtml(avatar) + '" alt="' + escapeHtml(safeProgress.user_name || 'Perfil') + '">' : escapeHtml(initials),
@@ -988,14 +1016,24 @@
               '<span class="journey-level-pill">Nível ' + level.level + ' · ' + escapeHtml(level.title) + '</span>',
             '</div>',
           '</div>',
+          '<div class="journey-hero-copy">',
+            '<p class="app-eyebrow">Minha Caminhada</p>',
+            '<h3>Acompanhe sua evolução espiritual na ADPEL</h3>',
+          '</div>',
         '</section>',
+        isStarting ? [
+          '<section class="journey-start-card">',
+            '<div><h3>Comece sua caminhada</h3><p>Complete sua primeira atividade e acompanhe seu crescimento espiritual na ADPEL.</p></div>',
+            '<button type="button" onclick="navigateTo(&quot;bible&quot;)" class="journey-start-action"><i class="fas fa-book-bible"></i> Começar agora</button>',
+          '</section>'
+        ].join('') : '',
         '<div class="journey-stats-grid">',
-          '<div class="journey-stat-card"><i class="fas fa-seedling"></i><strong>' + safeProgress.total_points + '</strong><span>Pontos de caminhada</span></div>',
-          '<div class="journey-stat-card"><i class="fas fa-fire"></i><strong>' + safeProgress.streak_days + '</strong><span>Sequência</span></div>',
-          '<div class="journey-stat-card"><i class="fas fa-layer-group"></i><strong>' + level.progressPercent + '%</strong><span>Evolução</span></div>',
+          '<div class="journey-stat-card"><i class="fas fa-seedling"></i><strong>' + safeProgress.total_points + '</strong><span>Pontos</span>' + (Number(safeProgress.total_points) === 0 ? '<small>Complete uma atividade</small>' : '') + '</div>',
+          '<div class="journey-stat-card"><i class="fas fa-fire"></i><strong>' + safeProgress.streak_days + '</strong><span>Sequência</span>' + (Number(safeProgress.streak_days) === 0 ? '<small>Volte todos os dias</small>' : '') + '</div>',
+          '<div class="journey-stat-card"><i class="fas fa-layer-group"></i><strong>' + level.progressPercent + '%</strong><span>Evolução</span>' + (level.progressPercent === 0 ? '<small>Seu progresso começa aqui</small>' : '') + '</div>',
         '</div>',
         '<section class="journey-progress-card">',
-          '<div class="journey-progress-label"><span>Progresso até o próximo nível</span><strong>' + level.progressPercent + '%</strong></div>',
+          '<div class="journey-progress-summary"><strong>' + escapeHtml(progressPoints) + '</strong><span>' + escapeHtml(progressStatus) + '</span></div>',
           '<div class="journey-progress-track"><div class="journey-progress-fill" style="width:' + level.progressPercent + '%"></div></div>',
           '<div class="journey-next-medal"><span>Próxima medalha</span><strong>' + escapeHtml(nextMedal ? nextMedal.title : 'Todas conquistadas') + '</strong></div>',
         '</section>',
@@ -1008,7 +1046,7 @@
             '<div class="journey-empty-note">Carregando missões diárias...</div>',
           '</div>',
           '<div class="journey-actions">',
-            '<button onclick="ADPELJourney.completeDailyMission()" class="journey-primary-action"><i class="fas fa-check"></i> Missão diária</button>',
+            dailyAction,
             '<button onclick="navigateTo(&quot;ranking&quot;)" class="journey-secondary-action"><i class="fas fa-ranking-star"></i> Ver ranking</button>',
           '</div>',
         '</section>',
