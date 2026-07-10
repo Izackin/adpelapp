@@ -249,7 +249,7 @@ function bindAuthForms() {
           if (errMsg.includes('Invalid login credentials') || errMsg.includes('User not found')) {
             if (msgArea) {
               msgArea.className = 'text-sm text-center p-3 rounded-lg bg-blue-50 text-blue-700 block';
-              msgArea.innerHTML = `Este email não possui cadastro ou a senha está incorreta. <button type="button" onclick="closeModal('login-modal');openModal('register-modal')" class="font-bold underline hover:text-blue-900 ml-1">Criar conta</button>`;
+              msgArea.innerHTML = `Este email não possui cadastro ou a senha está incorreta. <button type="button" onclick="showRegisterModal(event)" class="font-bold underline hover:text-blue-900 ml-1">Criar conta</button>`;
             }
             showToast('Email ou senha incorretos. Verifique seus dados.', 'error');
           } else if (errMsg.includes('Email not confirmed')) {
@@ -424,28 +424,7 @@ function bindAuthForms() {
   }
 }
 
-// Modal functions (APENAS SE openModal AINDA NÃO EXISTIR)
-if (typeof openModal === 'undefined') {
-  function openModal(modalId) {
-    const modal = document.getElementById(modalId);
-    if (modal) {
-      modal.classList.remove('hidden');
-      modal.classList.add('flex');
-      document.body.style.overflow = 'hidden';
-    }
-  }
-}
-
-if (typeof closeModal === 'undefined') {
-  function closeModal(modalId) {
-    const modal = document.getElementById(modalId);
-    if (modal) {
-      modal.classList.add('hidden');
-      modal.classList.remove('flex');
-      document.body.style.overflow = '';
-    }
-  }
-}
+// Os modais globais são definidos somente em js/bootstrap.js.
 
 
 

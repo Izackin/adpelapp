@@ -1,26 +1,22 @@
 window.openModal = function(modalId) {
       var modal = document.getElementById(modalId);
-      if (modal) {
-        modal.classList.remove('hidden');
-        modal.classList.add('flex');
-        document.body.style.overflow = '';
-        document.body.classList.remove('overflow-hidden');
-        document.documentElement.classList.remove('overflow-hidden');
-        document.documentElement.style.overflow = '';
-        console.log('✅ Modal aberto:', modalId);
-      } else {
-        console.error('❌ Modal não encontrado:', modalId);
-      }
+      if (!modal) return;
+
+      modal.classList.remove('hidden');
+      modal.classList.add('flex');
+      modal.setAttribute('aria-hidden', 'false');
+      document.body.classList.add('modal-open');
     };
     window.closeModal = function(modalId) {
       var modal = document.getElementById(modalId);
-      if (modal) {
-        modal.classList.add('hidden');
-        document.body.classList.remove('overflow-hidden');
-        document.body.style.overflow = '';
-        document.documentElement.classList.remove('overflow-hidden');
-        document.documentElement.style.overflow = '';
-      }
+      if (!modal) return;
+
+      modal.classList.add('hidden');
+      modal.classList.remove('flex');
+      modal.setAttribute('aria-hidden', 'true');
+
+      var anotherModalOpen = document.querySelector('#login-modal:not(.hidden), #register-modal:not(.hidden)');
+      if (!anotherModalOpen) document.body.classList.remove('modal-open');
     };
     window.toggleSidebar = function() {
       var sidebar = document.getElementById('sidebar');
@@ -40,12 +36,38 @@ window.openModal = function(modalId) {
         if (modal.parentElement !== document.body) {
           document.body.appendChild(modal);
         }
-        modal.classList.remove('hidden');
-        document.body.style.overflow = 'hidden';
-        console.log('✅ Modal de login aberto via openLogin()');
+        window.openModal('login-modal');
+        window.setTimeout(function() {
+          var firstInput = document.getElementById('login-email');
+          if (firstInput) firstInput.focus();
+        }, 50);
       } else {
         console.error('❌ Modal #login-modal não encontrado');
       }
+    };
+    window.showRegisterModal = function(event) {
+      if (event) {
+        event.preventDefault();
+        event.stopPropagation();
+      }
+
+      window.closeModal('login-modal');
+      window.openModal('register-modal');
+
+      var firstInput = document.getElementById('register-name');
+      if (firstInput) window.setTimeout(function() { firstInput.focus(); }, 50);
+    };
+    window.showLoginModal = function(event) {
+      if (event) {
+        event.preventDefault();
+        event.stopPropagation();
+      }
+
+      window.closeModal('register-modal');
+      window.openModal('login-modal');
+
+      var firstInput = document.getElementById('login-email');
+      if (firstInput) window.setTimeout(function() { firstInput.focus(); }, 50);
     };
     window.login = async function() {
       var email = (document.getElementById('login-email')?.value || '').replace(/undefined|null/gi, '').trim();
@@ -105,6 +127,15 @@ window.openModal = function(modalId) {
           document.body.appendChild(ofertaModal);
         }
         console.log('✅ #oferta-modal reestruturado e movido para filho direto do body');
+      }
+
+      if (!window.__adpelAuthModalEventsBound) {
+        window.__adpelAuthModalEventsBound = true;
+        document.addEventListener('keydown', function(event) {
+          if (event.key !== 'Escape') return;
+          if (!document.getElementById('login-modal')?.classList.contains('hidden')) window.closeModal('login-modal');
+          if (!document.getElementById('register-modal')?.classList.contains('hidden')) window.closeModal('register-modal');
+        });
       }
     });
     console.log('✅ Funções globais carregadas (openModal, closeModal, toggleSidebar, login)');

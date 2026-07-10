@@ -96,14 +96,7 @@
     header, footer { background-color: rgba(15,23,42,0.85) !important; backdrop-filter: blur(16px); border-color: rgba(30,41,59,0.8) !important; }
     aside#sidebar { background-color: rgba(2,6,23,0.95) !important; border-color: rgba(6,182,212,0.2) !important; }
     nav#mobile-nav { background-color: rgba(15,23,42,0.95) !important; border-color: rgba(30,41,59,0.8) !important; }
-    #course-modal .bg-white, #register-modal .bg-white { background-color: #0f172a !important; border: 1px solid rgba(6,182,212,0.2); }
-    #login-modal #login-modal-content {
-      background-color: #ffffff !important;
-      color: #0f172a !important;
-      border: 1px solid #cbd5e1 !important;
-    }
-    #login-modal label { color: #334155 !important; }
-    #login-modal input { background-color: #f8fafc !important; color: #0f172a !important; border-color: #cbd5e1 !important; }
+    #course-modal .bg-white { background-color: #0f172a !important; border: 1px solid rgba(6,182,212,0.2); }
     /* Oferta modal: fundo opaco e cores corretas */
     #oferta-modal .bg-white {
       background-color: #ffffff !important;
@@ -158,17 +151,6 @@
     }
   </style>
 <style>
-  /* Garantir que o modal de login fique acima de tudo quando visível */
-  #login-modal:not(.hidden) {
-    display: flex !important;
-    position: fixed !important;
-    inset: 0 !important;
-    z-index: 999999 !important;
-  }
-  #login-modal-content {
-    background-color: #ffffff !important;
-    color: #1e293b !important;
-  }
   #oferta-modal:not(.hidden) {
     display: flex !important;
     position: fixed !important;
@@ -1029,23 +1011,23 @@
   </div>
 
   <!-- LOGIN MODAL -->
-  <div id="login-modal" class="hidden fixed inset-0 z-[999999] items-center justify-center bg-black/70 backdrop-blur-sm">
-    <div id="login-modal-content" class="bg-white rounded-2xl shadow-2xl w-full max-w-md mx-4 overflow-hidden animate-fade-in">
-      <div class="bg-gradient-to-r from-adpel-800 to-adpel-700 p-6 text-white text-center" style="background: linear-gradient(to right, #1e3a8a, #1d4ed8) !important; color: white !important;">
+  <div id="login-modal" class="auth-modal hidden" role="dialog" aria-modal="true" aria-labelledby="login-modal-title" aria-hidden="true" onclick="if (event.target === this) closeModal('login-modal')">
+    <div id="login-modal-content" class="auth-modal-content animate-fade-in" onclick="event.stopPropagation()">
+      <div class="auth-modal-header">
         <div class="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center mx-auto mb-4">
           <i class="fas fa-church text-3xl"></i>
         </div>
-        <h2 class="text-2xl font-bold">Entrar</h2>
+        <h2 id="login-modal-title" class="text-2xl font-bold">Entrar</h2>
         <p class="text-adpel-100 text-sm mt-1">Acesse sua conta ADPEL</p>
       </div>
-      <form id="login-form" class="p-6 space-y-4" style="background-color: #ffffff !important;">
+      <form id="login-form" class="p-6 space-y-4">
         <div>
-          <label class="block text-sm font-medium mb-1" style="color: #334155 !important;">E-mail</label>
-          <input type="email" id="login-email" required class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-adpel-500 focus:border-transparent outline-none" placeholder="seu@email.com" style="background-color: #f8fafc !important; color: #0f172a !important; border-color: #cbd5e1 !important;">
+          <label class="block text-sm font-medium mb-1">E-mail</label>
+          <input type="email" id="login-email" required class="w-full px-4 py-3 rounded-xl focus:ring-2 focus:ring-adpel-500 focus:border-transparent outline-none" placeholder="seu@email.com">
         </div>
         <div>
-          <label class="block text-sm font-medium mb-1" style="color: #334155 !important;">Senha</label>
-          <input type="password" id="login-password" required class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-adpel-500 focus:border-transparent outline-none" placeholder="••••••••" style="background-color: #f8fafc !important; color: #0f172a !important; border-color: #cbd5e1 !important;">
+          <label class="block text-sm font-medium mb-1">Senha</label>
+          <input type="password" id="login-password" required class="w-full px-4 py-3 rounded-xl focus:ring-2 focus:ring-adpel-500 focus:border-transparent outline-none" placeholder="••••••••">
         </div>
         <div class="flex items-center justify-between">
           <span></span>
@@ -1062,7 +1044,7 @@
           Entrar
         </button>
         <p id="login-register-text" class="text-center text-sm text-gray-500">
-          Não tem conta? <button type="button" onclick="closeModal('login-modal');openModal('register-modal')" class="text-adpel-600 font-semibold hover:underline">Cadastre-se</button>
+          Não tem conta? <button type="button" onclick="showRegisterModal(event)" class="auth-modal-link font-semibold hover:underline">Cadastre-se</button>
         </p>
       </form>
       <div class="px-6 pb-6">
@@ -1074,37 +1056,37 @@
   </div>
 
   <!-- REGISTER MODAL -->
-  <div id="register-modal" class="hidden fixed inset-0 z-50 items-start sm:items-center justify-center bg-black/50 backdrop-blur-sm overflow-y-auto py-4 sm:py-0">
-    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md mx-4 overflow-hidden animate-fade-in" style="background-color: #ffffff !important; color: #1e293b !important;">
-      <div class="bg-gradient-to-r from-green-600 to-green-500 p-6 text-white text-center" style="background: linear-gradient(to right, #16a34a, #22c55e) !important; color: white !important;">
+  <div id="register-modal" class="auth-modal hidden" role="dialog" aria-modal="true" aria-labelledby="register-modal-title" aria-hidden="true" onclick="if (event.target === this) closeModal('register-modal')">
+    <div id="register-modal-content" class="auth-modal-content animate-fade-in" onclick="event.stopPropagation()">
+      <div class="auth-modal-header">
         <div class="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center mx-auto mb-4">
           <i class="fas fa-user-plus text-3xl"></i>
         </div>
-        <h2 class="text-2xl font-bold">Criar Conta</h2>
-        <p class="text-green-100 text-sm mt-1">Junte-se à família ADPEL</p>
+        <h2 id="register-modal-title" class="text-2xl font-bold">Criar Conta</h2>
+        <p class="text-adpel-100 text-sm mt-1">Junte-se à família ADPEL</p>
       </div>
-      <form id="register-form" class="p-6 space-y-4" style="background-color: #ffffff !important;">
+      <form id="register-form" class="p-6 space-y-4">
         <div>
-          <label class="block text-sm font-medium mb-1" style="color: #334155 !important;">Nome Completo</label>
-          <input type="text" id="register-name" required class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none" placeholder="Seu nome" style="background-color: #f8fafc !important; color: #0f172a !important; border-color: #cbd5e1 !important;">
+          <label class="block text-sm font-medium mb-1">Nome Completo</label>
+          <input type="text" id="register-name" required class="w-full px-4 py-3 rounded-xl focus:ring-2 focus:ring-adpel-500 focus:border-transparent outline-none" placeholder="Seu nome">
         </div>
         <div>
-          <label class="block text-sm font-medium mb-1" style="color: #334155 !important;">E-mail</label>
-          <input type="email" id="register-email" required class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none" placeholder="seu@email.com" style="background-color: #f8fafc !important; color: #0f172a !important; border-color: #cbd5e1 !important;">
+          <label class="block text-sm font-medium mb-1">E-mail</label>
+          <input type="email" id="register-email" required class="w-full px-4 py-3 rounded-xl focus:ring-2 focus:ring-adpel-500 focus:border-transparent outline-none" placeholder="seu@email.com">
         </div>
         <div>
-          <label class="block text-sm font-medium mb-1" style="color: #334155 !important;">Senha</label>
-          <input type="password" id="register-password" required minlength="6" class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none" placeholder="Mínimo 6 caracteres" style="background-color: #f8fafc !important; color: #0f172a !important; border-color: #cbd5e1 !important;">
+          <label class="block text-sm font-medium mb-1">Senha</label>
+          <input type="password" id="register-password" required minlength="6" class="w-full px-4 py-3 rounded-xl focus:ring-2 focus:ring-adpel-500 focus:border-transparent outline-none" placeholder="Mínimo 6 caracteres">
         </div>
         <div>
-          <label class="block text-sm font-medium mb-1" style="color: #334155 !important;">Confirmar Senha</label>
-          <input type="password" id="register-confirm" required class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none" placeholder="Repita a senha" style="background-color: #f8fafc !important; color: #0f172a !important; border-color: #cbd5e1 !important;">
+          <label class="block text-sm font-medium mb-1">Confirmar Senha</label>
+          <input type="password" id="register-confirm" required class="w-full px-4 py-3 rounded-xl focus:ring-2 focus:ring-adpel-500 focus:border-transparent outline-none" placeholder="Repita a senha">
         </div>
-        <button type="submit" class="w-full py-3 bg-green-600 text-white rounded-xl font-bold hover:bg-green-700 transition">
+        <button type="submit" class="w-full py-3 bg-adpel-600 text-white rounded-xl font-bold hover:bg-adpel-700 transition">
           Criar Conta
         </button>
         <p class="text-center text-sm text-gray-500">
-          Já tem conta? <button type="button" onclick="closeModal('register-modal');openModal('login-modal')" class="text-green-600 font-semibold hover:underline">Faça login</button>
+          Já tem conta? <button type="button" onclick="showLoginModal(event)" class="auth-modal-link font-semibold hover:underline">Faça login</button>
         </p>
       </form>
       <div class="px-6 pb-6">
