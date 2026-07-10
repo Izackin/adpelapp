@@ -1,0 +1,107 @@
+/* ADPEL Digital - final release polish
+   Lightweight overrides focused on fluidity, readability and institutional identity. */
+
+:root {
+  --release-surface: rgba(15, 23, 42, 0.94);
+  --release-surface-strong: #0f172a;
+  --release-border: rgba(148, 163, 184, 0.16);
+  --release-blue: #2563eb;
+  --release-gold: #f59e0b;
+}
+
+/* Avoid expensive paint work outside the viewport. */
+section:not(.active-section),
+#home > section,
+#home > div {
+  content-visibility: auto;
+  contain-intrinsic-size: 1px 520px;
+}
+
+/* Stable media prevents layout jumps while cards load. */
+img {
+  background-color: #0b1220;
+}
+
+img[loading="lazy"] {
+  content-visibility: auto;
+}
+
+/* Cleaner institutional surfaces: blue remains primary and gold is accent only. */
+.app-quick-card,
+#continue-section > div + div > *,
+#featured-courses > *,
+#home-events-container > *,
+#news-container > *,
+#journey-card {
+  border-color: var(--release-border) !important;
+  background-color: var(--release-surface) !important;
+}
+
+.app-quick-card,
+#continue-section > div + div > *,
+#featured-courses > *,
+#home-events-container > *,
+#news-container > * {
+  transition-property: transform, border-color, background-color, box-shadow !important;
+  transition-duration: 180ms !important;
+  transition-timing-function: ease !important;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .app-quick-card:hover,
+  #continue-section > div + div > *:hover,
+  #featured-courses > *:hover,
+  #home-events-container > *:hover,
+  #news-container > *:hover {
+    transform: translateY(-2px);
+    border-color: rgba(37, 99, 235, 0.34) !important;
+    box-shadow: 0 16px 34px rgba(0, 0, 0, 0.24) !important;
+  }
+}
+
+/* Keep animations subtle on phones and weaker devices. */
+@media (max-width: 767px) {
+  .grid-bg {
+    animation: none !important;
+    background-image: none !important;
+  }
+
+  .neon-glow,
+  .shadow-soft,
+  .shadow-card,
+  .hover\:shadow-lg:hover {
+    box-shadow: 0 10px 24px rgba(0, 0, 0, 0.2) !important;
+  }
+
+  .neon-text {
+    text-shadow: none !important;
+  }
+
+  .glass,
+  header.bg-white,
+  #mobile-nav,
+  #sidebar {
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+  }
+
+  #mobile-nav {
+    background: rgba(5, 8, 22, 0.98) !important;
+  }
+
+  button:active,
+  a:active,
+  .app-quick-card:active {
+    transform: scale(0.985);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
