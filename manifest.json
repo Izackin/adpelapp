@@ -1,5 +1,5 @@
 {
-  "name": "ADPEL Digital",
+  "name": "ADPEL",
   "short_name": "ADPEL",
   "description": "Plataforma de Discipulado da Assembleia de Deus - Campo Pedro Ludovico",
   "start_url": "./index.html",
@@ -27,7 +27,7 @@
       "src": "https://static.photos/640x360/church/campus",
       "sizes": "640x360",
       "type": "image/jpeg",
-      "label": "Home da ADPEL Digital"
+      "label": "Home da ADPEL"
     }
   ]
 }

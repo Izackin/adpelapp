@@ -100,7 +100,7 @@ self.addEventListener('push', (event) => {
   }
 
   try {
-    const title = data.title || 'ADPEL Digital';
+    const title = data.title || 'ADPEL';
     const requestedUrl = new URL(data.url || '/', self.location.origin);
     const targetUrl = requestedUrl.origin === self.location.origin ? requestedUrl.href : self.location.origin + '/';
     const options = {

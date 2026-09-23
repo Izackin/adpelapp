@@ -170,7 +170,7 @@ function renderAdminCommunity() {
         '<div class="admin-community-actions">',
           '<button onclick="setCommunityPostStatus(&quot;' + post.id + '&quot;,&quot;hidden&quot;)" class="admin-community-btn warn"><i class="fas fa-eye-slash"></i> Ocultar</button>',
           '<button onclick="setCommunityPostStatus(&quot;' + post.id + '&quot;,&quot;published&quot;)" class="admin-community-btn success"><i class="fas fa-rotate-left"></i> Restaurar</button>',
-          '<button onclick="setCommunityPostStatus(&quot;' + post.id + '&quot;,&quot;removed&quot;)" class="admin-community-btn danger"><i class="fas fa-trash"></i> Remover</button>',
+          '<button onclick="deleteCommunityPost(&quot;' + post.id + '&quot;)" class="admin-community-btn danger"><i class="fas fa-trash"></i> Remover</button>',
         '</div>',
       '</article>'
     ].join('');
@@ -192,6 +192,36 @@ async function setCommunityPostStatus(postId, status) {
   } catch (error) {
     console.error('Erro ao moderar publicação:', error);
     if (typeof showToast === 'function') showToast('Erro ao moderar publicação.', 'error');
+  }
+}
+
+async function deleteCommunityPost(postId) {
+  if (!window.supabaseClient || !postId) return;
+  if (!confirm('Remover permanentemente esta publicação? Comentários e reações vinculados também serão removidos.')) return;
+
+  try {
+    var result = await window.supabaseClient
+      .from('community_posts')
+      .delete()
+      .eq('id', postId)
+      .select('id')
+      .maybeSingle();
+
+    if (result.error) throw result.error;
+    if (!result.data || result.data.id !== postId) {
+      throw new Error('O Supabase não confirmou a exclusão da publicação.');
+    }
+
+    adminCommunityPosts = adminCommunityPosts.filter(function(post) {
+      return post.id !== postId;
+    });
+    renderAdminCommunity();
+    if (typeof showToast === 'function') showToast('Publicação removida.', 'success');
+  } catch (error) {
+    console.error('Erro ao remover publicação da comunidade no backend:', { postId: postId, error: error });
+    if (typeof showToast === 'function') {
+      showToast('Não foi possível remover a publicação. Ela permanece na comunidade.', 'error');
+    }
   }
 }
 

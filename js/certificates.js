@@ -213,7 +213,7 @@ function buildCertificateHTML({ userName, certTitle, courseTitle, description, d
         <div class="logo"><img src="${safeLogoUrl}" alt="ADPEL"></div>
         <div class="institution">Assembleia de Deus &mdash; Campo Pedro Ludovico</div>
         <h1>${escapeHtml(safeCertTitle)}</h1>
-        <div class="subtitle">ADPEL Digital &mdash; Plataforma de Discipulado</div>
+        <div class="subtitle">ADPEL &mdash; Plataforma de Discipulado</div>
       </div>
       <div class="body">
         <p>Certificamos que</p>

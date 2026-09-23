@@ -223,11 +223,119 @@ function normalizeLesson(lesson) {
   return { title: '', url: '' };
 }
 
-function extractYouTubeID(url) {
+function parseYouTubeStartTime(value) {
+  if (!value) return 0;
+  const text = String(value).trim().toLowerCase();
+  if (/^\d+$/.test(text)) return Number(text);
+  const match = text.match(/^(?:(\d+)h)?(?:(\d+)m)?(?:(\d+)s)?$/);
+  if (!match) return 0;
+  return (Number(match[1]) || 0) * 3600 + (Number(match[2]) || 0) * 60 + (Number(match[3]) || 0);
+}
+
+function normalizeYouTubeUrl(url) {
   if (!url) return null;
-  const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
-  const match = url.match(regExp);
-  return (match && match[2].length === 11) ? match[2] : null;
+  const rawUrl = String(url).trim();
+  if (!rawUrl) return null;
+
+  let parsed;
+  try {
+    parsed = new URL(rawUrl);
+  } catch (error) {
+    return null;
+  }
+
+  if (parsed.protocol !== 'https:' && parsed.protocol !== 'http:') return null;
+
+  const hostname = parsed.hostname.toLowerCase().replace(/^www\./, '');
+  const pathParts = parsed.pathname.split('/').filter(Boolean);
+  let videoId = '';
+
+  if (hostname === 'youtu.be') {
+    videoId = pathParts[0] || '';
+  } else if (hostname === 'youtube.com' || hostname === 'm.youtube.com' || hostname === 'music.youtube.com') {
+    if (pathParts[0] === 'watch') {
+      videoId = parsed.searchParams.get('v') || '';
+    } else if (['embed', 'shorts', 'live', 'v'].includes(pathParts[0])) {
+      videoId = pathParts[1] || '';
+    }
+  }
+
+  if (!/^[A-Za-z0-9_-]{11}$/.test(videoId)) return null;
+
+  const startSeconds = parseYouTubeStartTime(parsed.searchParams.get('t') || parsed.searchParams.get('start'));
+  const watchUrl = new URL('https://www.youtube.com/watch');
+  watchUrl.searchParams.set('v', videoId);
+  if (startSeconds > 0) watchUrl.searchParams.set('t', String(startSeconds));
+
+  return {
+    videoId,
+    startSeconds,
+    watchUrl: watchUrl.toString(),
+    embedUrl: `https://www.youtube.com/embed/${videoId}`
+  };
+}
+
+function extractYouTubeID(url) {
+  const normalized = normalizeYouTubeUrl(url);
+  return normalized ? normalized.videoId : null;
+}
+
+function getYouTubePlayerOrigin() {
+  if (!window.location || !/^https?:$/.test(window.location.protocol)) return '';
+  return window.location.origin;
+}
+
+function buildYouTubeEmbedUrl(video) {
+  const embedUrl = new URL(video.embedUrl);
+  embedUrl.searchParams.set('enablejsapi', '1');
+  embedUrl.searchParams.set('autoplay', '1');
+  embedUrl.searchParams.set('rel', '0');
+  embedUrl.searchParams.set('playsinline', '1');
+  if (video.startSeconds > 0) embedUrl.searchParams.set('start', String(video.startSeconds));
+  const origin = getYouTubePlayerOrigin();
+  if (origin) embedUrl.searchParams.set('origin', origin);
+  return embedUrl.toString();
+}
+
+function renderYouTubeFallback(wrapper, video) {
+  if (!wrapper) return;
+  wrapper.replaceChildren();
+
+  const content = document.createElement('div');
+  content.className = 'w-full h-full min-h-[220px] flex flex-col items-center justify-center gap-3 bg-slate-950 text-white text-center p-6';
+
+  const icon = document.createElement('i');
+  icon.className = 'fab fa-youtube text-4xl text-red-500';
+  const message = document.createElement('p');
+  message.className = 'font-medium';
+  message.textContent = 'Não foi possível reproduzir este vídeo aqui.';
+  content.append(icon, message);
+
+  if (video && video.watchUrl) {
+    const link = document.createElement('a');
+    link.href = video.watchUrl;
+    link.target = '_blank';
+    link.rel = 'noopener noreferrer';
+    link.className = 'inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-red-600 hover:bg-red-700 text-white font-semibold transition';
+    link.textContent = 'Assistir no YouTube';
+    content.appendChild(link);
+  }
+
+  wrapper.appendChild(content);
+}
+
+function createYouTubeIframe(wrapper, iframeId, video, title) {
+  wrapper.replaceChildren();
+  const iframe = document.createElement('iframe');
+  iframe.id = iframeId;
+  iframe.src = buildYouTubeEmbedUrl(video);
+  iframe.title = title;
+  iframe.className = 'w-full h-full border-0';
+  iframe.referrerPolicy = 'strict-origin-when-cross-origin';
+  iframe.allow = 'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share';
+  iframe.allowFullscreen = true;
+  wrapper.appendChild(iframe);
+  return iframe;
 }
 
 async function getLessonProgress(courseId) {
@@ -344,8 +452,8 @@ async function renderCourseLessons(course) {
   lessons.forEach((lesson, index) => {
     const lessonTitle = lesson.title || `Aula ${index + 1}`;
     const lessonUrl = lesson.url;
-    const videoId = extractYouTubeID(lessonUrl);
-    const isYouTube = !!videoId;
+    const youtubeVideo = normalizeYouTubeUrl(lessonUrl);
+    const isYouTube = !!youtubeVideo;
     const isCompleted = isLessonCompleted(completedIndexes, index);
 
     const item = document.createElement('div');
@@ -369,9 +477,12 @@ async function renderCourseLessons(course) {
     item.addEventListener('click', () => {
       if (isYouTube && videoWrapper) {
         videoWrapper.classList.remove('hidden');
-        loadYouTubePlayer(videoId, course.id, index);
+        loadYouTubePlayer(youtubeVideo, course.id, index, lessonTitle);
       } else {
-        window.open(lessonUrl, '_blank');
+        if (videoWrapper) {
+          videoWrapper.classList.remove('hidden');
+          renderYouTubeFallback(videoWrapper, null);
+        }
       }
     });
 
@@ -435,9 +546,23 @@ function closeCourseModal() {
   currentOpenCourse = null;
 }
 
-function loadYouTubePlayer(videoId, courseId, lessonIndex) {
+function loadYouTubePlayer(video, courseId, lessonIndex, lessonTitle, attempt) {
+  const normalizedVideo = typeof video === 'string'
+    ? normalizeYouTubeUrl(/^[A-Za-z0-9_-]{11}$/.test(video) ? `https://youtu.be/${video}` : video)
+    : video;
+  const wrapper = document.getElementById('course-video-wrapper');
+  if (!normalizedVideo || !wrapper) {
+    renderYouTubeFallback(wrapper, normalizedVideo);
+    return;
+  }
+
+  const currentAttempt = Number(attempt) || 0;
   if (!window.YT || !window.YT.Player) {
-    setTimeout(() => loadYouTubePlayer(videoId, courseId, lessonIndex), 500);
+    if (currentAttempt >= 20) {
+      renderYouTubeFallback(wrapper, normalizedVideo);
+      return;
+    }
+    setTimeout(() => loadYouTubePlayer(normalizedVideo, courseId, lessonIndex, lessonTitle, currentAttempt + 1), 500);
     return;
   }
   currentCourseForPlayer = courseId;
@@ -446,22 +571,17 @@ function loadYouTubePlayer(videoId, courseId, lessonIndex) {
   if (ytPlayer && ytPlayer.destroy) {
     ytPlayer.destroy();
   }
-  const wrapper = document.getElementById('course-video-wrapper');
-  if (wrapper) {
-    wrapper.innerHTML = '<div id="yt-player" class="w-full h-full"></div>';
-  }
+  const iframe = createYouTubeIframe(wrapper, 'yt-player', normalizedVideo, `Aula em vídeo: ${lessonTitle || 'Curso'}`);
 
-  ytPlayer = new YT.Player('yt-player', {
-    height: '100%',
-    width: '100%',
-    videoId: videoId,
-    playerVars: {
-      autoplay: 1,
-      rel: 0,
-      modestbranding: 1
-    },
+  ytPlayer = new YT.Player(iframe, {
     events: {
-      'onStateChange': onPlayerStateChange
+      'onStateChange': onPlayerStateChange,
+      'onError': (event) => {
+        console.warn('Falha no player do YouTube:', { code: event.data, videoId: normalizedVideo.videoId });
+        if (ytPlayer && ytPlayer.destroy) ytPlayer.destroy();
+        ytPlayer = null;
+        renderYouTubeFallback(wrapper, normalizedVideo);
+      }
     }
   });
 }
@@ -629,22 +749,25 @@ function openStudyModal(encodedStudy) {
     lessons.forEach((lesson, index) => {
       const lessonTitle = lesson.title || `Aula ${index + 1}`;
       const lessonUrl = lesson.url;
-      const videoId = extractYouTubeID(lessonUrl);
+      const youtubeVideo = normalizeYouTubeUrl(lessonUrl);
       const div = document.createElement('div');
       div.className = 'flex items-center gap-3 p-3 rounded-lg border border-gray-100 hover:bg-amber-50 transition cursor-pointer';
       div.innerHTML = `
         <div class="w-10 h-10 rounded-full bg-amber-100 text-amber-600 flex items-center justify-center flex-shrink-0 font-bold text-sm">${index + 1}</div>
         <div class="flex-1 min-w-0">
           <p class="text-sm font-medium text-gray-800 truncate">${escapeHtml(lessonTitle)}</p>
-          <p class="text-xs text-gray-500">${videoId ? 'Clique para assistir' : 'Clique para abrir'}</p>
+          <p class="text-xs text-gray-500">${youtubeVideo ? 'Clique para assistir' : 'Vídeo indisponível'}</p>
         </div>
       `;
       div.addEventListener('click', () => {
-        if (videoId && videoWrapper) {
+        if (youtubeVideo && videoWrapper) {
           videoWrapper.classList.remove('hidden');
-          loadStudyYouTubePlayer(videoId, study.id, index);
+          loadStudyYouTubePlayer(youtubeVideo, study.id, index, lessonTitle);
         } else {
-          window.open(lessonUrl, '_blank');
+          if (videoWrapper) {
+            videoWrapper.classList.remove('hidden');
+            renderYouTubeFallback(videoWrapper, null);
+          }
         }
       });
       lessonsContainer.appendChild(div);
@@ -675,23 +798,30 @@ function closeStudyModal() {
   currentStudyLessonIndexForPlayer = null;
 }
 
-function loadStudyYouTubePlayer(videoId, studyId, lessonIndex) {
+function loadStudyYouTubePlayer(video, studyId, lessonIndex, lessonTitle, attempt) {
+  const normalizedVideo = typeof video === 'string'
+    ? normalizeYouTubeUrl(/^[A-Za-z0-9_-]{11}$/.test(video) ? `https://youtu.be/${video}` : video)
+    : video;
+  const wrapper = document.getElementById('study-video-wrapper');
+  if (!normalizedVideo || !wrapper) {
+    renderYouTubeFallback(wrapper, normalizedVideo);
+    return;
+  }
+
+  const currentAttempt = Number(attempt) || 0;
   if (!window.YT || !window.YT.Player) {
-    setTimeout(() => loadStudyYouTubePlayer(videoId, studyId, lessonIndex), 500);
+    if (currentAttempt >= 20) {
+      renderYouTubeFallback(wrapper, normalizedVideo);
+      return;
+    }
+    setTimeout(() => loadStudyYouTubePlayer(normalizedVideo, studyId, lessonIndex, lessonTitle, currentAttempt + 1), 500);
     return;
   }
   currentStudyForPlayer = studyId;
   currentStudyLessonIndexForPlayer = lessonIndex;
   if (studyYtPlayer && studyYtPlayer.destroy) studyYtPlayer.destroy();
-  const wrapper = document.getElementById('study-video-wrapper');
-  if (wrapper) {
-    wrapper.innerHTML = '<div id="study-yt-player" class="w-full h-full"></div>';
-  }
-  studyYtPlayer = new YT.Player('study-yt-player', {
-    height: '100%',
-    width: '100%',
-    videoId: videoId,
-    playerVars: { autoplay: 1, rel: 0, modestbranding: 1 },
+  const iframe = createYouTubeIframe(wrapper, 'study-yt-player', normalizedVideo, `Aula em vídeo: ${lessonTitle || 'Estudo'}`);
+  studyYtPlayer = new YT.Player(iframe, {
     events: {
       'onStateChange': (event) => {
         if (event.data === YT.PlayerState.ENDED) {
@@ -700,6 +830,12 @@ function loadStudyYouTubePlayer(videoId, studyId, lessonIndex) {
             window.ADPELJourney.registerStudyCompleted(studyId);
           }
         }
+      },
+      'onError': (event) => {
+        console.warn('Falha no player de estudo do YouTube:', { code: event.data, videoId: normalizedVideo.videoId });
+        if (studyYtPlayer && studyYtPlayer.destroy) studyYtPlayer.destroy();
+        studyYtPlayer = null;
+        renderYouTubeFallback(wrapper, normalizedVideo);
       }
     }
   });
@@ -733,7 +869,9 @@ Object.assign(window, {
   renderStudiesList,
   normalizeLessons,
   normalizeLesson,
+  normalizeYouTubeUrl,
   extractYouTubeID,
+  buildYouTubeEmbedUrl,
   getLessonProgress,
   isLessonCompleted,
   getAllLessonProgress,

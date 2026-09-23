@@ -198,7 +198,7 @@
         '<div class="cert-header">' +
           '<img class="cert-logo" src="images/adpel.logo.png" alt="Logo ADPEL">' +
           '<div><div class="church-name">' + escapeHtml(model.church) + '</div>' +
-          '<div class="church-subtitle">ADPEL Digital</div></div>' +
+          '<div class="church-subtitle">ADPEL</div></div>' +
         '</div>' +
         '<div class="cert-kicker">Documento Oficial</div>' +
         '<div class="cert-title">' + escapeHtml(model.title) + '</div>' +
