@@ -86,6 +86,7 @@ async function loadAdminCommunity() {
     var postsResult = await window.supabaseClient
       .from('community_posts')
       .select('*')
+      .in('status', ['published', 'hidden'])
       .order('created_at', { ascending: false })
       .limit(100);
     if (postsResult.error) throw postsResult.error;
@@ -169,9 +170,9 @@ function renderAdminCommunity() {
           '<span><i class="fas fa-comment"></i> ' + comments + ' comentários</span>',
         '</div>',
         '<div class="admin-community-actions">',
-          '<button onclick="setCommunityPostStatus(&quot;' + post.id + '&quot;,&quot;hidden&quot;)" class="admin-community-btn warn"><i class="fas fa-eye-slash"></i> Ocultar</button>',
-          '<button onclick="setCommunityPostStatus(&quot;' + post.id + '&quot;,&quot;published&quot;)" class="admin-community-btn success"><i class="fas fa-rotate-left"></i> Restaurar</button>',
-          '<button onclick="deleteCommunityPost(&quot;' + post.id + '&quot;)" class="admin-community-btn danger"><i class="fas fa-trash"></i> Remover</button>',
+          post.status === 'published' ? '<button onclick="setCommunityPostStatus(&quot;' + post.id + '&quot;,&quot;hidden&quot;)" class="admin-community-btn warn"><i class="fas fa-eye-slash"></i> Ocultar</button>' : '',
+          post.status === 'hidden' ? '<button onclick="setCommunityPostStatus(&quot;' + post.id + '&quot;,&quot;published&quot;)" class="admin-community-btn success"><i class="fas fa-rotate-left"></i> Restaurar</button>' : '',
+          '<button onclick="deleteCommunityPost(&quot;' + post.id + '&quot;)" class="admin-community-btn danger"><i class="fas fa-trash"></i> Excluir permanentemente</button>',
         '</div>',
       '</article>'
     ].join('');
@@ -198,7 +199,7 @@ async function setCommunityPostStatus(postId, status) {
 
 async function deleteCommunityPost(postId) {
   if (!window.supabaseClient || !postId) return;
-  if (!confirm('Remover permanentemente esta publicação? Comentários e reações vinculados também serão removidos.')) return;
+  if (!confirm('Excluir permanentemente esta publicação? Comentários e reações vinculados também serão excluídos.')) return;
 
   try {
     var result = await window.supabaseClient
@@ -217,11 +218,11 @@ async function deleteCommunityPost(postId) {
       return post.id !== postId;
     });
     renderAdminCommunity();
-    if (typeof showToast === 'function') showToast('Publicação removida.', 'success');
+    if (typeof showToast === 'function') showToast('Publicação excluída permanentemente.', 'success');
   } catch (error) {
-    console.error('Erro ao remover publicação da comunidade no backend:', { postId: postId, error: error });
+    console.error('Erro ao excluir publicação da comunidade no backend:', { postId: postId, error: error });
     if (typeof showToast === 'function') {
-      showToast('Não foi possível remover a publicação. Ela permanece na comunidade.', 'error');
+      showToast('Não foi possível excluir a publicação. Ela permanece na comunidade.', 'error');
     }
   }
 }

@@ -85,18 +85,8 @@ async function loadCommunityProfiles(userIds) {
   try {
     var result = await window.supabaseClient
       .from('profiles')
-      .select('id, full_name, public_name, avatar_url, photo_url, bio, ministry, show_public_profile')
+      .select('id, full_name, public_name, avatar_url, bio, ministry, show_public_profile')
       .in('id', ids);
-    if (result.error) {
-      var text = String(result.error && (result.error.message || result.error.details || result.error.hint || result.error.code) || '').toLowerCase();
-      var missingOptionalProfileFields = text.indexOf('photo_url') !== -1 || text.indexOf('bio') !== -1 || text.indexOf('ministry') !== -1 || text.indexOf('42703') !== -1 || text.indexOf('pgrst204') !== -1;
-      if (missingOptionalProfileFields) {
-        result = await window.supabaseClient
-          .from('profiles')
-          .select('id, full_name, public_name, avatar_url, show_public_profile')
-          .in('id', ids);
-      }
-    }
     if (result.error) throw result.error;
     (result.data || []).forEach(function(profile) {
       profilesById[profile.id] = profile;
@@ -477,7 +467,7 @@ function renderCommunityPostMenu(post, userInfo) {
   }
   if (isMaster && !isAuthor) {
     items.push('<button onclick="hideCommunityPost(&quot;' + escapeHtml(post.id) + '&quot;)"><i class="fas fa-eye-slash"></i> Ocultar publicação</button>');
-    items.push('<button class="danger" onclick="deleteCommunityPost(&quot;' + escapeHtml(post.id) + '&quot;)"><i class="fas fa-trash"></i> Remover publicação</button>');
+    items.push('<button class="danger" onclick="deleteCommunityPost(&quot;' + escapeHtml(post.id) + '&quot;)"><i class="fas fa-trash"></i> Excluir publicação</button>');
   }
   return [
     '<div class="community-menu-wrap">',
@@ -787,21 +777,25 @@ async function deleteCommunityPost(postId) {
     showToast('Você só pode excluir suas próprias publicações.', 'warning');
     return;
   }
-  if (!confirm('Deseja remover esta publicação?')) return;
+  if (!confirm('Excluir permanentemente esta publicação? Comentários e reações vinculados também serão excluídos.')) return;
   try {
     var query = window.supabaseClient
       .from('community_posts')
-      .update({ status: 'removed', updated_at: new Date().toISOString() })
+      .delete()
       .eq('id', postId);
     if (!userInfo.isMaster) query = query.eq('user_id', userInfo.user.id);
     var result = await query
       .select('id')
-      .single();
+      .maybeSingle();
     if (result.error) throw result.error;
-    showToast('Publicação removida.', 'success');
+    if (!result.data || result.data.id !== postId) {
+      throw new Error('O Supabase não confirmou a exclusão da publicação.');
+    }
+    showToast('Publicação excluída permanentemente.', 'success');
     removeCommunityPostFromDom(postId);
   } catch (error) {
-    showToast('Não foi possível remover a publicação.', 'error');
+    console.error('Erro ao excluir publicação:', error);
+    showToast('Não foi possível excluir a publicação.', 'error');
   }
 }
 

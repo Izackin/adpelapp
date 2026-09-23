@@ -103,10 +103,13 @@ async function isMaster() {
 
 async function fetchHomeData() {
   try {
-    const { data, error } = await supabase.from('home_sections').select('*').order('order', { ascending: true });
+    const { data, error } = await supabase.from('home_sections').select('*').order('display_order', { ascending: true });
     if (error) throw error;
     return data || [];
-  } catch (e) { return []; }
+  } catch (e) {
+    console.error('Erro ao buscar seções da Home:', e);
+    return [];
+  }
 }
 
 async function fetchAnnouncements() {

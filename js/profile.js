@@ -587,32 +587,11 @@ async function loadPublicProfile(userId) {
   }
 
   try {
-    let profileResult = await window.supabaseClient
+    const profileResult = await window.supabaseClient
       .from('profiles')
-        .select('id, full_name, public_name, bio, avatar_url, photo_url, favorite_verse, ministry, phone, instagram, show_phone, show_public_profile')
+      .select('id, full_name, public_name, bio, avatar_url, favorite_verse, ministry, phone, instagram, show_phone, show_public_profile')
       .eq('id', userId)
       .single();
-    if (profileResult.error && isProfileSchemaError(profileResult.error)) {
-      profileResult = await window.supabaseClient
-        .from('profiles')
-        .select('id, full_name, public_name, bio, avatar_url, favorite_verse, ministry, phone, instagram, show_phone, show_public_profile')
-        .eq('id', userId)
-        .single();
-      if (profileResult.error && isProfileSchemaError(profileResult.error)) {
-        profileResult = await window.supabaseClient
-          .from('profiles')
-          .select('id, full_name, photo_url')
-          .eq('id', userId)
-          .single();
-      }
-      if (profileResult.error && isProfileSchemaError(profileResult.error)) {
-        profileResult = await window.supabaseClient
-          .from('profiles')
-          .select('id, full_name')
-          .eq('id', userId)
-          .single();
-      }
-    }
     if (profileResult.error) throw profileResult.error;
 
     const progressResult = await window.supabaseClient

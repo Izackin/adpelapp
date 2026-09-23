@@ -131,7 +131,7 @@
 
   async function loadJourneyProfile(userId) {
     if (!userId || !window.supabaseClient) return null;
-    var profileColumns = 'id, full_name, public_name, avatar_url, photo_url';
+    var profileColumns = 'id, full_name, public_name, avatar_url';
     try {
       var result = await window.supabaseClient
         .from('profiles')
@@ -141,38 +141,8 @@
       if (result.error) throw result.error;
       return result.data || null;
     } catch (error) {
-      var text = String(error && (error.message || error.details || error.code) || '').toLowerCase();
-      var missingProfilePhotoColumn = text.indexOf('avatar_url') !== -1 || text.indexOf('photo_url') !== -1 || text.indexOf('42703') !== -1 || text.indexOf('pgrst204') !== -1;
-      if (!missingProfilePhotoColumn) {
-        console.warn('[Minha Caminhada] Nao foi possivel carregar a foto do perfil:', error);
-        return null;
-      }
-      try {
-        var fallbackAvatar = await window.supabaseClient
-          .from('profiles')
-          .select('id, full_name, public_name, avatar_url')
-          .eq('id', userId)
-          .maybeSingle();
-        if (!fallbackAvatar.error) return fallbackAvatar.data || null;
-      } catch (avatarError) {}
-      try {
-        var fallbackPhoto = await window.supabaseClient
-          .from('profiles')
-          .select('id, full_name, public_name, photo_url')
-          .eq('id', userId)
-          .maybeSingle();
-        if (!fallbackPhoto.error) return fallbackPhoto.data || null;
-      } catch (photoError) {}
-        try {
-          var basic = await window.supabaseClient
-            .from('profiles')
-            .select('id, full_name')
-            .eq('id', userId)
-            .maybeSingle();
-          return basic.data || null;
-        } catch (basicError) {
-          return null;
-        }
+      console.warn('[Minha Caminhada] Nao foi possivel carregar o perfil:', error);
+      return null;
     }
   }
 

@@ -38,13 +38,14 @@ async function loadUsersForCertSelect() {
 
   try {
     var result = await window.supabaseClient
-      .from('profiles').select('id, full_name, email').order('full_name');
+      .from('profiles').select('id, full_name').order('full_name');
+    if (result.error) { throw result.error; }
 
     if (result.data && result.data.length > 0) {
       var optionsHtml = '<option value="">Selecione um usuário...</option>';
       for (var i = 0; i < result.data.length; i++) {
         var p = result.data[i];
-        optionsHtml += '<option value="' + p.id + '">' + escapeHtml(p.full_name || p.email) + '</option>';
+        optionsHtml += '<option value="' + p.id + '">' + escapeHtml(p.full_name || 'Usuário sem nome') + '</option>';
       }
       select.innerHTML = optionsHtml;
     } else {

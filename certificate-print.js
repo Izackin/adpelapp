@@ -242,7 +242,7 @@
       var cert = result.data;
       var profile = null;
       if (cert.user_id) {
-        var profileResult = await window.supabaseClient.from('profiles').select('full_name, name, email').eq('id', cert.user_id).single();
+        var profileResult = await window.supabaseClient.from('profiles').select('full_name').eq('id', cert.user_id).single();
         if (!profileResult.error) profile = profileResult.data;
       }
       renderCertificate(cert, profile);
