@@ -94,14 +94,14 @@ function renderAdminAgenda() {
   for (var i = 0; i < agendaData.length; i++) {
     var event = agendaData[i];
     if (!event) continue;
-    var eventJson = encodeURIComponent(JSON.stringify(event));
+    var eventJson = encodeInlineJson(event);
     var catLabel = categoryLabels[event.category] || event.category || '';
     var catColor = categoryColors[event.category] || 'bg-gray-100 text-gray-700';
     html += '<div class="p-4 bg-gray-50 rounded-lg border border-gray-100">' +
       '<div class="flex items-start justify-between gap-3">' +
       '<div class="flex-1 min-w-0">' +
       '<h4 class="font-semibold text-gray-800 truncate">' + escapeHtml(event.title || 'Sem título') + '</h4>' +
-      '<p class="text-sm text-gray-500 mt-1">' + formatDate(event.event_date) + (event.event_time ? ' às ' + event.event_time : '') + (event.location ? ' &bull; ' + escapeHtml(event.location) : '') + '</p>' +
+      '<p class="text-sm text-gray-500 mt-1">' + escapeHtml(formatDate(event.event_date)) + (event.event_time ? ' às ' + escapeHtml(event.event_time) : '') + (event.location ? ' &bull; ' + escapeHtml(event.location) : '') + '</p>' +
       '<div class="flex gap-2 mt-2">' +
       '<span class="text-xs ' + catColor + ' px-2 py-0.5 rounded">' + escapeHtml(catLabel) + '</span>' +
       (event.is_published !== false ? '<span class="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded">Publicado</span>' : '<span class="text-xs bg-gray-200 text-gray-500 px-2 py-0.5 rounded">Rascunho</span>') +

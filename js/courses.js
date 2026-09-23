@@ -74,10 +74,10 @@ function renderFeaturedStudies(studies) {
     return;
   }
   container.innerHTML = studies.map(study => `
-    <div class="min-w-[300px] flex-shrink-0 snap-start bg-white rounded-xl shadow-sm overflow-hidden hover:shadow-lg transition cursor-pointer group" onclick="if(!getCurrentUserInfo().isLoggedIn){openModal('login-modal');return;} openStudyModal('${encodeURIComponent(JSON.stringify(study))}')">
+    <div class="min-w-[300px] flex-shrink-0 snap-start bg-white rounded-xl shadow-sm overflow-hidden hover:shadow-lg transition cursor-pointer group" onclick="if(!getCurrentUserInfo().isLoggedIn){openModal('login-modal');return;} openStudyModal('${encodeInlineJson(study)}')">
       <div class="relative h-40 bg-gradient-to-br from-amber-500 to-amber-600 overflow-hidden">
-        ${study.cover_url 
-          ? `<img src="${study.cover_url}" class="w-full h-full object-cover group-hover:scale-105 transition duration-500" alt="${escapeHtml(study.title)}">`
+        ${safeImageUrl(study.cover_url)
+          ? `<img src="${escapeHtml(safeImageUrl(study.cover_url))}" class="w-full h-full object-cover group-hover:scale-105 transition duration-500" alt="${escapeHtml(study.title)}">`
           : `<div class="w-full h-full flex items-center justify-center text-white/50"><i class="fas fa-book-open text-5xl"></i></div>`}
         <div class="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent flex items-end p-4">
           <span class="bg-amber-500 text-white px-2 py-1 rounded text-xs font-bold">${escapeHtml(study.category || 'Estudo')}</span>
@@ -97,18 +97,20 @@ function courseCarouselCard(course, actionLabel) {
     : normalizeLessons(course.lessons).length;
   const lessonsDone = typeof course.completedLessons === 'number' ? course.completedLessons : 0;
   const progress = lessonsTotal > 0 ? Math.min(100, Math.round((lessonsDone / lessonsTotal) * 100)) : 100;
+  const courseData = encodeInlineJson(course);
+  const thumbnailUrl = safeImageUrl(course.thumbnail_url);
 
   return `
     <div class="min-w-[292px] max-w-[320px] flex-shrink-0 snap-start bg-white rounded-xl shadow-sm overflow-hidden hover:shadow-lg transition group border border-gray-100">
-      <div class="relative h-40 bg-gradient-to-br from-blue-500 to-blue-700 cursor-pointer" onclick="if(!getCurrentUserInfo().isLoggedIn){openModal('login-modal');return;} openCourseModal('${encodeURIComponent(JSON.stringify(course))}')">
-        ${course.thumbnail_url
-          ? `<img src="${course.thumbnail_url}" class="w-full h-full object-cover" alt="${escapeHtml(course.title)}">`
+      <div class="relative h-40 bg-gradient-to-br from-blue-500 to-blue-700 cursor-pointer" onclick="if(!getCurrentUserInfo().isLoggedIn){openModal('login-modal');return;} openCourseModal('${courseData}')">
+        ${thumbnailUrl
+          ? `<img src="${escapeHtml(thumbnailUrl)}" class="w-full h-full object-cover" alt="${escapeHtml(course.title)}">`
           : `<div class="w-full h-full flex items-center justify-center text-white/50"><i class="fas fa-graduation-cap text-5xl"></i></div>`}
         <div class="absolute inset-0 bg-gradient-to-t from-black/65 via-black/10 to-transparent"></div>
         <div class="absolute bottom-3 right-3 bg-white/90 px-2 py-1 rounded text-xs font-bold text-blue-700">${escapeHtml(course.category || 'Curso')}</div>
       </div>
       <div class="p-4">
-        <h4 class="font-bold text-gray-800 group-hover:text-blue-600 transition cursor-pointer" onclick="if(!getCurrentUserInfo().isLoggedIn){openModal('login-modal');return;} openCourseModal('${encodeURIComponent(JSON.stringify(course))}')">${escapeHtml(course.title)}</h4>
+        <h4 class="font-bold text-gray-800 group-hover:text-blue-600 transition cursor-pointer" onclick="if(!getCurrentUserInfo().isLoggedIn){openModal('login-modal');return;} openCourseModal('${courseData}')">${escapeHtml(course.title)}</h4>
         <p class="text-sm text-gray-500 mt-2 line-clamp-2">${escapeHtml(course.description || 'Sem descricao')}</p>
         <div class="flex items-center justify-between mt-4 text-sm text-gray-600">
           <span class="flex items-center gap-1"><i class="fas fa-user-tie text-xs"></i> ${escapeHtml(course.teacher_name || 'A definir')}</span>
@@ -123,7 +125,7 @@ function courseCarouselCard(course, actionLabel) {
             <div class="h-1.5 bg-blue-600 rounded-full" style="width:${progress}%"></div>
           </div>
         </div>
-        <button onclick="if(!getCurrentUserInfo().isLoggedIn){openModal('login-modal');return;} openCourseModal('${encodeURIComponent(JSON.stringify(course))}')" class="mt-4 w-full py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition">${escapeHtml(actionLabel || 'Assistir')}</button>
+        <button onclick="if(!getCurrentUserInfo().isLoggedIn){openModal('login-modal');return;} openCourseModal('${courseData}')" class="mt-4 w-full py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition">${escapeHtml(actionLabel || 'Assistir')}</button>
       </div>
     </div>
   `;
@@ -178,10 +180,10 @@ function renderStudiesList(studies) {
     return;
   }
   container.innerHTML = studies.map(study => `
-    <div class="min-w-[300px] flex-shrink-0 snap-start bg-white rounded-xl shadow-sm overflow-hidden hover:shadow-lg transition cursor-pointer group border border-gray-100" onclick="if(!getCurrentUserInfo().isLoggedIn){openModal('login-modal');return;} openStudyModal('${encodeURIComponent(JSON.stringify(study))}')">
+    <div class="min-w-[300px] flex-shrink-0 snap-start bg-white rounded-xl shadow-sm overflow-hidden hover:shadow-lg transition cursor-pointer group border border-gray-100" onclick="if(!getCurrentUserInfo().isLoggedIn){openModal('login-modal');return;} openStudyModal('${encodeInlineJson(study)}')">
       <div class="relative h-40 bg-gradient-to-br from-amber-500 to-amber-600 overflow-hidden">
-        ${study.cover_url 
-          ? `<img src="${study.cover_url}" class="w-full h-full object-cover group-hover:scale-105 transition duration-500" alt="${escapeHtml(study.title)}">`
+        ${safeImageUrl(study.cover_url)
+          ? `<img src="${escapeHtml(safeImageUrl(study.cover_url))}" class="w-full h-full object-cover group-hover:scale-105 transition duration-500" alt="${escapeHtml(study.title)}">`
           : `<div class="w-full h-full flex items-center justify-center text-white/50"><i class="fas fa-book-open text-5xl"></i></div>`}
         <div class="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent flex items-end p-4">
           <span class="bg-amber-500 text-white px-2 py-1 rounded text-xs font-bold">${escapeHtml(study.category || 'Estudo')}</span>
@@ -731,9 +733,10 @@ function openStudyModal(encodedStudy) {
     contentSection.classList.add('hidden');
   }
 
-  if (study.file_url && fileSection && fileLink) {
+  const studyFileUrl = safeNavigationUrl(study.file_url);
+  if (studyFileUrl && fileSection && fileLink) {
     fileSection.classList.remove('hidden');
-    fileLink.href = study.file_url;
+    fileLink.href = studyFileUrl;
   } else if (fileSection) {
     fileSection.classList.add('hidden');
   }

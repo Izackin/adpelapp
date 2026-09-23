@@ -51,7 +51,7 @@ function renderCertificatesList(certificates) {
           <p class="text-sm text-gray-500 mt-1">${certDesc}</p>
         </div>
       </div>
-      <button onclick="viewCertificate('${encodeURIComponent(JSON.stringify(cert))}')" class="mt-4 w-full py-2 bg-yellow-50 text-yellow-700 rounded-lg text-sm font-medium hover:bg-yellow-100 transition flex items-center justify-center gap-2">
+      <button onclick="viewCertificate('${encodeInlineJson(cert)}')" class="mt-4 w-full py-2 bg-yellow-50 text-yellow-700 rounded-lg text-sm font-medium hover:bg-yellow-100 transition flex items-center justify-center gap-2">
         <i class="fas fa-eye"></i> Visualizar Certificado
       </button>
     </div>
@@ -66,7 +66,8 @@ function buildCertificateHTML({ userName, certTitle, courseTitle, description, d
   const safeDescription = description || 'concluiu com êxito o curso de';
   const safeDuration = duration || null;
   const safeCompletedDate = completedDate || new Date().toLocaleDateString('pt-BR', { day: 'numeric', month: 'long', year: 'numeric' });
-  const safeLogoUrl = logoUrl || '';
+  const safeLogoUrl = safeImageUrl(logoUrl || '', { allowRelative: true });
+  const escapedLogoUrl = escapeHtml(safeLogoUrl);
 
   return `
   <!DOCTYPE html>
@@ -207,10 +208,10 @@ function buildCertificateHTML({ userName, certTitle, courseTitle, description, d
     <div class="cert-frame">
       <div class="cert-inner-border"></div>
       <div class="watermark">
-        <img src="${safeLogoUrl}" alt="">
+        <img src="${escapedLogoUrl}" alt="">
       </div>
       <div class="header">
-        <div class="logo"><img src="${safeLogoUrl}" alt="ADPEL"></div>
+        <div class="logo"><img src="${escapedLogoUrl}" alt="ADPEL"></div>
         <div class="institution">Assembleia de Deus &mdash; Campo Pedro Ludovico</div>
         <h1>${escapeHtml(safeCertTitle)}</h1>
         <div class="subtitle">ADPEL &mdash; Plataforma de Discipulado</div>

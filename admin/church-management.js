@@ -320,13 +320,14 @@ function renderChurchMembers(onlyBirthdays) {
   var html = '';
   for (var i = 0; i < list.length; i++) {
     var member = list[i];
-    var memberJson = encodeURIComponent(JSON.stringify(member));
+    var memberJson = encodeInlineJson(member);
     var phone = String(member.phone || '').replace(/\D/g, '');
+    var photoUrl = safeImageUrl(member.photo_url || '');
     html += '<div class="p-4 bg-gray-50 rounded-lg border border-gray-100">' +
       '<div class="flex flex-col md:flex-row md:items-start justify-between gap-3">' +
       '<div class="flex gap-3 min-w-0">' +
       '<div class="w-12 h-12 rounded-xl bg-adpel-600 text-white flex items-center justify-center overflow-hidden shrink-0">' +
-      (member.photo_url ? '<img src="' + escapeHtml(member.photo_url) + '" alt="" class="w-full h-full object-cover">' : '<i class="fas fa-user"></i>') +
+      (photoUrl ? '<img src="' + escapeHtml(photoUrl) + '" alt="" class="w-full h-full object-cover">' : '<i class="fas fa-user"></i>') +
       '</div><div class="min-w-0">' +
       '<h4 class="font-semibold text-gray-800 truncate">' + escapeHtml(member.full_name) + '</h4>' +
       '<p class="text-sm text-gray-500 mt-1">' + escapeHtml(member.phone || 'Sem telefone') + (member.email ? ' &bull; ' + escapeHtml(member.email) : '') + '</p>' +

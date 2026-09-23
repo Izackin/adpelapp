@@ -141,7 +141,7 @@ function renderAdminCourses() {
   for (var i = 0; i < coursesData.length; i++) {
     var course = coursesData[i];
     if (!course) continue;
-    var courseJson = encodeURIComponent(JSON.stringify(course));
+    var courseJson = encodeInlineJson(course);
     html += '<div class="p-4 bg-gray-50 rounded-lg border border-gray-100">' +
       '<div class="flex items-start justify-between gap-3">' +
       '<div class="flex-1 min-w-0">' +

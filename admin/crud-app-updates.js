@@ -140,7 +140,7 @@ function renderAdminAppUpdates() {
       image_url: update.image_url || '',
       is_active: update.is_active !== false
     };
-    var updateJson = encodeURIComponent(JSON.stringify(cleanUpdate));
+    var updateJson = encodeInlineJson(cleanUpdate);
     var isActive = update.is_active !== false;
 
     html += '<div class="p-4 bg-gray-50 rounded-lg border border-gray-100">' +

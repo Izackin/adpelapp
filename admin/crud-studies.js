@@ -143,7 +143,7 @@ function renderAdminStudies() {
   for (var i = 0; i < studiesData.length; i++) {
     var study = studiesData[i];
     if (!study) continue;
-    var studyJson = encodeURIComponent(JSON.stringify(study));
+    var studyJson = encodeInlineJson(study);
     html += '<div class="p-4 bg-gray-50 rounded-lg border border-gray-100">' +
       '<div class="flex items-start justify-between gap-3">' +
       '<div class="flex-1 min-w-0">' +

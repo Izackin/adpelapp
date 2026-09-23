@@ -14,9 +14,14 @@ async function sendMasterNotification(e) {
   const title = document.getElementById('notif-title').value.trim();
   const body = document.getElementById('notif-body').value.trim();
   const url = document.getElementById('notif-url').value.trim();
+  const notificationUrl = safeNavigationUrl(url || window.location.origin + '/');
 
   if (!title || !body) {
     if (typeof showToast === 'function') showToast('Preencha título e mensagem.', 'warning');
+    return;
+  }
+  if (!notificationUrl) {
+    if (typeof showToast === 'function') showToast('Informe uma URL HTTP(S) ou caminho interno válido.', 'warning');
     return;
   }
 
@@ -28,7 +33,7 @@ async function sendMasterNotification(e) {
 
   try {
     const { data, error } = await window.supabaseClient.functions.invoke('send-notification', {
-      body: { title, body, url: url || window.location.origin + '/' }
+      body: { title, body, url: notificationUrl }
     });
 
     if (error) {

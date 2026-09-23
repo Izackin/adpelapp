@@ -3,21 +3,24 @@
 const bookUrls = {};
 
 function cacheBookUrl(id, url) {
-  if (id && url) bookUrls[id] = url;
+  const safeUrl = safeNavigationUrl(url);
+  if (id && safeUrl) bookUrls[id] = safeUrl;
 }
 
 async function readBook(id) {
   const url = bookUrls[id];
   if (url) {
-    window.open(url, '_blank');
+    window.open(url, '_blank', 'noopener,noreferrer');
     return;
   }
   try {
     const { data, error } = await window.supabaseClient.from('library_books').select('file_url').eq('id', id).single();
     if (error) throw error;
     if (data?.file_url) {
-      bookUrls[id] = data.file_url;
-      window.open(data.file_url, '_blank');
+      const safeUrl = safeNavigationUrl(data.file_url);
+      if (!safeUrl) throw new Error('URL do livro não permitida.');
+      bookUrls[id] = safeUrl;
+      window.open(safeUrl, '_blank', 'noopener,noreferrer');
     } else {
       showToast('Este livro não possui arquivo para leitura.', 'info');
     }
@@ -49,10 +52,11 @@ function renderFeaturedBooks(books) {
   }
   container.innerHTML = books.map(book => {
     cacheBookUrl(book.id, book.file_url);
+    const imageUrl = safeImageUrl(book.image);
     return `<div class="min-w-[260px] flex-shrink-0 snap-start bg-white rounded-xl shadow-sm overflow-hidden hover:shadow-lg transition cursor-pointer group p-4">
       <div class="relative h-48 bg-gray-100 rounded-lg overflow-hidden mb-4">
-        ${book.image 
-          ? `<img src="${book.image}" class="w-full h-full object-cover group-hover:scale-105 transition duration-500" alt="${escapeHtml(book.title)}" onerror="this.src='http://static.photos/book/200x300/1'">`
+        ${imageUrl
+          ? `<img src="${escapeHtml(imageUrl)}" class="w-full h-full object-cover group-hover:scale-105 transition duration-500" alt="${escapeHtml(book.title)}" onerror="this.src='https://static.photos/book/200x300/1'">`
           : `<div class="w-full h-full flex items-center justify-center text-gray-400"><i class="fas fa-book text-5xl"></i></div>`}
       </div>
       <h4 class="font-bold text-gray-800 group-hover:text-blue-600 transition text-sm">${escapeHtml(book.title)}</h4>
@@ -75,10 +79,11 @@ function renderBooksGrid(books) {
   }
   container.innerHTML = books.map(book => {
     cacheBookUrl(book.id, book.file_url);
+    const imageUrl = safeImageUrl(book.image);
     return `<div class="bg-white rounded-xl shadow-sm overflow-hidden hover:shadow-lg transition cursor-pointer group p-4">
       <div class="relative h-56 bg-gray-100 rounded-lg overflow-hidden mb-4">
-        ${book.image 
-          ? `<img src="${book.image}" class="w-full h-full object-cover group-hover:scale-105 transition duration-500" alt="${escapeHtml(book.title)}" onerror="this.src='http://static.photos/book/200x300/1'">`
+        ${imageUrl
+          ? `<img src="${escapeHtml(imageUrl)}" class="w-full h-full object-cover group-hover:scale-105 transition duration-500" alt="${escapeHtml(book.title)}" onerror="this.src='https://static.photos/book/200x300/1'">`
           : `<div class="w-full h-full flex items-center justify-center text-gray-400"><i class="fas fa-book text-5xl"></i></div>`}
       </div>
       <h4 class="font-bold text-gray-800 group-hover:text-blue-600 transition">${escapeHtml(book.title)}</h4>

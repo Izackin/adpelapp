@@ -111,7 +111,7 @@ function renderAdminCertificates() {
   for (var i = 0; i < certificatesData.length; i++) {
     var cert = certificatesData[i];
     if (!cert) continue;
-    var certJson = encodeURIComponent(JSON.stringify(cert));
+    var certJson = encodeInlineJson(cert);
     html += '<div class="p-4 bg-gray-50 rounded-lg border border-gray-100">' +
       '<div class="flex items-start justify-between gap-3">' +
       '<div class="flex-1 min-w-0">' +

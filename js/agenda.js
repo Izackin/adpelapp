@@ -219,7 +219,7 @@ function renderAnnouncements(announcements) {
         <div class="flex-1 min-w-0">
           <h4 class="font-semibold text-gray-800 truncate">${escapeHtml(a.title)}</h4>
           <p class="text-gray-600 text-sm mt-1 line-clamp-3">${escapeHtml(a.message)}</p>
-          ${a.link ? `<a href="${escapeHtml(a.link)}" target="_blank" class="inline-block mt-2 text-xs font-semibold text-blue-600 hover:text-blue-800 hover:underline"><i class="fas fa-external-link-alt mr-1"></i>Saiba mais</a>` : ''}
+          ${safeExternalUrl(a.link) ? `<a href="${escapeHtml(safeExternalUrl(a.link))}" target="_blank" rel="noopener noreferrer" class="inline-block mt-2 text-xs font-semibold text-blue-600 hover:text-blue-800 hover:underline"><i class="fas fa-external-link-alt mr-1"></i>Saiba mais</a>` : ''}
           ${a.expiry ? `<p class="text-xs text-gray-400 mt-2">Validade: ${formatDate(a.expiry)}</p>` : ''}
         </div>
       </div>
@@ -281,12 +281,12 @@ function renderEvents(events, attendancesByEvent = {}) {
           <h4 class="font-semibold text-gray-800 truncate">${escapeHtml(e.title || 'Evento')}</h4>
           <p class="text-sm text-gray-500 flex items-center gap-1 mt-1 flex-wrap">
             <i class="fas fa-clock text-xs"></i> ${escapeHtml(e.event_time || '')}
-            ${e.location ? `<span class="flex items-center gap-1"><i class="fas fa-map-marker-alt text-xs ml-2"></i> ${e.maps_url ? `<a href="${escapeHtml(e.maps_url)}" target="_blank" class="hover:text-adpel-600 hover:underline">${escapeHtml(e.location)}</a>` : escapeHtml(e.location)}</span>` : ''}
+            ${e.location ? `<span class="flex items-center gap-1"><i class="fas fa-map-marker-alt text-xs ml-2"></i> ${safeExternalUrl(e.maps_url) ? `<a href="${escapeHtml(safeExternalUrl(e.maps_url))}" target="_blank" rel="noopener noreferrer" class="hover:text-adpel-600 hover:underline">${escapeHtml(e.location)}</a>` : escapeHtml(e.location)}</span>` : ''}
           </p>
         </div>
       </div>
       ${e.description ? `<p class="text-xs text-gray-500 mt-2 line-clamp-2">${escapeHtml(e.description)}</p>` : ''}
-      ${e.link ? `<a href="${escapeHtml(e.link)}" target="_blank" class="inline-flex items-center gap-1 mt-3 text-xs font-bold text-adpel-700 hover:text-adpel-900 hover:underline"><i class="fas fa-arrow-up-right-from-square"></i> Abrir link</a>` : ''}
+      ${safeExternalUrl(e.link) ? `<a href="${escapeHtml(safeExternalUrl(e.link))}" target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-1 mt-3 text-xs font-bold text-adpel-700 hover:text-adpel-900 hover:underline"><i class="fas fa-arrow-up-right-from-square"></i> Abrir link</a>` : ''}
       <div class="${isAnnouncement ? 'hidden' : ''} mt-3 pt-3 border-t border-gray-100">
         <button id="attendance-btn-${e.id}" onclick="confirmAttendance('${e.id}')" class="w-full py-1.5 px-3 rounded-lg text-xs font-bold transition ${hasConfirmed ? 'bg-green-100 text-green-700 border border-green-200' : 'bg-purple-600 text-white hover:bg-purple-700 active:bg-purple-800'}">
           ${hasConfirmed ? '<i class="fas fa-check mr-1"></i> Presença Confirmada' : '<i class="fas fa-hand-point-up mr-1"></i> Marcar Presença'}
@@ -356,12 +356,12 @@ function renderHomeEvents(events, attendancesByEvent = {}) {
           <h4 class="font-semibold text-gray-800 truncate">${escapeHtml(e.title || 'Evento')}</h4>
           <p class="text-sm text-gray-500 flex items-center gap-1 mt-1 flex-wrap">
             <i class="fas fa-clock text-xs"></i> ${escapeHtml(e.event_time || '')}
-            ${e.location ? `<span class="flex items-center gap-1"><i class="fas fa-map-marker-alt text-xs ml-2"></i> ${e.maps_url ? `<a href="${escapeHtml(e.maps_url)}" target="_blank" class="hover:text-adpel-600 hover:underline">${escapeHtml(e.location)}</a>` : escapeHtml(e.location)}</span>` : ''}
+            ${e.location ? `<span class="flex items-center gap-1"><i class="fas fa-map-marker-alt text-xs ml-2"></i> ${safeExternalUrl(e.maps_url) ? `<a href="${escapeHtml(safeExternalUrl(e.maps_url))}" target="_blank" rel="noopener noreferrer" class="hover:text-adpel-600 hover:underline">${escapeHtml(e.location)}</a>` : escapeHtml(e.location)}</span>` : ''}
           </p>
         </div>
       </div>
       ${e.description ? `<p class="text-xs text-gray-500 mt-2 line-clamp-2">${escapeHtml(e.description)}</p>` : ''}
-      ${e.link ? `<a href="${escapeHtml(e.link)}" target="_blank" class="inline-flex items-center gap-1 mt-3 text-xs font-bold text-adpel-700 hover:text-adpel-900 hover:underline"><i class="fas fa-arrow-up-right-from-square"></i> Abrir link</a>` : ''}
+      ${safeExternalUrl(e.link) ? `<a href="${escapeHtml(safeExternalUrl(e.link))}" target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-1 mt-3 text-xs font-bold text-adpel-700 hover:text-adpel-900 hover:underline"><i class="fas fa-arrow-up-right-from-square"></i> Abrir link</a>` : ''}
       <div class="${isAnnouncement ? 'hidden' : ''} mt-3 pt-3 border-t border-gray-100">
         <button id="attendance-btn-${e.id}" onclick="confirmAttendance('${e.id}')" class="w-full py-1.5 px-3 rounded-lg text-xs font-bold transition ${hasConfirmed ? 'bg-green-100 text-green-700 border border-green-200' : 'bg-purple-600 text-white hover:bg-purple-700 active:bg-purple-800'}">
           ${hasConfirmed ? '<i class="fas fa-check mr-1"></i> Presença Confirmada' : '<i class="fas fa-hand-point-up mr-1"></i> Marcar Presença'}

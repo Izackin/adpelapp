@@ -144,7 +144,8 @@ function renderAdminCommunity() {
   container.innerHTML = '<div class="admin-community-grid">' + adminCommunityPosts.map(function(post) {
     var author = post.profiles || {};
     var name = author.public_name || author.full_name || 'Membro';
-    var avatar = author.avatar_url || '';
+    var avatar = safeImageUrl(author.avatar_url || '');
+    var postImageUrl = safeImageUrl(post.image_url || '');
     var initials = String(name || 'M').trim().charAt(0).toUpperCase() || 'M';
     var reactions = Array.isArray(post.community_reactions) ? post.community_reactions.length : 0;
     var comments = Array.isArray(post.community_comments) ? post.community_comments.length : 0;
@@ -162,7 +163,7 @@ function renderAdminCommunity() {
           '<span class="admin-community-status ' + status.classes + '">' + escapeHtml(status.label) + '</span>',
         '</div>',
         '<p class="admin-community-content">' + escapeHtml(post.content || '') + '</p>',
-        post.image_url ? '<div class="admin-community-thumb"><img src="' + escapeHtml(post.image_url) + '" alt="Imagem da publicação"></div>' : '',
+        postImageUrl ? '<div class="admin-community-thumb"><img src="' + escapeHtml(postImageUrl) + '" alt="Imagem da publicação"></div>' : '',
         '<div class="admin-community-stats">',
           '<span><i class="fas fa-hands-praying"></i> ' + reactions + ' améns</span>',
           '<span><i class="fas fa-comment"></i> ' + comments + ' comentários</span>',

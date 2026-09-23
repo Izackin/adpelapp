@@ -885,7 +885,7 @@
     var safeProgress = normalizeProgress(progress || currentProgressCache);
     var level = getLevelInfo(safeProgress.xp);
     var nextMedal = getNextMedal(safeProgress);
-    var avatar = safeProgress.avatar;
+    var avatar = safeImageUrl(safeProgress.avatar || '');
     var initials = String(safeProgress.user_name || 'M').trim().charAt(0).toUpperCase();
 
     container.innerHTML = [
@@ -985,7 +985,7 @@
 
     container.innerHTML = ranking.map(function (item, index) {
       var level = getLevelInfo(item.xp);
-      var avatar = item.avatar_url || item.avatar || '';
+      var avatar = safeImageUrl(item.avatar_url || item.avatar || '');
       var initials = String(item.user_name || 'M').trim().charAt(0).toUpperCase();
       var click = item.user_id ? ' onclick="openPublicProfile(&quot;' + escapeHtml(item.user_id) + '&quot;)"' : '';
       var medal = index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : String(index + 1);
@@ -1075,7 +1075,7 @@
     var safeProgress = normalizeProgress(progress || currentProgressCache);
     var level = getLevelInfo(safeProgress.xp);
     var nextMedal = getNextMedal(safeProgress);
-    var avatar = safeProgress.avatar;
+    var avatar = safeImageUrl(safeProgress.avatar || '');
     var initials = String(safeProgress.user_name || 'M').trim().charAt(0).toUpperCase();
     var isStarting = Number(safeProgress.total_points) === 0 && Number(safeProgress.streak_days) === 0 && level.progressPercent === 0;
     var currentXp = Number(safeProgress.xp) || 0;
@@ -1188,7 +1188,7 @@
 
     container.innerHTML = ranking.map(function (item, index) {
       var level = getLevelInfo(item.xp);
-      var avatar = item.avatar_url || item.avatar || '';
+      var avatar = safeImageUrl(item.avatar_url || item.avatar || '');
       var initials = String(item.user_name || 'M').trim().charAt(0).toUpperCase();
       var click = item.user_id ? ' onclick="openPublicProfile(&quot;' + escapeHtml(item.user_id) + '&quot;)"' : '';
       var medal = index === 0 ? '1' : index === 1 ? '2' : index === 2 ? '3' : String(index + 1);

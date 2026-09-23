@@ -44,7 +44,9 @@ function getCommunityInitials(name) {
 
 function renderCommunityAvatar(profile, sizeClass, fallback) {
   var name = getCommunityProfileDisplay(profile, fallback);
-  var avatar = profile && (profile.avatar_url || profile.photo_url) ? (profile.avatar_url || profile.photo_url) : '';
+  var avatar = profile && (profile.avatar_url || profile.photo_url)
+    ? safeImageUrl(profile.avatar_url || profile.photo_url)
+    : '';
   return '<span class="community-avatar ' + (sizeClass || '') + '">' +
     (avatar ? '<img src="' + escapeHtml(avatar) + '" alt="' + escapeHtml(name) + '">' : escapeHtml(getCommunityInitials(name))) +
   '</span>';
@@ -286,9 +288,10 @@ function handleCommunityImageChange(event) {
   selectedCommunityImagePreviewUrl = URL.createObjectURL(file);
   var preview = document.getElementById('community-image-preview');
   if (preview) {
+    var previewUrl = safeImageUrl(selectedCommunityImagePreviewUrl, { allowBlob: true });
     preview.classList.remove('hidden');
     preview.innerHTML = [
-      '<img src="' + escapeHtml(selectedCommunityImagePreviewUrl) + '" alt="Preview da imagem">',
+      previewUrl ? '<img src="' + escapeHtml(previewUrl) + '" alt="Preview da imagem">' : '',
       '<button type="button" onclick="removeCommunityImage()" class="community-image-remove"><i class="fas fa-times"></i><span>Remover imagem</span></button>'
     ].join('');
   }
@@ -435,6 +438,7 @@ function renderCommunityPosts() {
     var reactions = (post.community_reactions || []).filter(function(r) { return r.reaction_type === 'amen'; });
     var reacted = userInfo.user && reactions.some(function(r) { return r.user_id === userInfo.user.id; });
     var comments = (post.community_comments || []).filter(function(c) { return c.status === 'published'; });
+    var postImageUrl = safeImageUrl(post.image_url);
     return [
       '<article id="community-post-' + escapeHtml(post.id) + '" class="community-post">',
         '<div class="community-post-header">',
@@ -448,7 +452,7 @@ function renderCommunityPosts() {
           renderCommunityPostMenu(post, userInfo),
         '</div>',
         '<div class="community-post-body"><p>' + escapeHtml(post.content) + '</p></div>',
-        post.image_url ? '<div class="community-post-image-wrap"><button type="button" onclick="openCommunityImageViewer(&quot;' + escapeHtml(post.image_url) + '&quot;)" class="community-post-image-button" aria-label="Abrir imagem da publicação"><img src="' + escapeHtml(post.image_url) + '" alt="Imagem da publicação" class="community-post-image" loading="lazy"><span class="community-post-image-open"><i class="fas fa-up-right-and-down-left-from-center"></i></span></button></div>' : '',
+        postImageUrl ? '<div class="community-post-image-wrap"><button type="button" data-community-image="' + escapeHtml(postImageUrl) + '" onclick="openCommunityImageViewer(this.dataset.communityImage)" class="community-post-image-button" aria-label="Abrir imagem da publicação"><img src="' + escapeHtml(postImageUrl) + '" alt="Imagem da publicação" class="community-post-image" loading="lazy"><span class="community-post-image-open"><i class="fas fa-up-right-and-down-left-from-center"></i></span></button></div>' : '',
         '<div id="community-post-stats-' + escapeHtml(post.id) + '" class="community-post-stats">' + reactions.length + ' améns <span>&bull;</span> ' + comments.length + ' comentários</div>',
         '<div class="community-post-footer">',
           '<button id="community-amen-btn-' + escapeHtml(post.id) + '" onclick="toggleAmenReaction(&quot;' + post.id + '&quot;)" class="community-action-btn ' + (reacted ? 'is-active' : '') + '"><i class="fas fa-hands-praying"></i><span>Amém</span></button>',
@@ -694,8 +698,9 @@ function ensureCommunityImageViewer() {
 }
 
 function openCommunityImageViewer(imageUrl) {
-  if (!imageUrl) return;
-  var safeUrl = escapeHtml(imageUrl);
+  var validatedUrl = safeImageUrl(imageUrl);
+  if (!validatedUrl) return;
+  var safeUrl = escapeHtml(validatedUrl);
   var viewer = ensureCommunityImageViewer();
   viewer.className = 'community-image-viewer';
   viewer.innerHTML = [

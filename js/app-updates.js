@@ -105,8 +105,9 @@ function mostrarModalAtualizacao(update) {
   const version = update.version
     ? '<span class="inline-flex items-center px-3 py-1 rounded-full bg-emerald-50 text-emerald-700 text-xs font-bold border border-emerald-100">Versao ' + escapeHtml(update.version) + '</span>'
     : '';
-  const image = update.image_url
-    ? '<img src="' + escapeHtml(update.image_url) + '" alt="" class="w-full h-44 object-cover rounded-xl border border-gray-100 shadow-sm">'
+  const imageUrl = safeImageUrl(update.image_url);
+  const image = imageUrl
+    ? '<img src="' + escapeHtml(imageUrl) + '" alt="" class="w-full h-44 object-cover rounded-xl border border-gray-100 shadow-sm">'
     : '';
 
   modal.innerHTML = [

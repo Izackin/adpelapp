@@ -169,26 +169,28 @@ function renderFeaturedCourses(courses) {
     const imageAttributes = isMobile
       ? (isPriorityImage ? 'loading="eager" fetchpriority="high" decoding="async"' : 'loading="lazy" fetchpriority="low" decoding="async"')
       : '';
+    const courseData = encodeInlineJson(course);
+    const thumbnailUrl = safeImageUrl(course.thumbnail_url);
 
     return `
     <div class="min-w-[292px] max-w-[320px] flex-shrink-0 snap-start bg-white rounded-xl shadow-sm overflow-hidden hover:shadow-lg transition group border border-gray-100">
-      <div class="relative h-40 bg-gradient-to-br from-blue-500 to-blue-700 cursor-pointer" onclick="if(!getCurrentUserInfo().isLoggedIn){openModal('login-modal');return;} openCourseModal('${encodeURIComponent(JSON.stringify(course))}')">
-        ${course.thumbnail_url 
-          ? `<img src="${course.thumbnail_url}" ${imageAttributes} width="320" height="160" class="w-full h-full object-cover" alt="${escapeHtml(course.title)}">`
+      <div class="relative h-40 bg-gradient-to-br from-blue-500 to-blue-700 cursor-pointer" onclick="if(!getCurrentUserInfo().isLoggedIn){openModal('login-modal');return;} openCourseModal('${courseData}')">
+        ${thumbnailUrl
+          ? `<img src="${escapeHtml(thumbnailUrl)}" ${imageAttributes} width="320" height="160" class="w-full h-full object-cover" alt="${escapeHtml(course.title)}">`
           : `<div class="w-full h-full flex items-center justify-center text-white/50"><i class="fas fa-graduation-cap text-5xl"></i></div>`}
         <div class="absolute inset-0 bg-gradient-to-t from-black/65 via-black/10 to-transparent"></div>
         <div class="absolute top-3 left-3 bg-amber-400 text-slate-950 px-2 py-1 rounded text-xs font-black shadow-sm">Lançamento</div>
         <div class="absolute bottom-3 right-3 bg-white/90 px-2 py-1 rounded text-xs font-bold text-blue-700">${escapeHtml(course.category || 'Curso')}</div>
       </div>
       <div class="p-4">
-        <h4 class="font-bold text-gray-800 group-hover:text-blue-600 transition cursor-pointer" onclick="if(!getCurrentUserInfo().isLoggedIn){openModal('login-modal');return;} openCourseModal('${encodeURIComponent(JSON.stringify(course))}')">${escapeHtml(course.title)}</h4>
+        <h4 class="font-bold text-gray-800 group-hover:text-blue-600 transition cursor-pointer" onclick="if(!getCurrentUserInfo().isLoggedIn){openModal('login-modal');return;} openCourseModal('${courseData}')">${escapeHtml(course.title)}</h4>
         <p class="text-sm text-gray-500 mt-2 line-clamp-2">${escapeHtml(course.description || 'Sem descricao')}</p>
         <div class="flex items-center justify-between mt-4 text-sm text-gray-600">
           <span class="flex items-center gap-1"><i class="fas fa-user-tie text-xs"></i> ${escapeHtml(course.teacher_name || 'A definir')}</span>
           <span class="flex items-center gap-1"><i class="fas fa-clock text-xs"></i> ${course.duration ? `${course.duration}h` : 'A definir'}</span>
         </div>
         <div class="mt-3 grid grid-cols-2 gap-2">
-          <button onclick="if(!getCurrentUserInfo().isLoggedIn){openModal('login-modal');return;} openCourseModal('${encodeURIComponent(JSON.stringify(course))}')" class="py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition">Assistir</button>
+          <button onclick="if(!getCurrentUserInfo().isLoggedIn){openModal('login-modal');return;} openCourseModal('${courseData}')" class="py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition">Assistir</button>
           <button onclick="navigateTo('courses')" class="py-2 bg-gray-100 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-200 transition">Outros cursos</button>
         </div>
       </div>

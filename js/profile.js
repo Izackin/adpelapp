@@ -65,7 +65,7 @@ function renderProfile(userInfo) {
   const displayName = escapeHtml(rawName);
   const displayEmail = escapeHtml(user.email || '');
   const roleLabel = userInfo.isMaster ? 'Administrador' : 'Membro';
-  const avatar = profile.avatar_url || profile.photo_url || profile.avatar || '';
+  const avatar = safeImageUrl(profile.avatar_url || profile.photo_url || profile.avatar || '');
   const initials = String(rawName || 'M').trim().charAt(0).toUpperCase();
 
   container.innerHTML = [
@@ -298,6 +298,7 @@ function openEditProfileModal() {
   const profile = userInfo.profile || {};
   selectedAvatarFile = null;
   selectedAvatarPreviewUrl = profile.avatar_url || '';
+  const currentAvatarUrl = safeImageUrl(profile.avatar_url || '');
   const modal = ensureProfileModal('edit-profile-modal');
   modal.classList.remove('hidden');
   modal.classList.add('flex');
@@ -317,7 +318,7 @@ function openEditProfileModal() {
           '</div>',
           '<div class="flex flex-col sm:flex-row sm:items-center gap-4">',
             '<div id="avatar-preview" class="w-24 h-24 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center overflow-hidden shrink-0 text-2xl font-bold">',
-              profile.avatar_url ? '<img src="' + escapeHtml(profile.avatar_url) + '" alt="Avatar atual" class="w-full h-full object-cover">' : '<i class="fas fa-user"></i>',
+              currentAvatarUrl ? '<img src="' + escapeHtml(currentAvatarUrl) + '" alt="Avatar atual" class="w-full h-full object-cover">' : '<i class="fas fa-user"></i>',
             '</div>',
             '<div class="flex-1 min-w-0">',
               '<label class="block text-sm font-bold text-gray-700 mb-2">Foto do perfil</label>',
@@ -386,7 +387,10 @@ function handleAvatarFileChange(event) {
   selectedAvatarPreviewUrl = URL.createObjectURL(file);
   const preview = document.getElementById('avatar-preview');
   if (preview) {
-    preview.innerHTML = '<img src="' + escapeHtml(selectedAvatarPreviewUrl) + '" alt="Preview do avatar" class="w-full h-full object-cover">';
+    const previewUrl = safeImageUrl(selectedAvatarPreviewUrl, { allowBlob: true });
+    preview.innerHTML = previewUrl
+      ? '<img src="' + escapeHtml(previewUrl) + '" alt="Preview do avatar" class="w-full h-full object-cover">'
+      : '<i class="fas fa-user"></i>';
   }
 }
 
@@ -646,7 +650,7 @@ function renderPublicProfile(profile, progress) {
 
   const safeProgress = progress || {};
   const name = profile.public_name || profile.full_name || safeProgress.user_name || 'Membro';
-  const avatar = profile.avatar_url || profile.photo_url || safeProgress.avatar || '';
+  const avatar = safeImageUrl(profile.avatar_url || profile.photo_url || safeProgress.avatar || '');
   const level = publicProfileLevelInfo(safeProgress.xp);
   const medals = publicProfileMedals(safeProgress);
   const initials = String(name).trim().charAt(0).toUpperCase();
