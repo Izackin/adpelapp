@@ -588,7 +588,7 @@ async function loadPublicProfile(userId) {
 
   try {
     const profileResult = await window.supabaseClient
-      .from('profiles')
+      .from('public_profiles')
       .select('id, full_name, public_name, bio, avatar_url, favorite_verse, ministry, phone, instagram, show_phone, show_public_profile')
       .eq('id', userId)
       .single();

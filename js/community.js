@@ -84,7 +84,7 @@ async function loadCommunityProfiles(userIds) {
 
   try {
     var result = await window.supabaseClient
-      .from('profiles')
+      .from('public_profiles')
       .select('id, full_name, public_name, avatar_url, bio, ministry, show_public_profile')
       .in('id', ids);
     if (result.error) throw result.error;

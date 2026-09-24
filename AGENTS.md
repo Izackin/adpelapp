@@ -160,6 +160,8 @@ Nao existe servidor proprio neste repositorio. Toda operacao administrativa atua
 
 O perfil complementar fica em `profiles`, vinculado ao `auth.users` pelo mesmo `id`. O admin/master e identificado por `profiles.role = 'master'` ou pelo email hardcoded `master@adpel.com`.
 
+Leituras publicas de perfil usam a view `public_profiles`. A tabela `profiles` fica restrita ao proprio usuario e ao master; a projecao publica e alimentada por uma funcao limitada no schema nao exposto `adpel_private`.
+
 Novos usuarios recebem automaticamente um registro em `profiles` pelo trigger `on_auth_user_created`, definido na migration `20260710120000_fix_user_registration_profile_trigger.sql`. O trigger copia `raw_user_meta_data.full_name`, aplica a role segura `member` e nunca promove permissoes administrativas. A mesma migration protege a coluna `role` contra promocao pelo proprio membro, preservando alteracoes feitas por master ou pelo backend administrativo.
 
 ### Database
@@ -188,6 +190,7 @@ Tabelas e views identificadas:
 - `app_updates`
 - `app_update_reads`
 - `push_subscriptions`
+- `public_profiles` (view publica segura; filtra perfis privados e mascara `phone` quando `show_phone` nao e verdadeiro)
 
 ### Storage
 

@@ -90,4 +90,40 @@ assert.deepEqual(JSON.parse(decodeURIComponent(encoded)), {
 
 assert.equal(sanitizeUrl(' https://example.com/a?b=1 '), 'https://example.com/a?b=1');
 
+const remainingRlsMigration = fs.readFileSync(
+  path.join(
+    projectRoot,
+    'supabase',
+    'migrations',
+    '20260924123039_harden_remaining_rls_and_profile_privacy.sql'
+  ),
+  'utf8'
+);
+const publicProfilesInvokerMigration = fs.readFileSync(
+  path.join(
+    projectRoot,
+    'supabase',
+    'migrations',
+    '20260924123815_make_public_profiles_view_security_invoker.sql'
+  ),
+  'utf8'
+);
+
+assert.match(remainingRlsMigration, /push_subscriptions_insert_own[\s\S]*user_id = \(select auth\.uid\(\)\)/);
+assert.match(remainingRlsMigration, /certificates_insert_own_or_master[\s\S]*user_id = \(select auth\.uid\(\)\)/);
+assert.match(remainingRlsMigration, /app_updates_master_insert[\s\S]*is_admin_master\(\)/);
+assert.match(remainingRlsMigration, /case when show_phone is true then phone else null end as phone/);
+assert.match(remainingRlsMigration, /where coalesce\(show_public_profile, true\) is true/);
+assert.match(publicProfilesInvokerMigration, /security_invoker = true/);
+assert.match(publicProfilesInvokerMigration, /security definer[\s\S]*set search_path = pg_catalog/);
+assert.match(publicProfilesInvokerMigration, /case when profile\.show_phone is true then profile\.phone else null end/);
+
+[
+  path.join(projectRoot, 'js', 'community.js'),
+  path.join(projectRoot, 'js', 'profile.js'),
+  path.join(projectRoot, 'spiritual-progress.js')
+].forEach((file) => {
+  assert.match(fs.readFileSync(file, 'utf8'), /\.from\('public_profiles'\)/);
+});
+
 console.log('security-hardening: all assertions passed');

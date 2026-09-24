@@ -654,7 +654,7 @@
       if (userIds.length) {
         try {
           var profilesResult = await window.supabaseClient
-            .from('profiles')
+            .from('public_profiles')
             .select('id, full_name, public_name, avatar_url, bio, ministry, show_public_profile, show_in_ranking')
             .in('id', userIds);
           if (profilesResult.error) throw profilesResult.error;
@@ -667,7 +667,7 @@
           if (missingProfileColumns) {
             try {
               var fallbackProfiles = await window.supabaseClient
-                .from('profiles')
+                .from('public_profiles')
                 .select('id, full_name')
                 .in('id', userIds);
               if (!fallbackProfiles.error) {
