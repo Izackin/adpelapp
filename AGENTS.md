@@ -162,7 +162,7 @@ O perfil complementar fica em `profiles`, vinculado ao `auth.users` pelo mesmo `
 
 Leituras publicas de perfil usam a view `public_profiles`. A tabela `profiles` fica restrita ao proprio usuario e ao master; a projecao publica e alimentada por uma funcao limitada no schema nao exposto `adpel_private`.
 
-Novos usuarios recebem automaticamente um registro em `profiles` pelo trigger `on_auth_user_created`, definido na migration `20260710120000_fix_user_registration_profile_trigger.sql`. O trigger copia `raw_user_meta_data.full_name`, aplica a role segura `member` e nunca promove permissoes administrativas. A mesma migration protege a coluna `role` contra promocao pelo proprio membro, preservando alteracoes feitas por master ou pelo backend administrativo.
+Novos usuarios recebem automaticamente um registro em `profiles` pelo trigger `on_auth_user_created`, reconciliado pela migration `20260924130216_reconcile_auth_profile_registration.sql`. O trigger copia `raw_user_meta_data.full_name`, aplica explicitamente a role segura `user` e nunca confia em role enviada nos metadados do cadastro. A mesma migration protege a coluna `role` contra promocao pelo proprio membro, preservando alteracoes feitas por master ou pelo backend administrativo.
 
 ### Database
 

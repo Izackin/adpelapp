@@ -108,6 +108,15 @@ const publicProfilesInvokerMigration = fs.readFileSync(
   ),
   'utf8'
 );
+const authProfileReconciliationMigration = fs.readFileSync(
+  path.join(
+    projectRoot,
+    'supabase',
+    'migrations',
+    '20260924130216_reconcile_auth_profile_registration.sql'
+  ),
+  'utf8'
+);
 
 assert.match(remainingRlsMigration, /push_subscriptions_insert_own[\s\S]*user_id = \(select auth\.uid\(\)\)/);
 assert.match(remainingRlsMigration, /certificates_insert_own_or_master[\s\S]*user_id = \(select auth\.uid\(\)\)/);
@@ -117,6 +126,22 @@ assert.match(remainingRlsMigration, /where coalesce\(show_public_profile, true\)
 assert.match(publicProfilesInvokerMigration, /security_invoker = true/);
 assert.match(publicProfilesInvokerMigration, /security definer[\s\S]*set search_path = pg_catalog/);
 assert.match(publicProfilesInvokerMigration, /case when profile\.show_phone is true then profile\.phone else null end/);
+assert.match(authProfileReconciliationMigration, /security definer[\s\S]*set search_path = pg_catalog/);
+assert.match(authProfileReconciliationMigration, /insert into public\.profiles[\s\S]*'user'/);
+assert.match(authProfileReconciliationMigration, /revoke all on function public\.handle_new_user\(\) from public, anon, authenticated/);
+assert.match(authProfileReconciliationMigration, /new\.role := 'user'/);
+assert.doesNotMatch(authProfileReconciliationMigration, /'member'/);
+assert.equal(
+  fs.existsSync(
+    path.join(
+      projectRoot,
+      'supabase',
+      'migrations',
+      '20260710120000_fix_user_registration_profile_trigger.sql'
+    )
+  ),
+  false
+);
 
 [
   path.join(projectRoot, 'js', 'community.js'),
