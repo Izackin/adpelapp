@@ -3,10 +3,10 @@ var _lastHomeLoad = 0;
 var _lastSectionLoads = {};
 var SECTION_LOAD_DEBOUNCE = 2000;
 
-function navigateTo(section) {
-  if (section === 'studies') section = 'courses';
+function navigateTo(section, options) {
+  var navigationOptions = options || {};
   // Seções que exigem login
-  var restrictedSections = ['courses', 'library', 'certificate', 'profile', 'community'];
+  var restrictedSections = ['courses', 'studies', 'library', 'certificate', 'profile', 'community'];
   var userInfo = getCurrentUserInfo();
 
   if (restrictedSections.indexOf(section) !== -1 && !userInfo.isLoggedIn) {
@@ -14,7 +14,7 @@ function navigateTo(section) {
     return;
   }
 
-  const sections = ['home', 'courses', 'library', 'certificate', 'cofres', 'ranking', 'bible', 'profile', 'community'];
+  const sections = ['home', 'word', 'learn', 'community-hub', 'more', 'courses', 'studies', 'library', 'certificate', 'cofres', 'ranking', 'bible', 'profile', 'community'];
   sections.forEach(s => {
     const el = document.getElementById(s);
     if (el) el.classList.add('hidden');
@@ -23,6 +23,12 @@ function navigateTo(section) {
   if (target) {
     target.classList.remove('hidden');
     currentSection = section;
+  } else {
+    return;
+  }
+  if (navigationOptions.updateHistory !== false) {
+    var nextHash = '#' + section;
+    if (window.location.hash !== nextHash) window.history.pushState({ section: section }, '', nextHash);
   }
   window.scrollTo({ top: 0, behavior: 'smooth' });
   loadSectionData(section);
@@ -33,31 +39,10 @@ function navigateTo(section) {
     if (sidebar) sidebar.classList.add('hidden');
   }
 
-  // Atualizar estado ativo da navegação mobile
-  const mobileNav = document.getElementById('mobile-nav');
-  if (mobileNav) {
-    const groupMap = {
-      home: 'home',
-      courses: 'aprender',
-      library: 'aprender',
-      certificate: 'aprender',
-      cofres: 'culto',
-      ranking: 'culto',
-      community: 'community',
-      profile: 'home'
-    };
-    const activeGroup = groupMap[section] || section;
-    mobileNav.querySelectorAll('.mobile-nav-btn').forEach(btn => {
-      const btnGroup = btn.getAttribute('data-group');
-      if (btnGroup === activeGroup) {
-        btn.classList.add('text-adpel-600');
-        btn.classList.remove('text-gray-600');
-      } else {
-        btn.classList.remove('text-adpel-600');
-        btn.classList.add('text-gray-600');
-      }
-    });
-  }
+  var activeContext = window.ADPELAppShell
+    ? window.ADPELAppShell.contextForSection(section)
+    : section;
+  if (window.ADPELAppShell) window.ADPELAppShell.setActive(activeContext);
 }
 
 function loadSectionData(section) {
@@ -69,7 +54,9 @@ function loadSectionData(section) {
   _lastSectionLoads[section] = now;
   switch(section) {
     case 'home': loadHomeData(); break;
+    case 'word': if (typeof renderReadingContinuation === 'function') renderReadingContinuation(); break;
     case 'courses': loadCoursesData(); break;
+    case 'studies': loadStudiesData(); break;
     case 'library': loadLibraryData(); break;
     case 'certificate': loadCertificatesData(); break;
     case 'cofres': if (typeof loadCofresData === 'function') loadCofresData(); break;
@@ -82,10 +69,8 @@ function loadSectionData(section) {
 
 function handleNavigationHash() {
   const hash = window.location.hash.replace('#', '');
-  if (hash && ['home','courses','library','certificate','cofres','ranking','profile','community'].includes(hash)) {
-    navigateTo(hash);
-  } else if (hash === 'studies') {
-    navigateTo('courses');
+  if (hash && ['home','word','learn','community-hub','more','courses','studies','library','certificate','cofres','ranking','profile','community'].includes(hash)) {
+    navigateTo(hash, { updateHistory: false });
   }
 }
 
@@ -183,9 +168,12 @@ function toggleSidebarGroup(groupId) {
   if (icon) icon.classList.toggle('rotate-180');
 }
 
-function initNavigation() {
+function initNavigation(options) {
+  var navigationOptions = options || {};
   window.addEventListener('hashchange', handleNavigationHash);
-  if (window.location.hash) handleNavigationHash();
+  window.addEventListener('popstate', handleNavigationHash);
+  if (navigationOptions.handleInitialHash !== false && window.location.hash) handleNavigationHash();
+  else if (window.ADPELAppShell) window.ADPELAppShell.setActive('home');
   initMobileNavInteractions();
   initModalInteractions();
 }

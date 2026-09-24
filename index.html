@@ -13,6 +13,7 @@
   <script src="https://unpkg.com/lucide@latest"></script>
   <script src="js/config.js" defer></script>
   <script src="js/bootstrap.js"></script>
+  <script src="js/app-shell.js" defer></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js" defer></script>
   <script src="supabase.js" defer></script>
   <script src="utils-notifications.js" defer></script>
@@ -162,8 +163,9 @@
   }
 </style>
 <link rel="stylesheet" href="mobile-ux.css">
+<link rel="stylesheet" href="app-shell.css">
 </head>
-<body class="antialiased min-h-screen flex flex-col overflow-x-hidden relative">
+<body class="antialiased min-h-screen flex flex-col overflow-x-hidden relative" data-app-context="home">
 
   <!-- PWA Install Banner -->
   <div id="pwa-install-banner" class="fixed top-20 left-0 right-0 z-50 bg-adpel-600 text-white px-4 py-3 shadow-lg transition-transform duration-500 -translate-y-[200%] flex items-center justify-between max-w-3xl mx-auto rounded-b-xl border border-adpel-500 border-t-0">
@@ -192,36 +194,6 @@
           </div>
           <span class="font-bold text-xl text-sidebar hidden sm:block">ADPEL</span>
         </div>
-        <nav class="hidden md:flex items-center space-x-1">
-          <a href="#home" onclick="navigateTo('home'); return false;" class="text-gray-900 px-3 py-2 rounded-md text-sm font-medium cursor-pointer">Início</a>
-
-          <div class="relative group">
-            <button class="text-gray-600 px-3 py-2 rounded-md text-sm font-medium hover:text-adpel-700 transition cursor-pointer flex items-center gap-1">
-              🎓 Aprender <i class="fas fa-chevron-down text-[10px]"></i>
-            </button>
-            <div class="absolute left-0 top-full mt-1 w-48 bg-[#0f172a] border border-gray-700 rounded-lg shadow-2xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50 overflow-hidden">
-              <a href="#courses" onclick="navigateTo('courses'); return false;" class="block px-4 py-2 text-sm text-gray-300 hover:bg-adpel-600/20 hover:text-white transition">Cursos</a>
-              <a href="#library" onclick="navigateTo('library'); return false;" class="block px-4 py-2 text-sm text-gray-300 hover:bg-adpel-600/20 hover:text-white transition">Biblioteca</a>
-              <a href="#certificate" onclick="navigateTo('certificate'); return false;" class="block px-4 py-2 text-sm text-gray-300 hover:bg-adpel-600/20 hover:text-white transition">Certificados</a>
-            </div>
-          </div>
-
-          <a href="#community" onclick="navigateTo('community'); return false;" class="text-gray-600 px-3 py-2 rounded-md text-sm font-medium hover:text-adpel-700 transition cursor-pointer flex items-center gap-1">
-            <i class="fas fa-users"></i> Comunidade
-          </a>
-
-          <div class="relative group">
-            <button class="text-gray-600 px-3 py-2 rounded-md text-sm font-medium hover:text-adpel-700 transition cursor-pointer flex items-center gap-1">
-              📖 Culto <i class="fas fa-chevron-down text-[10px]"></i>
-            </button>
-            <div class="absolute left-0 top-full mt-1 w-48 bg-[#0f172a] border border-gray-700 rounded-lg shadow-2xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50 overflow-hidden">
-              <a href="bible.html" class="block px-4 py-2 text-sm text-gray-300 hover:bg-adpel-600/20 hover:text-white transition">Bíblia</a>
-              <a href="harpa.html" class="block px-4 py-2 text-sm text-gray-300 hover:bg-adpel-600/20 hover:text-white transition">Harpa</a>
-          <a href="#cofres" onclick="navigateTo('cofres'); return false;" class="block px-4 py-2 text-sm text-gray-300 hover:bg-adpel-600/20 hover:text-white transition">🐷 Cofres</a>
-          <a href="#ranking" onclick="navigateTo('ranking'); return false;" class="block px-4 py-2 text-sm text-gray-300 hover:bg-adpel-600/20 hover:text-white transition">🏅 Ranking</a>
-            </div>
-          </div>
-        </nav>
         <div class="flex items-center gap-3">
           <button onclick="openLogin()" id="auth-buttons" class="px-4 py-2 bg-adpel-600 text-white rounded-lg text-sm font-medium hover:bg-adpel-700 transition cursor-pointer">
             <i class="fas fa-sign-in-alt mr-1"></i> Entrar
@@ -241,7 +213,7 @@
               </button>
             </div>
           </div>
-          <button onclick="toggleSidebar()" class="text-gray-600 hover:text-adpel-700 focus:outline-none ml-2">
+          <button onclick="toggleSidebar()" class="md:hidden text-gray-600 hover:text-adpel-700 focus:outline-none ml-2" aria-label="Abrir menu">
             <i class="fas fa-bars text-2xl"></i>
           </button>
         </div>
@@ -250,59 +222,7 @@
   </header>
 
   <!-- MOBILE NAV -->
-  <nav id="mobile-nav" class="md:hidden fixed inset-x-0 bottom-0 z-50 bg-white border-t border-gray-200 pb-safe shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.1)]">
-    <div class="flex justify-around items-center h-16 px-1 relative">
-      <button onclick="navigateTo('home'); closeMobileSubmenus()" data-section="home" data-group="home" class="mobile-nav-btn flex flex-col items-center text-adpel-600 flex-1 py-1 bg-transparent border-none cursor-pointer">
-        <i class="fas fa-home text-lg mb-1 pointer-events-none"></i>
-        <span class="text-[10px] font-medium pointer-events-none">Início</span>
-      </button>
-      <button onclick="toggleMobileMenu('menu-aprender')" data-group="aprender" class="mobile-nav-btn flex flex-col items-center text-gray-600 hover:text-adpel-600 flex-1 py-1 bg-transparent border-none cursor-pointer">
-        <i class="fas fa-graduation-cap text-lg mb-1 pointer-events-none"></i>
-        <span class="text-[10px] font-medium pointer-events-none">Aprender</span>
-      </button>
-      <button onclick="toggleMobileMenu('menu-culto')" data-group="culto" class="mobile-nav-btn flex flex-col items-center text-gray-600 hover:text-adpel-600 flex-1 py-1 bg-transparent border-none cursor-pointer">
-        <i class="fas fa-book-open text-lg mb-1 pointer-events-none"></i>
-        <span class="text-[10px] font-medium pointer-events-none">Culto</span>
-      </button>
-      <button onclick="navigateTo('community'); closeMobileSubmenus()" data-section="community" data-group="community" class="mobile-nav-btn flex flex-col items-center text-gray-600 hover:text-adpel-600 flex-1 py-1 bg-transparent border-none cursor-pointer">
-        <i class="fas fa-users text-lg mb-1 pointer-events-none"></i>
-        <span class="text-[10px] font-medium pointer-events-none">Comunidade</span>
-      </button>
-
-      <!-- Submenu Aprender -->
-      <div id="menu-aprender" class="hidden absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-56 bg-[#0f172a] border border-gray-700 rounded-xl shadow-2xl overflow-hidden z-50">
-        <div class="p-2 space-y-1">
-          <a href="#courses" onclick="navigateTo('courses'); closeMobileSubmenus(); return false;" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-gray-300 hover:bg-adpel-600/20 hover:text-white transition">
-            <i class="fas fa-graduation-cap w-5 text-center"></i> Cursos
-          </a>
-          <a href="#library" onclick="navigateTo('library'); closeMobileSubmenus(); return false;" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-gray-300 hover:bg-adpel-600/20 hover:text-white transition">
-            <i class="fas fa-book w-5 text-center"></i> Biblioteca
-          </a>
-          <a href="#certificate" onclick="navigateTo('certificate'); closeMobileSubmenus(); return false;" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-gray-300 hover:bg-adpel-600/20 hover:text-white transition">
-            <i class="fas fa-certificate w-5 text-center"></i> Certificados
-          </a>
-        </div>
-      </div>
-
-      <!-- Submenu Culto -->
-      <div id="menu-culto" class="hidden absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-56 bg-[#0f172a] border border-gray-700 rounded-xl shadow-2xl overflow-hidden z-50">
-        <div class="p-2 space-y-1">
-          <a href="bible.html" onclick="closeMobileSubmenus()" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-gray-300 hover:bg-adpel-600/20 hover:text-white transition">
-            <i class="fas fa-bible w-5 text-center"></i> Bíblia
-          </a>
-          <a href="harpa.html" onclick="closeMobileSubmenus()" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-gray-300 hover:bg-adpel-600/20 hover:text-white transition">
-            <i class="fas fa-music w-5 text-center"></i> Harpa
-          </a>
-          <a href="#cofres" onclick="navigateTo('cofres'); closeMobileSubmenus(); return false;" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-gray-300 hover:bg-adpel-600/20 hover:text-white transition">
-            <i class="fas fa-piggy-bank w-5 text-center"></i> Cofres
-          </a>
-          <a href="#ranking" onclick="navigateTo('ranking'); closeMobileSubmenus(); return false;" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-gray-300 hover:bg-adpel-600/20 hover:text-white transition">
-            <i class="fas fa-ranking-star w-5 text-center"></i> Ranking
-          </a>
-        </div>
-      </div>
-    </div>
-  </nav>
+  <nav id="mobile-nav" aria-label="Navegação principal"></nav>
 
   <!-- MAIN APP LAYOUT -->
   <main id="app-container" class="flex-1 relative">
@@ -315,160 +235,151 @@
         <h1 class="font-bold text-xl text-sidebar">ADPEL</h1>
       </div>
 
-      <div class="space-y-1">
-        <button onclick="navigateTo('home')" class="w-full flex items-center px-3 py-2 rounded-md text-gray-900 hover:bg-adpel-50 transition"> <i class="fas fa-home w-5 text-center text-sm mr-3"></i> Início </button>
-        <button onclick="navigateTo('community')" class="w-full flex items-center px-3 py-2 rounded-md text-gray-600 hover:text-adpel-700 hover:bg-adpel-50 transition"> <i class="fas fa-users w-5 text-center text-sm mr-3"></i> Comunidade </button>
+      <nav class="space-y-1" aria-label="Áreas do aplicativo">
+        <button onclick="navigateTo('home')" data-app-destination="home" class="is-active w-full flex items-center px-3 py-3 rounded-md text-gray-100 transition" aria-current="page"><i class="fas fa-house w-5 text-center text-sm mr-3" aria-hidden="true"></i> Início</button>
+        <button onclick="navigateTo('word')" data-app-destination="word" class="w-full flex items-center px-3 py-3 rounded-md text-gray-400 transition"><i class="fas fa-book-bible w-5 text-center text-sm mr-3" aria-hidden="true"></i> Palavra</button>
+        <button onclick="navigateTo('learn')" data-app-destination="learn" class="w-full flex items-center px-3 py-3 rounded-md text-gray-400 transition"><i class="fas fa-graduation-cap w-5 text-center text-sm mr-3" aria-hidden="true"></i> Aprender</button>
+        <button onclick="navigateTo('community-hub')" data-app-destination="community-hub" class="w-full flex items-center px-3 py-3 rounded-md text-gray-400 transition"><i class="fas fa-people-group w-5 text-center text-sm mr-3" aria-hidden="true"></i> Comunidade</button>
+        <button onclick="navigateTo('more')" data-app-destination="more" class="w-full flex items-center px-3 py-3 rounded-md text-gray-400 transition"><i class="fas fa-bars w-5 text-center text-sm mr-3" aria-hidden="true"></i> Mais</button>
+      </nav>
 
-        <div class="sidebar-group">
-          <button onclick="toggleSidebarGroup('sidebar-aprender')" class="w-full flex items-center px-3 py-2 rounded-md text-gray-600 hover:text-adpel-700 hover:bg-adpel-50 transition"> <i class="fas fa-graduation-cap w-5 text-center text-sm mr-3"></i> 🎓 Aprender <i class="fas fa-chevron-down ml-auto text-xs transition-transform" id="sidebar-aprender-icon"></i></button>
-          <div id="sidebar-aprender" class="hidden pl-4 space-y-1 mt-1">
-            <button onclick="navigateTo('courses')" class="w-full flex items-center px-3 py-2 rounded-md text-gray-600 hover:text-adpel-700 hover:bg-adpel-50 transition text-sm"> <i class="fas fa-graduation-cap w-5 text-center text-xs mr-3"></i> Cursos </button>
-            <button onclick="navigateTo('library')" class="w-full flex items-center px-3 py-2 rounded-md text-gray-600 hover:text-adpel-700 hover:bg-adpel-50 transition text-sm"> <i class="fas fa-book w-5 text-center text-xs mr-3"></i> Biblioteca </button>
-          </div>
-        </div>
-
-        <div class="sidebar-group">
-          <button onclick="toggleSidebarGroup('sidebar-culto')" class="w-full flex items-center px-3 py-2 rounded-md text-gray-600 hover:text-adpel-700 hover:bg-adpel-50 transition"> <i class="fas fa-church w-5 text-center text-sm mr-3"></i> 📖 Culto <i class="fas fa-chevron-down ml-auto text-xs transition-transform" id="sidebar-culto-icon"></i></button>
-          <div id="sidebar-culto" class="hidden pl-4 space-y-1 mt-1">
-            <a href="bible.html" class="w-full flex items-center px-3 py-2 rounded-md text-gray-600 hover:text-adpel-700 hover:bg-adpel-50 transition text-sm"> <i class="fas fa-bible w-5 text-center text-xs mr-3"></i> Bíblia </a>
-            <a href="harpa.html" class="w-full flex items-center px-3 py-2 rounded-md text-gray-600 hover:text-adpel-700 hover:bg-adpel-50 transition text-sm"> <i class="fas fa-music w-5 text-center text-xs mr-3"></i> Harpa </a>
-            <button onclick="navigateTo('cofres')" class="w-full flex items-center px-3 py-2 rounded-md text-gray-600 hover:text-adpel-700 hover:bg-adpel-50 transition text-sm"> <i class="fas fa-piggy-bank w-5 text-center text-xs mr-3"></i> Cofres </button>
-            <button onclick="navigateTo('ranking')" class="w-full flex items-center px-3 py-2 rounded-md text-gray-600 hover:text-adpel-700 hover:bg-adpel-50 transition text-sm"> <i class="fas fa-ranking-star w-5 text-center text-xs mr-3"></i> Ranking </button>
-          </div>
-        </div>
-      </div>
-      
-      <div class="mt-8 pt-8 border-t border-gray-200">
-        <p class="text-xs text-gray-500 uppercase font-semibold mb-4 px-3">Minha Conta</p>
-        <button onclick="navigateTo('profile')" class="w-full flex items-center px-3 py-2 rounded-md text-gray-600 hover:text-adpel-700 hover:bg-adpel-50 transition"> <i class="fas fa-user-circle w-5 text-center text-sm mr-3"></i> Meu Perfil </button>
-        <button onclick="navigateTo('certificate')" class="w-full flex items-center px-3 py-2 rounded-md text-gray-600 hover:text-adpel-700 hover:bg-adpel-50 transition"> <i class="fas fa-certificate w-5 text-center text-sm mr-3"></i> Certificados </button>
-        <button onclick="navigateTo('ranking')" class="w-full flex items-center px-3 py-2 rounded-md text-gray-600 hover:text-adpel-700 hover:bg-adpel-50 transition"> <i class="fas fa-ranking-star w-5 text-center text-sm mr-3"></i> Ranking Geral </button>
+      <div class="mt-8 pt-6 border-t border-gray-200">
+        <p class="text-xs text-gray-500 leading-relaxed px-3">Fé, ensino e comunhão em um só lugar.</p>
       </div>
     </aside>
 
     <!-- CONTENT AREA -->
-    <div class="md:ml-64 p-4 md:p-8 pb-24 md:pb-8 max-w-7xl mx-auto w-full">
+    <div id="app-content" class="md:ml-64 p-4 md:p-8 pb-24 md:pb-8 max-w-7xl mx-auto w-full">
       
       <!-- SECT: HOME -->
-      <div id="home" class="space-y-8">
+      <div id="home" class="app-home space-y-5">
         <div class="app-home-greeting">
           <div>
             <p class="app-eyebrow">ADPEL</p>
-            <h1 id="home-welcome-title">Olá, seja bem-vindo</h1>
-            <p id="home-welcome-subtitle">Continue sua caminhada com fé, ensino e comunhão.</p>
+            <h1 id="home-welcome-title">Bem-vindo à ADPEL</h1>
+            <p id="home-welcome-subtitle">Tudo o que você precisa para hoje.</p>
           </div>
-          <button onclick="requestPushPermission()" class="app-icon-action" title="Ativar notificações">
-            <i class="fas fa-bell"></i>
+          <button id="home-profile-shortcut" onclick="navigateTo('profile')" class="app-home-avatar" aria-label="Abrir meu perfil">
+            <span id="home-avatar-initials" aria-hidden="true">AD</span>
           </button>
         </div>
+
         <!-- Versículo do Dia -->
-        <div class="bg-gradient-to-br from-adpel-800 to-adpel-700 rounded-2xl p-6 md:p-8 text-white relative overflow-hidden shadow-lg border border-white/10">
-          <div class="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -translate-y-1/2 translate-x-1/2"></div>
-          <div class="relative z-10 text-center max-w-2xl mx-auto">
-            <p class="text-xs uppercase tracking-widest text-adpel-200 mb-3 font-medium">Versículo do Dia</p>
-            <blockquote class="text-xl md:text-2xl font-serif leading-relaxed mb-4">
-              "<span id="verse-text" class="italic">Carregando...</span>"
-            </blockquote>
-            <p id="verse-ref" class="text-sm font-bold text-adpel-200 uppercase tracking-wide">— ...</p>
+        <section class="app-verse-card" aria-labelledby="verse-day-title">
+          <p id="verse-day-title" class="app-eyebrow">Versículo do dia</p>
+          <blockquote>“<span id="verse-text">Carregando...</span>”</blockquote>
+          <div class="app-verse-card__footer">
+            <strong id="verse-ref">—</strong>
+            <a href="bible.html" class="app-secondary-action"><i class="fas fa-book-open" aria-hidden="true"></i> Abrir na Bíblia</a>
           </div>
-        </div>
+        </section>
 
-        <div class="app-quick-actions">
-          <h2>Ações rápidas</h2>
-          <div class="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
-            <button onclick="navigateTo('courses')" class="app-quick-card">
-              <i class="fas fa-graduation-cap"></i>
-              <span>Cursos</span>
-            </button>
-            <button onclick="navigateTo('library')" class="app-quick-card">
-              <i class="fas fa-book-open"></i>
-              <span>Biblioteca</span>
-            </button>
-            <button onclick="navigateTo('profile')" class="app-quick-card">
-              <i class="fas fa-hand-holding-heart"></i>
-              <span>Minhas Ofertas</span>
-            </button>
-            <button onclick="navigateTo('ranking')" class="app-quick-card">
-              <i class="fas fa-trophy"></i>
-              <span>Conquistas</span>
-            </button>
+        <!-- Próximo evento real; omitido quando a agenda estiver vazia -->
+        <section id="home-events-section" class="hidden" aria-labelledby="home-next-event-title">
+          <div class="app-home-section-heading">
+            <h2 id="home-next-event-title">Próximo evento</h2>
+            <button onclick="navigateTo('community-hub')">Ver agenda</button>
           </div>
-        </div>
-
-        <!-- Minha Caminhada -->
-        <div id="journey-card" class="bg-white rounded-2xl shadow-sm p-4 md:p-5 border border-gray-100">
-          <div class="flex items-center justify-between mb-3">
-            <h2 class="text-xl font-bold text-gray-900 flex items-center gap-2">
-              <span>🌱</span> Minha Caminhada
-            </h2>
-          </div>
-          <div id="journey-card-content">
-            <div class="text-center py-6 text-gray-500 text-sm">Carregando sua caminhada...</div>
-          </div>
-        </div>
+          <div id="home-events-container" aria-live="polite"></div>
+        </section>
 
         <!-- Continuar (cursos em andamento) -->
-        <div id="continue-section" class="hidden">
-          <div class="flex items-center justify-between mb-4">
-            <h2 class="text-xl font-bold text-gray-900">Continue de onde parou</h2>
-            <button onclick="navigateTo('courses')" class="text-adpel-600 text-sm font-medium hover:underline">Ver todos</button>
+        <section id="continue-section" class="hidden" aria-labelledby="continue-title">
+          <div class="app-home-section-heading">
+            <h2 id="continue-title">Continue de onde parou</h2>
+            <button id="continue-all-action" onclick="navigateTo('courses')">Ver cursos</button>
           </div>
-          <div id="continue-grid" class="flex gap-4 overflow-x-auto pb-4 snap-x snap-mandatory scrollbar-hide scroll-smooth"></div>
-        </div>
+          <div id="continue-grid"></div>
+        </section>
 
-        <!-- Lançamentos (cursos em destaque na Home) -->
-        <div id="featured-courses-section" class="hidden space-y-4">
-          <div class="flex items-center justify-between gap-3">
-            <div>
-              <p class="app-eyebrow">Novos cursos</p>
-              <h2 class="text-xl font-bold text-gray-900">Lançamentos</h2>
-            </div>
-            <button onclick="navigateTo('courses')" class="text-adpel-600 text-sm font-medium hover:underline whitespace-nowrap">Ver cursos</button>
+        <!-- Um único destaque, quando houver conteúdo marcado -->
+        <section id="featured-courses-section" class="hidden" aria-labelledby="featured-title">
+          <div class="app-home-section-heading">
+            <div><p class="app-eyebrow">Destaque</p><h2 id="featured-title">Para você conhecer</h2></div>
+            <button onclick="navigateTo('learn')">Ver formação</button>
           </div>
-          <div id="featured-courses" class="flex gap-4 overflow-x-auto pb-4 snap-x snap-mandatory scrollbar-hide scroll-smooth"></div>
-        </div>
+          <div id="featured-courses"></div>
+        </section>
 
-        <!-- Agenda / Eventos (só aparece se houver) -->
-        <div id="home-events-section" class="hidden space-y-4">
-          <div class="flex items-center justify-between">
-            <h2 class="text-xl font-bold text-gray-900">Próximos Eventos</h2>
-            <div class="hidden md:flex gap-2">
-              <button onclick="scrollContainer('home-events-container', -320)" class="p-2 rounded-lg bg-gray-800 hover:bg-gray-700 text-white transition border border-gray-700 shadow-sm"><i class="fas fa-chevron-left text-sm"></i></button>
-              <button onclick="scrollContainer('home-events-container', 320)" class="p-2 rounded-lg bg-gray-800 hover:bg-gray-700 text-white transition border border-gray-700 shadow-sm"><i class="fas fa-chevron-right text-sm"></i></button>
-            </div>
+        <section aria-labelledby="quick-access-title">
+          <div class="app-home-section-heading"><h2 id="quick-access-title">Acessos rápidos</h2></div>
+          <div class="app-home-quick-grid">
+            <a href="bible.html" class="app-home-quick-link"><i class="fas fa-book-bible" aria-hidden="true"></i><span>Bíblia</span></a>
+            <a href="harpa.html" class="app-home-quick-link"><i class="fas fa-music" aria-hidden="true"></i><span>Harpa</span></a>
+            <button onclick="navigateTo('community-hub')" class="app-home-quick-link"><i class="fas fa-calendar-days" aria-hidden="true"></i><span>Agenda</span></button>
+            <button onclick="openOfertaModal()" class="app-home-quick-link"><i class="fas fa-hand-holding-heart" aria-hidden="true"></i><span>Ofertas</span></button>
           </div>
-          <div id="home-events-container" class="flex gap-4 overflow-x-auto pb-4 snap-x snap-mandatory scrollbar-hide scroll-smooth"></div>
-        </div>
+        </section>
 
-        <!-- Avisos / Comunicados -->
-        <div id="home-announcements-section" class="hidden space-y-4">
-          <div class="flex items-center justify-between">
-            <h2 class="text-xl font-bold text-gray-900">Avisos</h2>
-          </div>
-          <div id="news-container" class="flex gap-4 overflow-x-auto pb-4 snap-x snap-mandatory scrollbar-hide scroll-smooth"></div>
-        </div>
-
-        <!-- Card de Oferta (visível para todos) -->
-        <div class="mt-12 mb-10">
-          <div onclick="openOfertaModal()" class="group cursor-pointer bg-gradient-to-br from-green-600 to-emerald-500 rounded-2xl p-8 text-white relative overflow-hidden shadow-lg hover:shadow-2xl transition-all duration-300 hover:scale-[1.02] border border-white/10">
-            <div class="relative z-10 flex items-center justify-between flex-wrap gap-4">
-              <div>
-                <div class="flex items-center gap-3 mb-2">
-                  <div class="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center">
-                    <i class="fas fa-hand-holding-heart text-2xl"></i>
-                  </div>
-                  <h2 class="text-2xl md:text-3xl font-bold">Faça sua Oferta</h2>
-                </div>
-                <p class="text-green-100 text-sm md:text-base max-w-md">Escolha entre oferta livre ou destinada a um objetivo específico.</p>
-              </div>
-              <div class="bg-white text-green-700 px-6 py-3 rounded-xl font-bold text-lg shadow-md group-hover:bg-green-50 transition flex items-center gap-2">
-                <i class="fas fa-heart"></i> Ofertar Agora
-              </div>
-            </div>
-            <div class="absolute -right-10 -bottom-10 w-40 h-40 bg-white opacity-5 rounded-full"></div>
-          </div>
-        </div>
+        <div id="home-announcements-section" class="hidden"><div id="news-container"></div></div>
       </div>
+
+      <!-- SECT: PALAVRA -->
+      <section id="word" class="app-hub hidden">
+        <header class="app-hub-header"><p class="app-eyebrow">Palavra</p><h2>Leitura e crescimento espiritual</h2><p>Acesse a Bíblia, a Harpa Cristã e os estudos sem perder o foco.</p></header>
+        <div class="app-destination-grid">
+          <a href="bible.html" class="app-destination-card"><i class="fas fa-book-bible" aria-hidden="true"></i><div><strong>Bíblia</strong><span>Leia, pesquise e continue de onde parou.</span></div></a>
+          <a href="harpa.html" class="app-destination-card"><i class="fas fa-music" aria-hidden="true"></i><div><strong>Harpa Cristã</strong><span>Encontre hinos por número, título ou trecho.</span></div></a>
+          <button onclick="navigateTo('studies')" class="app-destination-card"><i class="fas fa-book-open-reader" aria-hidden="true"></i><div><strong>Estudos</strong><span>Conteúdos para aprofundar a fé.</span></div></button>
+        </div>
+        <div id="word-continue-reading" class="app-hub-section hidden"></div>
+      </section>
+
+      <!-- SECT: APRENDER -->
+      <section id="learn" class="app-hub hidden">
+        <header class="app-hub-header"><p class="app-eyebrow">Aprender</p><h2>Sua jornada de formação</h2><p>Cursos, progresso e certificados reunidos em uma área simples.</p></header>
+        <div class="app-destination-grid">
+          <button onclick="navigateTo('courses')" class="app-destination-card"><i class="fas fa-graduation-cap" aria-hidden="true"></i><div><strong>Cursos</strong><span>Comece ou continue sua formação.</span></div></button>
+          <button onclick="navigateTo('certificate')" class="app-destination-card"><i class="fas fa-certificate" aria-hidden="true"></i><div><strong>Certificados</strong><span>Veja suas conquistas concluídas.</span></div></button>
+          <button onclick="navigateTo('ranking')" class="app-destination-card"><i class="fas fa-chart-line" aria-hidden="true"></i><div><strong>Progresso</strong><span>Acompanhe sua caminhada.</span></div></button>
+        </div>
+      </section>
+
+      <!-- SECT: COMUNIDADE -->
+      <section id="community-hub" class="app-hub hidden">
+        <header class="app-hub-header"><p class="app-eyebrow">Comunidade</p><h2>A vida da igreja, perto de você</h2><p>Acompanhe eventos, avisos e a comunidade ADPEL.</p></header>
+        <div class="app-destination-grid">
+          <button onclick="navigateTo('community')" class="app-destination-card"><i class="fas fa-comments" aria-hidden="true"></i><div><strong>Comunidade</strong><span>Compartilhe e acompanhe publicações.</span></div></button>
+          <button onclick="document.getElementById('community-agenda')?.scrollIntoView({behavior:'smooth'})" class="app-destination-card"><i class="fas fa-calendar-days" aria-hidden="true"></i><div><strong>Agenda</strong><span>Veja os próximos acontecimentos.</span></div></button>
+        </div>
+        <div id="community-agenda" class="app-hub-section">
+          <p class="app-hub-section__title">Agenda da igreja</p>
+          <div id="community-agenda-container" class="space-y-3"><div class="app-home-skeleton" aria-label="Carregando agenda"></div></div>
+        </div>
+      </section>
+
+      <!-- SECT: MAIS -->
+      <section id="more" class="app-hub hidden">
+        <header class="app-hub-header"><p class="app-eyebrow">Mais</p><h2>Conta e outros recursos</h2><p>Encontre opções pessoais e serviços sem sobrecarregar a tela inicial.</p></header>
+
+        <div class="app-hub-section"><p class="app-hub-section__title">Conteúdo</p><div class="app-list-panel">
+          <button onclick="navigateTo('library')" class="app-list-link"><i class="fas fa-book" aria-hidden="true"></i><span><strong>Biblioteca</strong><small>Livros e materiais digitais</small></span><i class="fas fa-chevron-right" aria-hidden="true"></i></button>
+        </div></div>
+
+        <div class="app-hub-section"><p class="app-hub-section__title">Minha conta</p><div class="app-list-panel">
+          <button onclick="navigateTo('profile')" class="app-list-link"><i class="fas fa-user-circle" aria-hidden="true"></i><span><strong>Meu perfil</strong><small>Dados, privacidade e histórico</small></span><i class="fas fa-chevron-right" aria-hidden="true"></i></button>
+          <button onclick="navigateTo('ranking')" class="app-list-link"><i class="fas fa-ranking-star" aria-hidden="true"></i><span><strong>Minha caminhada</strong><small>Progresso, medalhas e ranking</small></span><i class="fas fa-chevron-right" aria-hidden="true"></i></button>
+        </div></div>
+
+        <div class="app-hub-section"><p class="app-hub-section__title">Igreja</p><div class="app-list-panel">
+          <button onclick="openOfertaModal()" class="app-list-link"><i class="fas fa-hand-holding-heart" aria-hidden="true"></i><span><strong>Ofertas</strong><small>Acesse o fluxo existente de contribuição</small></span><i class="fas fa-chevron-right" aria-hidden="true"></i></button>
+          <button onclick="navigateTo('cofres')" class="app-list-link"><i class="fas fa-piggy-bank" aria-hidden="true"></i><span><strong>Objetivos da igreja</strong><small>Acompanhe os cofres ativos</small></span><i class="fas fa-chevron-right" aria-hidden="true"></i></button>
+        </div></div>
+
+        <div class="app-hub-section"><p class="app-hub-section__title">Sistema</p><div class="app-list-panel">
+          <button onclick="promptPwaInstall()" class="app-list-link"><i class="fas fa-mobile-screen-button" aria-hidden="true"></i><span><strong>Instalar aplicativo</strong><small>Adicione a ADPEL à tela inicial</small></span><i class="fas fa-chevron-right" aria-hidden="true"></i></button>
+          <button onclick="requestPushPermission()" class="app-list-link"><i class="fas fa-bell" aria-hidden="true"></i><span><strong>Notificações</strong><small>Receba avisos importantes</small></span><i class="fas fa-chevron-right" aria-hidden="true"></i></button>
+        </div></div>
+
+        <div id="admin-link-mobile" class="app-hub-section hidden"><p class="app-hub-section__title">Administração</p><div class="app-list-panel">
+          <a href="admin.html" class="app-list-link"><i class="fas fa-shield-halved" aria-hidden="true"></i><span><strong>Painel administrativo</strong><small>Acesso restrito</small></span><i class="fas fa-arrow-up-right-from-square" aria-hidden="true"></i></a>
+        </div></div>
+
+        <div id="journey-card" class="app-hub-section bg-white rounded-2xl p-4 border border-gray-100">
+          <div class="flex items-center justify-between mb-3"><h2 class="text-lg font-bold text-gray-900">Minha caminhada</h2></div>
+          <div id="journey-card-content"><div class="text-center py-6 text-gray-500 text-sm">Carregando sua caminhada...</div></div>
+        </div>
+      </section>
 
       <!-- SECT: COURSES -->
       <div id="courses" class="hidden space-y-8">
@@ -1177,20 +1088,19 @@
       if (pwaBanner) pwaBanner.style.display = 'none';
     }
 
-    if (pwaInstallBtn) {
-      pwaInstallBtn.addEventListener('click', async () => {
-        if (!deferredPrompt) {
-          showToast('Para instalar: use o menu do navegador e selecione "Adicionar à Tela Inicial"', 'info');
-          return;
-        }
-        deferredPrompt.prompt();
-        const { outcome } = await deferredPrompt.userChoice;
-        if (outcome === 'accepted') {
-          hidePwaBanner();
-        }
-        deferredPrompt = null;
-      });
+    async function promptPwaInstall() {
+      if (!deferredPrompt) {
+        showToast('Para instalar, use o menu do navegador e escolha "Adicionar à Tela Inicial".', 'info');
+        return;
+      }
+      deferredPrompt.prompt();
+      const { outcome } = await deferredPrompt.userChoice;
+      if (outcome === 'accepted') hidePwaBanner();
+      deferredPrompt = null;
     }
+    window.promptPwaInstall = promptPwaInstall;
+
+    if (pwaInstallBtn) pwaInstallBtn.addEventListener('click', promptPwaInstall);
 
     if (pwaDismissBtn) {
       pwaDismissBtn.addEventListener('click', () => {

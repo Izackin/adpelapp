@@ -58,7 +58,7 @@ function isExistingRegistrationResult(data) {
 }
 
 document.addEventListener('DOMContentLoaded', () => {
-  initAuth();
+  window.ADPELAuthReady = initAuth();
 });
 
 let currentUser = null;

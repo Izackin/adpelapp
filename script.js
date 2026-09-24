@@ -11,11 +11,13 @@ function loadReleasePolishStyles() {
   document.head.appendChild(link);
 }
 
-async function waitForAuthBootstrap(timeoutMs = 2000) {
-  const startedAt = Date.now();
-
-  while (typeof currentUser === 'undefined' && Date.now() - startedAt < timeoutMs) {
-    await new Promise(resolve => setTimeout(resolve, 50));
+async function waitForAuthBootstrap() {
+  if (window.ADPELAuthReady && typeof window.ADPELAuthReady.then === 'function') {
+    try {
+      await window.ADPELAuthReady;
+    } catch (error) {
+      console.error('Falha ao concluir a inicialização da sessão:', error);
+    }
   }
 }
 
@@ -23,10 +25,13 @@ document.addEventListener('DOMContentLoaded', async () => {
   loadReleasePolishStyles();
 
   if (typeof initNavigation === 'function') {
-    initNavigation();
+    initNavigation({ handleInitialHash: false });
   }
 
   await waitForAuthBootstrap();
+  if (window.location.hash && typeof handleNavigationHash === 'function') {
+    handleNavigationHash();
+  }
   await initApp();
 
   if (typeof updateBannerWelcome === 'function') {

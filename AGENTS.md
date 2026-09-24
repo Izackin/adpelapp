@@ -74,12 +74,14 @@ Ajudar igrejas a discipular, informar, engajar e servir seus membros por meio de
 |   |-- courses.js                   # Cursos, aulas e estudos publicos
 |   |-- home.js                      # Home publica
 |   |-- library.js                   # Biblioteca publica
+|   |-- app-shell.js                 # Navegacao compartilhada entre paginas
 |   |-- navigation.js                # Navegacao publica e modais globais
 |   |-- offerings.js                 # Modal de ofertas e PIX
 |   `-- profile.js                   # Perfil e relatorio de ofertas
 |-- bible.html                         # Pagina separada da Biblia
 |-- bible.css                          # Experiencia visual compartilhada da Biblia 2.0
 |-- harpa.html                         # Pagina separada da Harpa Crista
+|-- app-shell.css                      # Hubs e bottom navigation responsiva
 |-- style.css                          # Tema visual global
 |-- sw.js                              # Service Worker e Push
 |-- manifest.json                      # Manifest PWA
@@ -134,7 +136,7 @@ O core publico foi dividido entre `script.js` e os modulos em `js/`. O core admi
 
 `script.js` inicializa o app apos o carregamento do DOM e mantem helpers compartilhados. Modulos em `js/` cuidam de Navegacao, Home, Agenda, Cursos/Estudos, Biblioteca, Biblia embutida, Atualizacoes, Ofertas, Perfil e Certificados.
 
-A navegacao principal usa `navigateTo(section)`. Ela esconde todas as secoes principais e mostra a secao solicitada. Algumas secoes exigem login: `courses`, `library`, `certificate` e `profile`.
+A navegacao principal usa `navigateTo(section)` e preserva o destino no hash da URL. A arquitetura publica possui cinco areas: `home`, `word`, `learn`, `community-hub` e `more`. Elas organizam os modulos existentes sem remove-los. As secoes internas `courses`, `studies`, `library`, `certificate`, `profile` e `community` exigem login.
 
 ## Como o backend funciona
 
@@ -328,9 +330,13 @@ Importante: `admin/crud-studies.js` e `admin/crud-avisos.js` existem, mas nem to
 
 App principal. Secoes:
 
-- `home`: saudacao, versiculo, atalhos, caminhada, agenda e ofertas.
+- `home`: saudacao contextual, versiculo, proximo evento, continuidade e acessos rapidos.
+- `word`: entrada para Biblia, Harpa e estudos.
+- `learn`: entrada para cursos, progresso e certificados.
+- `community-hub`: agenda publica e entrada para a comunidade autenticada.
+- `more`: biblioteca, ofertas, perfil, caminhada, instalacao e acesso administrativo autorizado.
 - `courses`: cursos e aulas.
-- `studies`: secao existente no HTML, mas a navegacao atual concentra estudos em cursos.
+- `studies`: estudos publicados, acessiveis pela area Palavra.
 - `library`: biblioteca.
 - `cofres`: objetivos e ofertas destinadas.
 - `certificate`: certificados do usuario.

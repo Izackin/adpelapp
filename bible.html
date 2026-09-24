@@ -20,7 +20,9 @@
   <script src="supabase.js?v=bible-2.0"></script>
   <script src="spiritual-progress.js?v=bible-2.0"></script>
   <script src="js/bible.js?v=bible-2.0" defer></script>
+  <script src="js/app-shell.js" defer></script>
   <link rel="stylesheet" href="bible.css">
+  <link rel="stylesheet" href="app-shell.css">
   <style>
     body { font-family: Inter, sans-serif; background: #020617; color: #e2e8f0; }
     .pergaminho { background: #fffaf0; border: 1px solid #dfd3bc; color: #24170f; font-family: 'Playfair Display', serif; }
@@ -28,7 +30,7 @@
     .chapter-btn.active { border-color: #2563eb; background: #2563eb; color: white; }
   </style>
 </head>
-<body class="min-h-screen antialiased">
+<body class="min-h-screen antialiased" data-app-context="word">
   <header class="sticky top-0 z-40 flex items-center justify-between border-b border-slate-800 bg-slate-900/95 px-4 py-3 backdrop-blur">
     <div class="flex items-center gap-3">
       <a href="index.html" class="flex h-11 w-11 items-center justify-center rounded-full text-slate-300 hover:bg-white/10" aria-label="Voltar para início"><i class="fas fa-arrow-left"></i></a>
@@ -76,5 +78,6 @@
       <button onclick="proximoCapitulo()" id="btn-capitulo-prox" class="min-h-11 rounded-xl bg-white/10 px-4 text-sm font-semibold text-white disabled:opacity-30">Próximo <i class="fas fa-chevron-right"></i></button>
     </nav>
   </main>
+  <nav id="mobile-nav" aria-label="Navegação principal"></nav>
 </body>
 </html>

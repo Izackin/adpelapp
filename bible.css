@@ -4,7 +4,7 @@
 .bible-experience-actions select,
 .bible-experience-actions > button,
 .bible-font-controls { min-height: 42px; border: 1px solid rgba(148,163,184,.28); border-radius: .75rem; background: #0f172a; color: #e2e8f0; }
-.bible-experience-actions select { flex: 1 1 210px; padding: .55rem .75rem; }
+.bible-experience-actions select { flex: 1 1 210px; min-width: 0; max-width: 100%; padding: .55rem .75rem; }
 .bible-experience-actions > button { padding: .55rem .7rem; display: inline-flex; align-items: center; gap: .4rem; }
 .bible-font-controls { display: inline-flex; align-items: center; overflow: hidden; }
 .bible-font-controls button { min-width: 42px; min-height: 42px; font-weight: 800; }

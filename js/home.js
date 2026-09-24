@@ -7,17 +7,68 @@ function updateBannerWelcome() {
 
   const userInfo = typeof getCurrentUserInfo === 'function' ? getCurrentUserInfo() : { isLoggedIn: false };
   const profile = userInfo.profile || {};
-  const user = userInfo.user || {};
-  const name = profile.full_name || user.email || '';
+  const fullName = profile.public_name || profile.full_name || '';
+  const firstName = String(fullName).trim().split(/\s+/)[0] || '';
+  const hour = new Date().getHours();
+  const greeting = hour < 12 ? 'Bom dia' : hour < 18 ? 'Boa tarde' : 'Boa noite';
 
   if (title) {
-    title.textContent = userInfo.isLoggedIn && name ? 'Olá, ' + name : 'Olá, seja bem-vindo';
+    title.textContent = userInfo.isLoggedIn && firstName ? greeting + ', ' + firstName : greeting;
   }
   if (subtitle) {
     subtitle.textContent = userInfo.isLoggedIn
-      ? 'Continue sua caminhada com fé, ensino e comunhão.'
-      : 'Entre para acompanhar cursos, ofertas, conquistas e sua caminhada.';
+      ? 'Que bom ter você por aqui.'
+      : 'Encontre a Bíblia, a agenda e os recursos da ADPEL.';
   }
+
+  const initials = document.getElementById('home-avatar-initials');
+  const shortcut = document.getElementById('home-profile-shortcut');
+  const avatarUrl = typeof safeImageUrl === 'function' ? safeImageUrl(profile.avatar_url) : '';
+  if (shortcut) shortcut.setAttribute('aria-label', userInfo.isLoggedIn ? 'Abrir meu perfil' : 'Entrar na ADPEL');
+  if (initials) {
+    initials.textContent = firstName ? firstName.slice(0, 2).toUpperCase() : 'AD';
+    var existingImage = initials.parentElement.querySelector('img');
+    if (existingImage) existingImage.remove();
+    initials.classList.remove('hidden');
+    if (avatarUrl) {
+      var image = document.createElement('img');
+      image.src = avatarUrl;
+      image.alt = '';
+      image.width = 46;
+      image.height = 46;
+      initials.classList.add('hidden');
+      initials.parentElement.prepend(image);
+    }
+  }
+}
+
+async function loadDeterministicBibleVerse(dayIndex) {
+  const references = [
+    ['GEN', 1, 1], ['PSA', 23, 1], ['PRO', 3, 5], ['ISA', 41, 10],
+    ['MAT', 5, 14], ['JHN', 3, 16], ['ROM', 8, 28]
+  ];
+  const selected = references[dayIndex % references.length];
+  const translationResult = await window.supabaseClient
+    .from('bible_translations')
+    .select('id, short_name')
+    .eq('is_default', true)
+    .eq('is_active', true)
+    .maybeSingle();
+  if (translationResult.error || !translationResult.data) return null;
+  const verseResult = await window.supabaseClient
+    .from('bible_verses')
+    .select('book, chapter, verse, text')
+    .eq('translation_id', translationResult.data.id)
+    .eq('book_id', selected[0])
+    .eq('chapter', selected[1])
+    .eq('verse', selected[2])
+    .eq('is_canonical', true)
+    .maybeSingle();
+  if (verseResult.error || !verseResult.data) return null;
+  return {
+    text: verseResult.data.text,
+    reference: `${verseResult.data.book} ${verseResult.data.chapter}:${verseResult.data.verse} · ${translationResult.data.short_name}`
+  };
 }
 
 async function carregarVersiculoDoDia() {
@@ -30,31 +81,22 @@ async function carregarVersiculoDoDia() {
       .select('*')
       .order('id');
 
-    if (error) {
-      console.error('Erro ao buscar versículo do dia:', error);
-      return;
-    }
-
     const textEl = document.getElementById('verse-text');
     const refEl = document.getElementById('verse-ref');
-
-    if (!data || !data.length) {
-      if (textEl) textEl.textContent = 'Nenhum versículo cadastrado.';
-      if (refEl) refEl.textContent = '';
-      return;
-    }
-
-    const versiculo = data[diaAno % data.length];
-    if (!versiculo) {
-      if (textEl) textEl.textContent = 'Nenhum versículo disponível.';
-      if (refEl) refEl.textContent = '';
-      return;
-    }
+    if (error) console.warn('Versículo editorial indisponível; usando Bíblia local.', error);
+    const versiculo = data && data.length
+      ? data[diaAno % data.length]
+      : await loadDeterministicBibleVerse(diaAno);
+    if (!versiculo) throw new Error('Nenhum versículo disponível na base local.');
 
     if (textEl) textEl.textContent = versiculo.text || '';
     if (refEl) refEl.textContent = versiculo.reference ? '— ' + versiculo.reference : '';
   } catch (e) {
     console.error('Erro em carregarVersiculoDoDia:', e);
+    const textEl = document.getElementById('verse-text');
+    const refEl = document.getElementById('verse-ref');
+    if (textEl) textEl.textContent = 'Não foi possível carregar o versículo agora.';
+    if (refEl) refEl.textContent = '';
   }
 }
 
@@ -66,15 +108,17 @@ async function loadHomeData() {
   }
   _lastHomeLoad = now;
 
-  // 1. Versículo do Dia
-  await carregarVersiculoDoDia();
+  carregarVersiculoDoDia();
 
   try {
-    const [courses, events, announcements] = await Promise.all([
+    const results = await Promise.allSettled([
       ADPEL.fetch.courses(),
       ADPEL.fetch.events(),
       ADPEL.fetch.announcements()
     ]);
+    const courses = results[0].status === 'fulfilled' ? results[0].value : [];
+    const events = results[1].status === 'fulfilled' ? results[1].value : [];
+    const announcements = results[2].status === 'fulfilled' ? results[2].value : [];
 
     // Cursos em andamento
     const userInfo = getCurrentUserInfo();
@@ -104,8 +148,8 @@ async function loadHomeData() {
     const inProgressCourses = homeCourses.filter(c => c.status === 'in-progress');
     const featuredCourses = homeCourses.filter(c => c.is_featured).slice(0, 8);
 
-    renderContinueSection(inProgressCourses);
-    renderFeaturedCourses(featuredCourses);
+    renderContinueSection(inProgressCourses.slice(0, 1));
+    renderFeaturedCourses(featuredCourses.slice(0, 1));
 
     const futureEvents = (events || []).filter(isHomeEventVisible);
     const publishedAnnouncements = (announcements || [])
@@ -120,7 +164,8 @@ async function loadHomeData() {
       if (!attendancesByEvent[a.event_id]) attendancesByEvent[a.event_id] = [];
       attendancesByEvent[a.event_id].push(a);
     });
-    renderHomeEvents(homeAgenda, attendancesByEvent);
+    renderHomeEvents(futureEvents.slice(0, 1), attendancesByEvent);
+    if (typeof renderCommunityAgenda === 'function') renderCommunityAgenda(homeAgenda, attendancesByEvent);
 
     const announcementsSection = document.getElementById('home-announcements-section');
     if (announcementsSection) {
@@ -129,6 +174,10 @@ async function loadHomeData() {
 
   } catch (error) {
     console.error('Erro ao carregar dados da home:', error);
+    renderContinueSection([]);
+    renderFeaturedCourses([]);
+    renderHomeEvents([]);
+    if (typeof renderCommunityAgenda === 'function') renderCommunityAgenda([]);
   }
 }
 
@@ -137,7 +186,8 @@ Object.assign(window, {
   carregarVersiculoDoDia,
   loadHomeData,
   renderContinueSection,
-  renderFeaturedCourses
+  renderFeaturedCourses,
+  renderReadingContinuation
 });
 
 function renderContinueSection(courses) {
@@ -146,12 +196,77 @@ function renderContinueSection(courses) {
   if (!section || !container) return;
 
   if (!courses || courses.length === 0) {
-    section.classList.add('hidden');
+    renderReadingContinuation(true);
     return;
   }
 
   section.classList.remove('hidden');
+  const action = document.getElementById('continue-all-action');
+  if (action) {
+    action.textContent = 'Ver cursos';
+    action.onclick = function () { navigateTo('courses'); };
+  }
   container.innerHTML = courses.map(course => courseCarouselCard(course, 'Continuar')).join('');
+}
+
+function getReadingPreferences() {
+  try {
+    const preferences = JSON.parse(localStorage.getItem('adpel_bible_preferences_v2') || '{}');
+    const book = /^[A-Z0-9]{3}$/.test(String(preferences.last_book || '')) ? preferences.last_book : '';
+    const chapter = Number(preferences.last_chapter);
+    if (!book || !Number.isInteger(chapter) || chapter < 1 || chapter > 150) return null;
+    return { book, chapter };
+  } catch (error) {
+    return null;
+  }
+}
+
+function renderReadingContinuation(useHomeFallback) {
+  const preferences = getReadingPreferences();
+  const wordContainer = document.getElementById('word-continue-reading');
+  if (wordContainer) {
+    wordContainer.classList.toggle('hidden', !preferences);
+    wordContainer.replaceChildren();
+    if (preferences) {
+      const card = document.createElement('div');
+      card.className = 'app-context-card';
+      const label = document.createElement('p');
+      label.className = 'app-context-card__label';
+      label.textContent = 'Continue sua leitura';
+      const title = document.createElement('h3');
+      title.textContent = `Última leitura: ${preferences.book} ${preferences.chapter}`;
+      const link = document.createElement('a');
+      link.href = 'bible.html';
+      link.className = 'app-secondary-action';
+      link.textContent = 'Abrir Bíblia';
+      card.append(label, title, link);
+      wordContainer.append(card);
+    }
+  }
+
+  if (!useHomeFallback) return;
+  const section = document.getElementById('continue-section');
+  const container = document.getElementById('continue-grid');
+  if (!section || !container) return;
+  section.classList.toggle('hidden', !preferences);
+  container.replaceChildren();
+  if (!preferences) return;
+  const card = document.createElement('div');
+  card.className = 'app-context-card';
+  const label = document.createElement('p');
+  label.className = 'app-context-card__label';
+  label.textContent = 'Sua última leitura';
+  const title = document.createElement('h3');
+  title.textContent = `${preferences.book} ${preferences.chapter}`;
+  const description = document.createElement('p');
+  description.textContent = 'Retome o capítulo salvo na Bíblia ADPEL.';
+  card.append(label, title, description);
+  container.append(card);
+  const action = document.getElementById('continue-all-action');
+  if (action) {
+    action.textContent = 'Abrir Bíblia';
+    action.onclick = function () { window.location.href = 'bible.html'; };
+  }
 }
 
 function renderFeaturedCourses(courses) {
@@ -163,38 +278,15 @@ function renderFeaturedCourses(courses) {
     return;
   }
   if (section) section.classList.remove('hidden');
-  const isMobile = window.matchMedia('(max-width: 767px)').matches;
-  container.innerHTML = courses.map((course, index) => {
-    const isPriorityImage = isMobile && index < 2;
-    const imageAttributes = isMobile
-      ? (isPriorityImage ? 'loading="eager" fetchpriority="high" decoding="async"' : 'loading="lazy" fetchpriority="low" decoding="async"')
-      : '';
+  container.innerHTML = courses.map((course) => {
     const courseData = encodeInlineJson(course);
-    const thumbnailUrl = safeImageUrl(course.thumbnail_url);
-
     return `
-    <div class="min-w-[292px] max-w-[320px] flex-shrink-0 snap-start bg-white rounded-xl shadow-sm overflow-hidden hover:shadow-lg transition group border border-gray-100">
-      <div class="relative h-40 bg-gradient-to-br from-blue-500 to-blue-700 cursor-pointer" onclick="if(!getCurrentUserInfo().isLoggedIn){openModal('login-modal');return;} openCourseModal('${courseData}')">
-        ${thumbnailUrl
-          ? `<img src="${escapeHtml(thumbnailUrl)}" ${imageAttributes} width="320" height="160" class="w-full h-full object-cover" alt="${escapeHtml(course.title)}">`
-          : `<div class="w-full h-full flex items-center justify-center text-white/50"><i class="fas fa-graduation-cap text-5xl"></i></div>`}
-        <div class="absolute inset-0 bg-gradient-to-t from-black/65 via-black/10 to-transparent"></div>
-        <div class="absolute top-3 left-3 bg-amber-400 text-slate-950 px-2 py-1 rounded text-xs font-black shadow-sm">Lançamento</div>
-        <div class="absolute bottom-3 right-3 bg-white/90 px-2 py-1 rounded text-xs font-bold text-blue-700">${escapeHtml(course.category || 'Curso')}</div>
-      </div>
-      <div class="p-4">
-        <h4 class="font-bold text-gray-800 group-hover:text-blue-600 transition cursor-pointer" onclick="if(!getCurrentUserInfo().isLoggedIn){openModal('login-modal');return;} openCourseModal('${courseData}')">${escapeHtml(course.title)}</h4>
-        <p class="text-sm text-gray-500 mt-2 line-clamp-2">${escapeHtml(course.description || 'Sem descricao')}</p>
-        <div class="flex items-center justify-between mt-4 text-sm text-gray-600">
-          <span class="flex items-center gap-1"><i class="fas fa-user-tie text-xs"></i> ${escapeHtml(course.teacher_name || 'A definir')}</span>
-          <span class="flex items-center gap-1"><i class="fas fa-clock text-xs"></i> ${course.duration ? `${course.duration}h` : 'A definir'}</span>
-        </div>
-        <div class="mt-3 grid grid-cols-2 gap-2">
-          <button onclick="if(!getCurrentUserInfo().isLoggedIn){openModal('login-modal');return;} openCourseModal('${courseData}')" class="py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition">Assistir</button>
-          <button onclick="navigateTo('courses')" class="py-2 bg-gray-100 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-200 transition">Outros cursos</button>
-        </div>
-      </div>
-    </div>
+      <article class="app-context-card">
+        <p class="app-context-card__label">${escapeHtml(course.category || 'Curso')}</p>
+        <h3>${escapeHtml(course.title)}</h3>
+        <p>${escapeHtml(course.description || 'Novo conteúdo disponível na área de formação.')}</p>
+        <button onclick="if(!getCurrentUserInfo().isLoggedIn){openModal('login-modal');return;} openCourseModal('${courseData}')" class="app-primary-action mt-3">Conhecer curso</button>
+      </article>
   `;
   }).join('');
 }

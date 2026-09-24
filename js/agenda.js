@@ -190,7 +190,8 @@ Object.assign(window, {
   toggleAttendees,
   renderAnnouncements,
   renderEvents,
-  renderHomeEvents
+  renderHomeEvents,
+  renderCommunityAgenda
 });
 
 function renderAnnouncements(announcements) {
@@ -320,60 +321,62 @@ function renderHomeEvents(events, attendancesByEvent = {}) {
   }
 
   section.classList.remove('hidden');
-  const sectionTitle = section.querySelector('h2');
-  if (sectionTitle) sectionTitle.textContent = 'Agenda';
+  const event = events[0];
+  const date = event.event_date ? new Date(`${String(event.event_date).slice(0, 10)}T12:00:00`) : null;
+  const formattedDate = date && !Number.isNaN(date.getTime())
+    ? date.toLocaleDateString('pt-BR', { weekday: 'short', day: '2-digit', month: 'short' })
+    : '';
+  container.innerHTML = `
+    <article class="app-context-card">
+      <p class="app-context-card__label">${escapeHtml(formattedDate || 'Em breve')}${event.event_time ? ` · ${escapeHtml(event.event_time)}` : ''}</p>
+      <h3>${escapeHtml(event.title || 'Evento')}</h3>
+      ${event.location ? `<p><i class="fas fa-location-dot" aria-hidden="true"></i> ${escapeHtml(event.location)}</p>` : ''}
+      <button onclick="navigateTo('community-hub')" class="app-secondary-action mt-3">Ver detalhes</button>
+    </article>`;
+}
+
+function renderCommunityAgenda(events, attendancesByEvent = {}) {
+  const container = document.getElementById('community-agenda-container');
+  if (!container) return;
+  if (!events || events.length === 0) {
+    container.innerHTML = '<div class="app-context-card"><h3>Nenhum evento programado no momento.</h3><p>Quando houver novidades na agenda, elas aparecerão aqui.</p></div>';
+    return;
+  }
+
   const isLoggedIn = getCurrentUserInfo().isLoggedIn;
-
-  const categoryColors = {
-    culto: 'border-l-blue-500 bg-blue-50',
-    estudo: 'border-l-purple-500 bg-purple-50',
-    reuniao: 'border-l-gray-500 bg-gray-50',
-    evento: 'border-l-gold-500 bg-gold-50',
-    aviso: 'border-l-amber-500 bg-amber-50',
-    aviso_urgente: 'border-l-red-500 bg-red-50'
-  };
-
   container.innerHTML = events.map(e => {
     const isAnnouncement = e.agenda_type === 'announcement';
+    const eventDomId = String(e.id || '').replace(/[^a-zA-Z0-9_-]/g, '');
     const dateStr = e.event_date && e.event_date !== 'null' && e.event_date !== 'undefined' ? String(e.event_date) : '';
     const dateParts = dateStr ? dateStr.split('-') : [];
     const day = dateParts[2] || '--';
     const month = dateParts[1] || '';
     const attendees = isAnnouncement ? [] : (attendancesByEvent[e.id] || []);
     const hasConfirmed = isLoggedIn && attendees.some(a => a.user_id === getCurrentUserInfo().user?.id);
-    const visibleAttendees = attendees.slice(0, 3);
-    const hiddenAttendees = attendees.slice(3);
-    const hiddenCount = hiddenAttendees.length;
 
     return `
-    <div class="min-w-[300px] max-w-[340px] flex-shrink-0 snap-start bg-white rounded-xl p-4 border border-gray-100 border-l-4 ${categoryColors[e.category] || 'border-l-gray-300'}">
+    <article class="app-context-card">
       <div class="flex items-center gap-3">
         <div class="text-center min-w-[50px]">
-          <span class="text-2xl font-bold text-gray-800">${escapeHtml(day)}</span>
-          <span class="block text-xs text-gray-500 uppercase">${escapeHtml(month ? getMonthName(month) : '')}</span>
+          <span class="text-2xl font-bold text-gray-100">${escapeHtml(day)}</span>
+          <span class="block text-xs text-slate-400 uppercase">${escapeHtml(month ? getMonthName(month) : '')}</span>
         </div>
         <div class="flex-1 min-w-0">
-          <h4 class="font-semibold text-gray-800 truncate">${escapeHtml(e.title || 'Evento')}</h4>
-          <p class="text-sm text-gray-500 flex items-center gap-1 mt-1 flex-wrap">
+          <h4 class="font-semibold text-gray-100 truncate">${escapeHtml(e.title || 'Evento')}</h4>
+          <p class="text-sm text-slate-400 flex items-center gap-1 mt-1 flex-wrap">
             <i class="fas fa-clock text-xs"></i> ${escapeHtml(e.event_time || '')}
-            ${e.location ? `<span class="flex items-center gap-1"><i class="fas fa-map-marker-alt text-xs ml-2"></i> ${safeExternalUrl(e.maps_url) ? `<a href="${escapeHtml(safeExternalUrl(e.maps_url))}" target="_blank" rel="noopener noreferrer" class="hover:text-adpel-600 hover:underline">${escapeHtml(e.location)}</a>` : escapeHtml(e.location)}</span>` : ''}
+            ${e.location ? `<span class="flex items-center gap-1"><i class="fas fa-map-marker-alt text-xs ml-2"></i> ${safeExternalUrl(e.maps_url) ? `<a href="${escapeHtml(safeExternalUrl(e.maps_url))}" target="_blank" rel="noopener noreferrer" class="hover:text-blue-300 hover:underline">${escapeHtml(e.location)}</a>` : escapeHtml(e.location)}</span>` : ''}
           </p>
         </div>
       </div>
-      ${e.description ? `<p class="text-xs text-gray-500 mt-2 line-clamp-2">${escapeHtml(e.description)}</p>` : ''}
-      ${safeExternalUrl(e.link) ? `<a href="${escapeHtml(safeExternalUrl(e.link))}" target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-1 mt-3 text-xs font-bold text-adpel-700 hover:text-adpel-900 hover:underline"><i class="fas fa-arrow-up-right-from-square"></i> Abrir link</a>` : ''}
-      <div class="${isAnnouncement ? 'hidden' : ''} mt-3 pt-3 border-t border-gray-100">
-        <button id="attendance-btn-${e.id}" onclick="confirmAttendance('${e.id}')" class="w-full py-1.5 px-3 rounded-lg text-xs font-bold transition ${hasConfirmed ? 'bg-green-100 text-green-700 border border-green-200' : 'bg-purple-600 text-white hover:bg-purple-700 active:bg-purple-800'}">
+      ${e.description ? `<p class="text-xs text-slate-400 mt-2 line-clamp-2">${escapeHtml(e.description)}</p>` : ''}
+      ${safeExternalUrl(e.link) ? `<a href="${escapeHtml(safeExternalUrl(e.link))}" target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-1 mt-3 text-xs font-bold text-blue-300 hover:text-blue-200 hover:underline"><i class="fas fa-arrow-up-right-from-square"></i> Abrir link</a>` : ''}
+      <div class="${isAnnouncement ? 'hidden' : ''} mt-3 pt-3 border-t border-slate-700/70">
+        <button id="attendance-btn-${eventDomId}" onclick="confirmAttendance('${eventDomId}')" class="w-full py-1.5 px-3 rounded-lg text-xs font-bold transition ${hasConfirmed ? 'bg-green-100 text-green-700 border border-green-200' : 'bg-purple-600 text-white hover:bg-purple-700 active:bg-purple-800'}">
           ${hasConfirmed ? '<i class="fas fa-check mr-1"></i> Presença Confirmada' : '<i class="fas fa-hand-point-up mr-1"></i> Marcar Presença'}
         </button>
-        <div id="attendees-${e.id}" class="mt-2 flex flex-wrap gap-1 items-center">
-          ${visibleAttendees.map(a => `<span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium bg-purple-100 text-purple-700 border border-purple-200">${escapeHtml(a.user_name || 'Membro')}</span>`).join('')}
-          ${hiddenCount > 0 ? `<button onclick="toggleAttendees('${e.id}')" id="attendees-toggle-${e.id}" data-count="${hiddenCount}" class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium bg-gray-100 text-gray-600 border border-gray-200 hover:bg-gray-200 transition">+${hiddenCount}</button>` : ''}
-          <div id="attendees-extra-${e.id}" class="hidden flex flex-wrap gap-1 w-full mt-1">
-            ${hiddenAttendees.map(a => `<span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium bg-purple-100 text-purple-700 border border-purple-200">${escapeHtml(a.user_name || 'Membro')}</span>`).join('')}
-          </div>
-        </div>
+        <div id="attendees-${eventDomId}" class="mt-2 flex flex-wrap gap-1 items-center"></div>
       </div>
-    </div>
+    </article>
   `}).join('');
 }
