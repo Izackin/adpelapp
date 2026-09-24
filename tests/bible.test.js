@@ -27,14 +27,17 @@ assert.deepEqual(buildSelectionPayload({
   book_id: 'JHN', book_name: 'João', chapter: 3, verse_start: 16, verse_end: 17
 }, [
   { verse: 15, text: 'fora' }, { verse: 16, text: 'primeiro' }, { verse: 17, text: 'segundo' }
-]), {
-  translation_code: 'acf', book_id: 'JHN', book_name: 'João', chapter: 3,
+], 'onbv'), {
+  translation_code: 'onbv', book_id: 'JHN', book_name: 'João', chapter: 3,
   verse_start: 16, verse_end: 17, text: 'primeiro segundo'
 });
 
 const source = read('js/bible.js');
 assert.match(source, /bible_translations/);
 assert.match(source, /translation_id/);
+assert.match(source, /\.eq\('translation_id', state\.translation\.id\)/);
+assert.match(source, /savePreferences\(\{ translation_code: state\.translation\.code \}\)/);
+assert.match(source, /resultado\(s\) em \$\{state\.translation\.short_name\}/i);
 assert.match(source, /window\.ADPELBibleProviders/);
 assert.match(source, /getSelectionPayload/);
 assert.match(source, /navigator\.share/);
@@ -71,7 +74,7 @@ assert.match(migration, /primary key \(user_id, book_id, chapter\)/);
 const importer = read('scripts/import-bible-translation.mjs');
 assert.match(importer, /--validate-only/);
 assert.match(importer, /SUPABASE_SERVICE_ROLE_KEY/);
-assert.match(importer, /is_active: false/);
+assert.match(importer, /is_active: translation\?\.is_active \|\| false/);
 assert.match(importer, /referência duplicada/);
 
 console.log('Bible ADPEL 2.0 tests passed.');

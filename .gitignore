@@ -1,0 +1,8 @@
+.env
+.env.*
+!.env.example
+
+# Bible source packages and generated import batches stay outside Git.
+*.usfm
+*_usfm.zip
+.bible-import/

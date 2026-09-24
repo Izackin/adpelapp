@@ -13,22 +13,24 @@
 | Código | Situação | Fonte/licença |
 |---|---|---|
 | `acf` | Local, ativa e default. 31.105 linhas físicas; 31.102 referências canônicas. Nenhum texto alterado ou removido. | Acervo já autorizado pelo responsável do projeto; aviso: “Utilizada na ADPEL mediante autorização.” |
-| `onbv` | Validada como candidata, não importada. O pacote oficial conferido contém 66 arquivos, 1.189 capítulos e 31.105 marcadores de versículo. | Open.Bible/Biblica, CC BY-SA 4.0; exige o aviso integral de copyright, atribuição, fonte e ShareAlike. |
-| Almeida 1911 | Candidata, não importada. | Project Gutenberg #62383 / edição de 1911 em domínio público; ainda requer transformação e validação estrutural completa antes da carga. |
-| Bíblia Livre/JFAAL | Pendentes. | Não foram importadas porque a fonte primária, edição exata e obrigações de atribuição não foram fechadas nesta etapa. |
+| `onbv` | Local, completa e ativa; classificação A. 66 livros, 1.189 capítulos e 31.105 referências. | Pacote oficial Open.Bible/Biblica, CC BY-SA 4.0; aviso integral, origem e ShareAlike preservados. |
+| `blivre` | Local, completa e inativa; classificação B. 66 livros, 1.189 capítulos e 31.102 referências. | eBible `porbr2018`, CC BY 4.0. A própria fonte declara que o texto é trabalho em andamento; requer avaliação editorial antes de ativação. |
+
+O inventário legal/técnico completo, hashes dos pacotes e motivos para não ativar outras candidatas estão em [bible-translations.md](bible-translations.md).
 
 Downloads ou textos encontrados na internet nunca devem ser ativados só pelo nome. Antes da importação, confira a fonte primária, a licença da edição exata, os 66 livros (quando aplicável), 1.189 capítulos, referências duplicadas/vazias e amostras do texto.
 
 ## Adicionar tradução local
 
 1. Obtenha autorização/licença e guarde a URL oficial e o aviso exigido.
-2. Converta a fonte sem reescrever o texto para JSON UTF-8:
-   `{"metadata": {...}, "verses": [{"book_id":"GEN","chapter":1,"verse":1,"text":"..."}]}`.
-3. Defina `SUPABASE_URL` e `SUPABASE_SERVICE_ROLE_KEY` apenas no ambiente seguro do operador. A chave nunca pertence ao frontend.
-4. Execute primeiro `node scripts/import-bible-translation.mjs arquivo.json --validate-only`.
-5. Execute sem `--validate-only`. A tradução nasce inativa; confira contagens, capítulos, duplicatas, encoding, amostras e direitos antes de ativar.
+2. Registre fonte, versão, hash, licença e avisos integrais em `scripts/bible-translation-sources.json`.
+3. Extraia o pacote USFM fora do repositório; pacotes e derivados não são versionados.
+4. Valide sem credenciais:
+   `node scripts/import-bible-translation.mjs --source DIRETORIO --translation CODIGO --archive PACOTE.zip --validate-only`.
+5. Para uma operação via Supabase autenticado, gere lotes idempotentes fora do Git com `--sql-dir DIRETORIO`; alternativamente use `--import` com os segredos somente no ambiente seguro.
+6. A tradução nasce inativa. Confira banco, amostras, seletor, busca, direitos e RLS; somente uma fonte classe A pode então ser ativada.
 
-O importador valida metadados legais, livros, limites de capítulos, referências, texto vazio e duplicatas; a carga é reexecutável por referência canônica. O dataset não deve ser versionado se a licença não permitir redistribuição.
+O importador lê JSON canônico legado ou diretórios USFM. Remove notas, referências cruzadas e headings editoriais; preserva texto de parágrafos, poesia, listas e marcadores de ênfase. Ele interrompe diante de marcador desconhecido ou versificação composta não suportada, em vez de perder palavras silenciosamente. Valida metadados, UTF-8, catálogo, ordem lógica, capítulos, referências, duplicatas, vazios, encoding, HTML/USFM residual, checksum e dez capítulos-amostra. A carga é reexecutável e para em conflito textual inesperado.
 
 ## Dados pessoais e progresso
 

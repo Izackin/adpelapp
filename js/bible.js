@@ -34,10 +34,10 @@
     return { book, chapter, verseStart, verseEnd };
   }
 
-  function buildSelectionPayload(selection = state.selection, verses = state.verses) {
+  function buildSelectionPayload(selection = state.selection, verses = state.verses, translationCode = state.translation?.code || 'acf') {
     if (!selection) return null;
     return {
-      translation_code: state.translation?.code || 'acf',
+      translation_code: translationCode,
       book_id: selection.book_id,
       book_name: selection.book_name,
       chapter: selection.chapter,
