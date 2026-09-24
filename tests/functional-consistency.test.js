@@ -60,7 +60,10 @@ assert.doesNotMatch(read('spiritual-progress.js'), /select\([^\n]*photo_url/);
   'harpa.html',
   'certificate-print.html'
 ].forEach((file) => {
-  assert.match(read(file), /<link rel="icon" type="image\/png" href="images\/adpel\.logo\.png">/);
+  assert.match(
+    read(file),
+    /<link rel="icon" type="image\/png" sizes="32x32" href="images\/favicon-32\.png">/
+  );
 });
 
 console.log('functional-consistency: all assertions passed');

@@ -12,7 +12,10 @@ async function ensureServiceWorkerRegistration() {
   if (!('serviceWorker' in navigator)) return null;
   const existing = await navigator.serviceWorker.getRegistration();
   if (existing) return existing;
-  return navigator.serviceWorker.register('sw.js');
+  return navigator.serviceWorker.register('./sw.js', {
+    scope: './',
+    updateViaCache: 'none'
+  });
 }
 
 function urlBase64ToUint8Array(base64String) {

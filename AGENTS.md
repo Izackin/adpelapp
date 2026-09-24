@@ -268,7 +268,7 @@ O fluxo atual e:
 - Controle de atualizacoes lidas por usuario ou visitante.
 - Push notifications.
 - PWA instalavel.
-- Service Worker com cache basico.
+- Service Worker com HTML network-first, fallback offline local, bypass de Supabase/APIs e cache limitado a recursos publicos locais.
 - Correcao visual de textos com encoding corrompido via `text-fix.js`.
 
 ## Painel Administrativo

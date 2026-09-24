@@ -4,7 +4,8 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>ADPEL | Plataforma de Discipulado</title>
-  <link rel="icon" type="image/png" href="images/adpel.logo.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="images/favicon-32.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="images/apple-touch-icon.png">
   <meta name="description" content="Plataforma digital da Assembleia de Deus - Campo Pedro Ludovico.">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -167,11 +168,11 @@
   <div id="pwa-install-banner" class="fixed top-20 left-0 right-0 z-50 bg-adpel-600 text-white px-4 py-3 shadow-lg transition-transform duration-500 -translate-y-[200%] flex items-center justify-between max-w-3xl mx-auto rounded-b-xl border border-adpel-500 border-t-0">
     <div class="flex items-center gap-3">
       <div class="w-10 h-10 rounded-lg bg-white/20 flex items-center justify-center flex-shrink-0">
-        <img src="https://huggingface.co/spaces/IzaqueE/deepsite-project-6tv0m/resolve/main/images/adpel.logo.png" alt="ADPEL" class="w-6 h-6 object-contain">
+        <img src="images/icon-192.png" alt="ADPEL" class="w-6 h-6 object-contain">
       </div>
       <div>
         <p class="font-semibold text-sm">Instale o App ADPEL</p>
-        <p class="text-xs text-adpel-100 opacity-90">Acesso rápido e offline.</p>
+        <p class="text-xs text-adpel-100 opacity-90">Acesso rápido e experiência otimizada.</p>
       </div>
     </div>
     <div class="flex items-center gap-2">
@@ -186,7 +187,7 @@
       <div class="flex justify-between h-20">
         <div class="flex items-center gap-3">
           <div class="w-10 h-10 rounded-lg flex items-center justify-center overflow-hidden bg-white">
-            <img src="https://huggingface.co/spaces/IzaqueE/deepsite-project-6tv0m/resolve/main/images/adpel.logo.png" alt="ADPEL Logo" class="w-full h-full object-cover">
+            <img src="images/adpel.logo.png" alt="ADPEL Logo" class="w-full h-full object-cover">
           </div>
           <span class="font-bold text-xl text-sidebar hidden sm:block">ADPEL</span>
         </div>
@@ -308,7 +309,7 @@
     <aside id="sidebar" class="hidden md:block fixed left-0 top-0 h-screen w-64 bg-white border-r border-gray-200 z-50 p-6 overflow-y-auto">
       <div class="flex items-center gap-3 mb-10">
         <div class="w-8 h-8 rounded flex items-center justify-center overflow-hidden bg-white">
-          <img src="https://huggingface.co/spaces/IzaqueE/deepsite-project-6tv0m/resolve/main/images/adpel.logo.png" alt="ADPEL Logo" class="w-full h-full object-cover">
+          <img src="images/adpel.logo.png" alt="ADPEL Logo" class="w-full h-full object-cover">
         </div>
         <h1 class="font-bold text-xl text-sidebar">ADPEL</h1>
       </div>
@@ -1130,14 +1131,32 @@
       pwaBanner.classList.add('-translate-y-[200%]');
     }
 
-    // Registrar Service Worker (obrigatório para funcionar como PWA)
+    let reloadForServiceWorkerUpdate = false;
+
+    // Ativa uma atualização que já estava pronta ao abrir/recarregar a página.
+    // Atualizações encontradas durante o uso aguardam a próxima navegação.
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
-        navigator.serviceWorker.register('sw.js').then(reg => {
-          console.log('SW registered:', reg.scope);
-        }).catch(err => {
-          console.log('SW registration failed:', err);
+        navigator.serviceWorker.register('./sw.js', {
+          scope: './',
+          updateViaCache: 'none'
+        }).then((registration) => {
+          if (registration.waiting && navigator.serviceWorker.controller) {
+            reloadForServiceWorkerUpdate = true;
+            registration.waiting.postMessage({ type: 'SKIP_WAITING' });
+          }
+
+          registration.update().catch(() => {});
+        }).catch((error) => {
+          console.error('[PWA] Falha ao registrar o Service Worker:', error);
         });
+      });
+
+      navigator.serviceWorker.addEventListener('controllerchange', () => {
+        if (reloadForServiceWorkerUpdate) {
+          reloadForServiceWorkerUpdate = false;
+          window.location.reload();
+        }
       });
     }
 
@@ -1145,27 +1164,17 @@
     window.addEventListener('beforeinstallprompt', (e) => {
       e.preventDefault();
       deferredPrompt = e;
-      showPwaBanner();
+      let dismissed = false;
+      try {
+        dismissed = sessionStorage.getItem('adpel-install-dismissed') === '1';
+      } catch (error) {}
+      if (!dismissed) showPwaBanner();
     });
 
     // Se já estiver instalado, esconde completamente
     if (window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true) {
       if (pwaBanner) pwaBanner.style.display = 'none';
-    } else {
-      // Sempre mostra após 3 segundos, mesmo se o beforeinstallprompt não disparar ainda
-      setTimeout(() => {
-        if (pwaBanner && pwaBanner.style.display !== 'none') showPwaBanner();
-      }, 3000);
     }
-
-    // Recarrega automaticamente quando um novo Service Worker assumir o controle
-    let refreshing = false;
-    navigator.serviceWorker.addEventListener('controllerchange', () => {
-      if (!refreshing) {
-        refreshing = true;
-        window.location.reload();
-      }
-    });
 
     if (pwaInstallBtn) {
       pwaInstallBtn.addEventListener('click', async () => {
@@ -1185,8 +1194,9 @@
     if (pwaDismissBtn) {
       pwaDismissBtn.addEventListener('click', () => {
         hidePwaBanner();
-        // Reaparece após 5 minutos na mesma sessão (na próxima visita ele já volta sozinho)
-        setTimeout(showPwaBanner, 300000);
+        try {
+          sessionStorage.setItem('adpel-install-dismissed', '1');
+        } catch (error) {}
       });
     }
 
