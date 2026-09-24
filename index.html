@@ -21,7 +21,7 @@
   <script src="utils/date-utils.js" defer></script>
   <script src="spiritual-progress.js" defer></script>
   <script src="js/navigation.js" defer></script>
-  <script src="js/bible.js" defer></script>
+  <script src="js/bible.js?v=bible-2.0" defer></script>
   <script src="js/app-updates.js" defer></script>
   <script src="js/library.js" defer></script>
   <script src="js/agenda.js" defer></script>
@@ -38,6 +38,7 @@
   <script src="script.js" defer></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
   <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="bible.css">
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://www.youtube.com/iframe_api"></script>
 
@@ -637,7 +638,7 @@
           <!-- Toolbar -->
           <div class="flex flex-col md:flex-row md:items-center justify-between gap-3 mb-4 bg-white/5 p-4 rounded-xl border border-white/10 backdrop-blur-sm">
             <div class="flex items-center gap-3 flex-wrap">
-              <select id="bible-book-select" onchange="mudarLivroBiblia(this.value)" class="bg-[#0f172a] border border-gray-700 text-white text-sm rounded-lg px-3 py-2 focus:ring-2 focus:ring-adpel-500 outline-none min-w-[160px]">
+              <select id="bible-book-select" class="bg-[#0f172a] border border-gray-700 text-white text-sm rounded-lg px-3 py-2 focus:ring-2 focus:ring-adpel-500 outline-none min-w-[160px]">
                 <option value="">Selecione o Livro</option>
               </select>
               <div id="bible-chapter-selector" class="flex items-center gap-1 flex-wrap max-h-24 overflow-y-auto pr-1"></div>

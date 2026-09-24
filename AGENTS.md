@@ -67,7 +67,7 @@ Ajudar igrejas a discipular, informar, engajar e servir seus membros por meio de
 |-- js/
 |   |-- agenda.js                    # Agenda/eventos publicos
 |   |-- app-updates.js               # Novidades e atualizacoes do app
-|   |-- bible.js                     # Biblia embutida no app principal
+|   |-- bible.js                     # Biblia 2.0 compartilhada: leitura, busca e estudo pessoal
 |   |-- bootstrap.js                 # Helpers globais iniciais
 |   |-- certificates.js              # Certificados publicos
 |   |-- config.js                    # Configuracao base ADPEL
@@ -78,6 +78,7 @@ Ajudar igrejas a discipular, informar, engajar e servir seus membros por meio de
 |   |-- offerings.js                 # Modal de ofertas e PIX
 |   `-- profile.js                   # Perfil e relatorio de ofertas
 |-- bible.html                         # Pagina separada da Biblia
+|-- bible.css                          # Experiencia visual compartilhada da Biblia 2.0
 |-- harpa.html                         # Pagina separada da Harpa Crista
 |-- style.css                          # Tema visual global
 |-- sw.js                              # Service Worker e Push
@@ -178,6 +179,14 @@ Tabelas e views identificadas:
 - `certificates`
 - `home_sections`
 - `bible_verses`
+- `bible_books`
+- `bible_translations`
+- `bible_highlights`
+- `bible_notes`
+- `bible_bookmarks`
+- `bible_reading_progress`
+- `bible_completed_books`
+- `user_bible_preferences`
 - `verse_of_day`
 - `user_lesson_progress`
 - `fundraising_goals`
@@ -250,6 +259,9 @@ O fluxo atual e:
 - Biblia embutida no app principal.
 - Pagina separada `bible.html`.
 - Busca biblica por referencia ou texto.
+- Arquitetura biblica multiversao com livros canonicos, seletor e metadados de direitos.
+- Selecao de versiculo/intervalo, destaques, notas privadas, favoritos e compartilhamento.
+- Progresso explicito de leitura, continuacao e preferencia de tamanho de fonte por usuario.
 - Harpa Crista em `harpa.html`.
 - Busca de hinos por numero, titulo ou trecho.
 - Cache local da Harpa.
