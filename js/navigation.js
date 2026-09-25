@@ -14,7 +14,7 @@ function navigateTo(section, options) {
     return;
   }
 
-  const sections = ['home', 'word', 'learn', 'community-hub', 'more', 'courses', 'studies', 'library', 'certificate', 'cofres', 'ranking', 'bible', 'profile', 'community'];
+  const sections = ['home', 'word', 'tutor', 'learn', 'community-hub', 'more', 'courses', 'studies', 'library', 'certificate', 'cofres', 'ranking', 'bible', 'profile', 'community'];
   sections.forEach(s => {
     const el = document.getElementById(s);
     if (el) el.classList.add('hidden');
@@ -55,6 +55,7 @@ function loadSectionData(section) {
   switch(section) {
     case 'home': loadHomeData(); break;
     case 'word': if (typeof renderReadingContinuation === 'function') renderReadingContinuation(); break;
+    case 'tutor': if (window.ADPELTutor && typeof window.ADPELTutor.activate === 'function') window.ADPELTutor.activate(); break;
     case 'courses': loadCoursesData(); break;
     case 'studies': loadStudiesData(); break;
     case 'library': loadLibraryData(); break;
@@ -69,7 +70,7 @@ function loadSectionData(section) {
 
 function handleNavigationHash() {
   const hash = window.location.hash.replace('#', '');
-  if (hash && ['home','word','learn','community-hub','more','courses','studies','library','certificate','cofres','ranking','profile','community'].includes(hash)) {
+  if (hash && ['home','word','tutor','learn','community-hub','more','courses','studies','library','certificate','cofres','ranking','profile','community'].includes(hash)) {
     navigateTo(hash, { updateHistory: false });
   }
 }

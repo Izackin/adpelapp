@@ -48,6 +48,8 @@
     };
   }
 
+  const isTutorVerseCountAllowed = (verseCount) => Number.isInteger(verseCount) && verseCount >= 1 && verseCount <= 10;
+
   function client() {
     if (!window.supabaseClient) throw new Error('Supabase indisponível.');
     return window.supabaseClient;
@@ -168,6 +170,7 @@
       <div id="bible-selection-menu" class="bible-sheet" role="dialog" aria-modal="true" aria-label="Ações da seleção">
         <div class="bible-sheet-handle"></div><strong id="bible-selection-label"></strong>
         <div id="bible-highlight-colors" class="bible-color-row hidden">${COLORS.map((color) => `<button data-highlight-color="${color}" class="bible-color-${color}" aria-label="Destaque ${color}"></button>`).join('')}<button data-bible-action="remove-highlight">Remover</button></div>
+        <button type="button" class="bible-tutor-action" data-bible-action="tutor"><i class="fas fa-book-open"></i><span>Perguntar ao Tutor</span><i class="fas fa-arrow-right"></i></button>
         <div class="bible-sheet-actions"><button data-bible-action="highlight"><i class="fas fa-highlighter"></i> Destacar</button><button data-bible-action="note"><i class="fas fa-note-sticky"></i> Nota</button><button data-bible-action="bookmark"><i class="far fa-bookmark"></i> Favoritar</button><button data-bible-action="share"><i class="fas fa-share-nodes"></i> Compartilhar</button></div>
         <button class="bible-sheet-close" data-bible-action="clear-selection">Fechar</button>
       </div>
@@ -430,6 +433,28 @@
     } catch (error) { if (error.name !== 'AbortError') showMessage('Não foi possível compartilhar.', 'error'); }
   }
 
+  function openTutorForSelection() {
+    const selection = buildSelectionPayload();
+    if (!selection) return;
+    const verseCount = selection.verse_end - selection.verse_start + 1;
+    if (!isTutorVerseCountAllowed(verseCount)) {
+      showMessage('Selecione no máximo 10 versículos para estudar com o Tutor.');
+      return;
+    }
+    const context = {
+      book_id: selection.book_id,
+      book_name: selection.book_name,
+      chapter: selection.chapter,
+      verse_start: selection.verse_start,
+      verse_end: selection.verse_end,
+      translation_code: selection.translation_code
+    };
+    clearSelection();
+    if (window.ADPELTutor?.openWithBibleContext(context)) return;
+    const params = new URLSearchParams({ tutor: '1', ...Object.fromEntries(Object.entries(context).map(([key, value]) => [key, String(value)])) });
+    window.location.href = `index.html?${params.toString()}#tutor`;
+  }
+
   function renderProgress() {
     const summary = $('bible-progress-summary');
     const toggle = $('bible-read-toggle');
@@ -571,7 +596,7 @@
         'font-up': () => savePreferences({ font_size: state.preferences.font_size + 2 }),
         'library-notes': () => openLibrary('notes'), 'library-bookmarks': () => openLibrary('bookmarks'),
         rights: () => openModal('bible-rights-modal'), highlight: () => $('bible-highlight-colors')?.classList.toggle('hidden'),
-        'remove-highlight': removeHighlight, note: () => openNote(), bookmark: toggleBookmark, share: shareSelection,
+        'remove-highlight': removeHighlight, note: () => openNote(), bookmark: toggleBookmark, share: shareSelection, tutor: openTutorForSelection,
         'clear-selection': clearSelection, 'save-note': saveNote, 'delete-note': deleteNote,
         'close-modal': closeModals, 'close-auth': () => $('bible-auth-invite')?.classList.remove('visible')
       };
@@ -640,6 +665,6 @@
     mudarLivroBiblia: (book) => loadChapter(book, 1)
   });
   window.ADPELBible = { getSelectionPayload: buildSelectionPayload, openReference: loadChapter, parseReference };
-  if (typeof module !== 'undefined' && module.exports) module.exports = { normalize, parseReference, makeReferenceLabel, clampFontSize, buildSelectionPayload };
+  if (typeof module !== 'undefined' && module.exports) module.exports = { normalize, parseReference, makeReferenceLabel, clampFontSize, buildSelectionPayload, isTutorVerseCountAllowed };
   if (typeof document !== 'undefined') document.addEventListener('DOMContentLoaded', init);
 })();

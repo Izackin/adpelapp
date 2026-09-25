@@ -7,7 +7,7 @@ const read = (file) => fs.readFileSync(path.join(root, file), 'utf8');
 
 global.window = {};
 global.document = { addEventListener() {} };
-const { normalize, parseReference, makeReferenceLabel, clampFontSize, buildSelectionPayload } = require('../js/bible.js');
+const { normalize, parseReference, makeReferenceLabel, clampFontSize, buildSelectionPayload, isTutorVerseCountAllowed } = require('../js/bible.js');
 
 const books = [
   { id: 'GEN', name_pt: 'Gênesis', chapter_count: 50, aliases: ['genesis', 'gn'] },
@@ -22,6 +22,9 @@ assert.equal(makeReferenceLabel('João', 3, 16, 18), 'João 3:16–18');
 assert.equal(clampFontSize(2), 14);
 assert.equal(clampFontSize(99), 26);
 assert.equal(clampFontSize(20), 20);
+assert.equal(isTutorVerseCountAllowed(1), true);
+assert.equal(isTutorVerseCountAllowed(10), true);
+assert.equal(isTutorVerseCountAllowed(11), false);
 
 assert.deepEqual(buildSelectionPayload({
   book_id: 'JHN', book_name: 'João', chapter: 3, verse_start: 16, verse_end: 17
@@ -33,6 +36,10 @@ assert.deepEqual(buildSelectionPayload({
 });
 
 const source = read('js/bible.js');
+const tutorSelectionFlow = source.slice(source.indexOf('function openTutorForSelection'), source.indexOf('function renderProgress'));
+assert.match(tutorSelectionFlow, /selection\.verse_end - selection\.verse_start \+ 1/);
+assert.match(tutorSelectionFlow, /Selecione no máximo 10 versículos para estudar com o Tutor\./);
+assert.ok(tutorSelectionFlow.indexOf('isTutorVerseCountAllowed') < tutorSelectionFlow.indexOf('clearSelection()'));
 assert.match(source, /bible_translations/);
 assert.match(source, /translation_id/);
 assert.match(source, /\.eq\('translation_id', state\.translation\.id\)/);

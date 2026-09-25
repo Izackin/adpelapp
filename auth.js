@@ -199,6 +199,10 @@ function updateAuthUI(isLoggedIn) {
     if (adminLinkMobile) adminLinkMobile.classList.add('hidden');
   }
 
+  if (window.ADPELTutor && typeof window.ADPELTutor.handleAuthChange === 'function') {
+    window.ADPELTutor.handleAuthChange(Boolean(isLoggedIn && currentUser));
+  }
+
   // Re-render seções dinâmicas apenas se necessário (evita fetch duplicado)
   if (isLoggedIn && currentUser) {
     const section = currentSection || 'home';

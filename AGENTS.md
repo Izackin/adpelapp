@@ -68,6 +68,7 @@ Ajudar igrejas a discipular, informar, engajar e servir seus membros por meio de
 |   |-- agenda.js                    # Agenda/eventos publicos
 |   |-- app-updates.js               # Novidades e atualizacoes do app
 |   |-- bible.js                     # Biblia 2.0 compartilhada: leitura, busca e estudo pessoal
+|   |-- tutor.js                     # Tutor Teologico: perguntas autenticadas, fontes e contexto biblico
 |   |-- bootstrap.js                 # Helpers globais iniciais
 |   |-- certificates.js              # Certificados publicos
 |   |-- config.js                    # Configuracao base ADPEL
@@ -80,6 +81,7 @@ Ajudar igrejas a discipular, informar, engajar e servir seus membros por meio de
 |   `-- profile.js                   # Perfil e relatorio de ofertas
 |-- bible.html                         # Pagina separada da Biblia
 |-- bible.css                          # Experiencia visual compartilhada da Biblia 2.0
+|-- tutor.css                          # Interface responsiva do Tutor Teologico
 |-- harpa.html                         # Pagina separada da Harpa Crista
 |-- app-shell.css                      # Hubs e bottom navigation responsiva
 |-- style.css                          # Tema visual global
@@ -281,6 +283,7 @@ O fluxo atual e:
 - Novidades/atualizacoes do app.
 - Controle de atualizacoes lidas por usuario ou visitante.
 - Push notifications.
+- Tutor Teologico autenticado, com fontes identificadas, contexto vindo da Biblia e historico apenas em memoria.
 - PWA instalavel.
 - Service Worker com HTML network-first, fallback offline local, bypass de Supabase/APIs e cache limitado a recursos publicos locais.
 - Correcao visual de textos com encoding corrompido via `text-fix.js`.
@@ -337,6 +340,7 @@ App principal. Secoes:
 - `more`: biblioteca, ofertas, perfil, caminhada, instalacao e acesso administrativo autorizado.
 - `courses`: cursos e aulas.
 - `studies`: estudos publicados, acessiveis pela area Palavra.
+- `tutor`: Tutor Teologico autenticado, acessivel pela area Palavra sem novo item na navegacao inferior.
 - `library`: biblioteca.
 - `cofres`: objetivos e ofertas destinadas.
 - `certificate`: certificados do usuario.

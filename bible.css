@@ -36,6 +36,8 @@
 .bible-sheet-actions { display: grid; grid-template-columns: repeat(4, 1fr); gap: .4rem; margin-top: .7rem; }
 .bible-sheet-actions button { min-height: 48px; padding: .45rem; border-radius: .65rem; background: #1e293b; font-size: .74rem; }
 .bible-sheet-actions i { display: block; margin-bottom: .25rem; }
+.bible-tutor-action { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: .65rem; width: 100%; min-height: 48px; margin-top: .7rem; border: 1px solid rgba(96,165,250,.3); border-radius: .75rem; padding: .65rem .8rem; background: rgba(37,99,235,.16); color: #dbeafe; font-size: .82rem; font-weight: 800; text-align: left; }
+.bible-tutor-action:hover, .bible-tutor-action:focus-visible { background: rgba(37,99,235,.26); outline: 2px solid #60a5fa; outline-offset: 2px; }
 .bible-sheet-close { width: 100%; margin-top: .55rem; padding: .45rem; color: #94a3b8; font-size: .8rem; }
 .bible-color-row { display: flex; align-items: center; gap: .65rem; padding: .7rem 0 .15rem; }
 .bible-color-row [data-highlight-color] { width: 32px; height: 32px; border: 2px solid rgba(255,255,255,.7); border-radius: 50%; }

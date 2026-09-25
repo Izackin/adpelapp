@@ -13,6 +13,7 @@
     home: 'home',
     word: 'word',
     bible: 'word',
+    tutor: 'word',
     studies: 'word',
     learn: 'learn',
     courses: 'learn',

@@ -23,6 +23,7 @@
   <script src="spiritual-progress.js" defer></script>
   <script src="js/navigation.js" defer></script>
   <script src="js/bible.js?v=bible-2.0" defer></script>
+  <script src="js/tutor.js" defer></script>
   <script src="js/app-updates.js" defer></script>
   <script src="js/library.js" defer></script>
   <script src="js/agenda.js" defer></script>
@@ -164,6 +165,7 @@
 </style>
 <link rel="stylesheet" href="mobile-ux.css">
 <link rel="stylesheet" href="app-shell.css">
+<link rel="stylesheet" href="tutor.css">
 </head>
 <body class="antialiased min-h-screen flex flex-col overflow-x-hidden relative" data-app-context="home">
 
@@ -316,13 +318,63 @@
 
       <!-- SECT: PALAVRA -->
       <section id="word" class="app-hub hidden">
-        <header class="app-hub-header"><p class="app-eyebrow">Palavra</p><h2>Leitura e crescimento espiritual</h2><p>Acesse a Bíblia, a Harpa Cristã e os estudos sem perder o foco.</p></header>
+        <header class="app-hub-header"><p class="app-eyebrow">Palavra</p><h2>Leitura e crescimento espiritual</h2><p>Acesse a Bíblia, o Tutor Teológico, a Harpa Cristã e os estudos sem perder o foco.</p></header>
         <div class="app-destination-grid">
           <a href="bible.html" class="app-destination-card"><i class="fas fa-book-bible" aria-hidden="true"></i><div><strong>Bíblia</strong><span>Leia, pesquise e continue de onde parou.</span></div></a>
+          <button onclick="navigateTo('tutor')" class="app-destination-card"><i class="fas fa-book-open" aria-hidden="true"></i><div><strong>Tutor Teológico <small class="tutor-beta-badge">BETA</small></strong><span>Estude temas bíblicos com fontes identificadas.</span></div></button>
           <a href="harpa.html" class="app-destination-card"><i class="fas fa-music" aria-hidden="true"></i><div><strong>Harpa Cristã</strong><span>Encontre hinos por número, título ou trecho.</span></div></a>
           <button onclick="navigateTo('studies')" class="app-destination-card"><i class="fas fa-book-open-reader" aria-hidden="true"></i><div><strong>Estudos</strong><span>Conteúdos para aprofundar a fé.</span></div></button>
         </div>
         <div id="word-continue-reading" class="app-hub-section hidden"></div>
+      </section>
+
+      <!-- SECT: TUTOR TEOLOGICO -->
+      <section id="tutor" class="tutor-view hidden" aria-labelledby="tutor-title">
+        <header class="tutor-header">
+          <button type="button" class="tutor-back" data-tutor-action="back" aria-label="Voltar para Palavra"><i class="fas fa-arrow-left" aria-hidden="true"></i></button>
+          <div class="tutor-header__copy">
+            <p class="tutor-eyebrow">Palavra <span aria-hidden="true">·</span> <span class="tutor-beta-badge">BETA</span></p>
+            <h2 id="tutor-title">Tutor Teológico</h2>
+            <p>Estudo bíblico com fontes verificadas.</p>
+          </div>
+        </header>
+
+        <div id="tutor-auth-gate" class="tutor-auth-gate hidden">
+          <span class="tutor-auth-gate__icon" aria-hidden="true"><i class="fas fa-lock"></i></span>
+          <div><h3>Entre para iniciar seu estudo</h3><p id="tutor-auth-message">Entre na sua conta para utilizar o Tutor Teológico.</p></div>
+          <button type="button" data-tutor-action="login">Entrar na conta</button>
+        </div>
+
+        <div id="tutor-workspace" class="tutor-workspace hidden">
+          <div id="tutor-empty-state" class="tutor-empty-state">
+            <span class="tutor-empty-state__icon" aria-hidden="true"><i class="fas fa-book-open"></i></span>
+            <h3>O que você gostaria de estudar?</h3>
+            <p>Use uma sugestão ou escreva sua própria pergunta. As respostas podem incluir a Bíblia e documentos de referência.</p>
+            <div id="tutor-suggestions" class="tutor-suggestions" aria-label="Sugestões de perguntas"></div>
+          </div>
+
+          <div id="tutor-history" class="tutor-history" aria-label="Estudos desta sessão"></div>
+
+          <div id="tutor-composer" class="tutor-composer">
+            <div id="tutor-bible-context" class="tutor-bible-context hidden">
+              <span aria-hidden="true"><i class="fas fa-book-bible"></i></span>
+              <div><small>Trecho selecionado</small><strong id="tutor-bible-context-label"></strong></div>
+              <button type="button" data-tutor-action="remove-context" aria-label="Remover trecho selecionado"><i class="fas fa-xmark" aria-hidden="true"></i></button>
+            </div>
+            <form id="tutor-form" class="tutor-form">
+              <label class="sr-only" for="tutor-question">Pergunta para o Tutor Teológico</label>
+              <textarea id="tutor-question" name="question" rows="3" maxlength="4000" placeholder="Pergunte sobre uma passagem, doutrina ou tema..." aria-describedby="tutor-form-help tutor-form-error"></textarea>
+              <div class="tutor-form__footer">
+                <span id="tutor-form-help">Ctrl + Enter para enviar</span>
+                <span id="tutor-counter" class="hidden">0/4000</span>
+                <button id="tutor-submit" class="tutor-submit" type="submit"><span>Enviar</span><i class="fas fa-arrow-up" aria-hidden="true"></i></button>
+              </div>
+            </form>
+            <p id="tutor-form-error" class="tutor-form-error hidden" role="alert"></p>
+            <p class="tutor-disclaimer">O Tutor apoia o estudo, mas não substitui a Bíblia, a liderança pastoral ou o aconselhamento pessoal.</p>
+          </div>
+          <p id="tutor-live-status" class="sr-only" role="status" aria-live="polite"></p>
+        </div>
       </section>
 
       <!-- SECT: APRENDER -->
