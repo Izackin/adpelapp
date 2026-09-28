@@ -100,9 +100,13 @@ async function run() {
   assert.match(shared, /include_granted_scopes: "true"/);
   assert.match(shared, /singleEvents: "true"/);
   assert.match(shared, /showDeleted: "true"/);
-  assert.match(shared, /error\.status === 410/);
+  assert.match(shared, /timeMin: ADPEL_SYNC_TIME_MIN/);
+  assert.match(shared, /timeMax: ADPEL_SYNC_TIME_MAX/);
+  assert.match(shared, /2026-10-01T00:00:00-03:00/);
+  assert.match(shared, /2027-01-01T00:00:00-03:00/);
   assert.match(shared, /\.eq\("source", "google"\)/);
-  assert.match(shared, /sync_token: nextSyncToken/);
+  assert.match(shared, /sync_token: null/);
+  assert.doesNotMatch(shared, /params\.set\("syncToken"/);
   assert.match(webhook, /x-goog-channel-id/);
   assert.match(webhook, /x-goog-resource-id/);
   assert.match(webhook, /x-goog-channel-token/);
