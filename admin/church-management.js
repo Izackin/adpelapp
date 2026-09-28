@@ -693,6 +693,10 @@ function renderChurchCertificates() {
 }
 
 function renderChurchReports() {
+  if (window.ADPELMemberReports && typeof window.ADPELMemberReports.render === 'function') {
+    window.ADPELMemberReports.render();
+    return;
+  }
   var stats = getChurchStats();
   var removed = membersData.filter(function(member) { return member.status === 'removido'; }).length;
   var month = churchCurrentMonthPrefix();
