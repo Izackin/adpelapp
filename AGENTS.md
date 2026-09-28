@@ -61,6 +61,7 @@ Ajudar igrejas a discipular, informar, engajar e servir seus membros por meio de
 |   |-- member-export.js               # Exportacao filtrada CSV/XLSX
 |   |-- member-reports.js              # Indicadores e PDFs de membros
 |   |-- crud-agenda.js
+|   |-- google-calendar.js             # Painel da integracao Google Calendar
 |   |-- crud-app-updates.js
 |   |-- crud-avisos.js
 |   |-- crud-certificates.js
@@ -97,6 +98,7 @@ Ajudar igrejas a discipular, informar, engajar e servir seus membros por meio de
 |   `-- adpel.logo.png
 |-- supabase/
 |   |-- migrations/                    # Migrations versionadas
+|   |-- functions/google-calendar-*/   # OAuth, sync, webhook e renovacao Google
 |   `-- functions/send-notification/   # Edge Function de push
 |-- schema.sql                         # Schema base manual
 |-- fundraising-schema.sql             # Schema de cofres
@@ -152,6 +154,7 @@ O backend e Supabase:
 - Database guarda conteudos, progresso, eventos, certificados e ofertas.
 - Storage guarda arquivos de cursos, livros e JSON da Harpa.
 - Edge Function `send-notification` envia push notifications.
+- Edge Functions `google-calendar-*` executam OAuth, sincronizacao incremental, webhook e renovacao dos canais Google Calendar.
 
 Nao existe servidor proprio neste repositorio. Toda operacao administrativa atual acontece pelo cliente Supabase no navegador, por isso as policies/RLS sao parte critica da seguranca real.
 
@@ -186,6 +189,8 @@ Tabelas e views identificadas:
 - `announcements`
 - `events`
 - `event_attendances`
+- `calendar_integrations`
+- `calendar_oauth_states`
 - `certificates`
 - `home_sections`
 - `bible_verses`
@@ -259,6 +264,7 @@ O fluxo atual e:
 - Versiculo do dia.
 - Agenda unificada de eventos e avisos.
 - Agenda V2 com periodo inicial/final, imagem, destaque e separacao entre ativo e publicado.
+- Importacao somente leitura do Google Calendar para a Agenda, com OAuth server-side, sync incremental e webhook.
 - Confirmacao/cancelamento de presenca em eventos.
 - Lista de participantes em eventos.
 - Cursos publicados.
@@ -315,6 +321,7 @@ O painel fica em `admin.html`. Ele possui:
 - CRUD de certificados.
 - CRUD de agenda/eventos.
 - Busca e filtros cronologicos da agenda, duplicacao de evento, contagem/lista de confirmados e relatorio CSV de participantes.
+- Conexao, selecao, sincronizacao e desconexao do Google Calendar dentro da Agenda.
 - CRUD de versiculos do dia.
 - CRUD de cofres.
 - CRUD de atualizacoes do app.
@@ -636,6 +643,7 @@ Nao altere sem necessidade e sem entender impacto:
 - YouTube IFrame API.
 - VAPID public key em `notifications.js`.
 - VAPID private/public secrets na Edge Function.
+- OAuth Google Calendar usa `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `GOOGLE_OAUTH_REDIRECT_URI`, `GOOGLE_CALENDAR_WEBHOOK_URL` e `ADPEL_ADMIN_URL`; refresh tokens ficam no Supabase Vault.
 - SheetJS 0.20.3 no `admin.html` para importacao/exportacao XLSX de membros.
 - jsPDF 4.2.1 no `admin.html` para relatorios locais de membros.
 - QR Code API externa.

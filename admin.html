@@ -589,6 +589,13 @@
           </button>
         </div>
 
+        <section id="google-calendar-panel" class="bg-white rounded-xl shadow-sm border border-gray-200 p-4 md:p-5" aria-live="polite">
+          <div class="flex items-center gap-3 text-sm text-gray-500">
+            <i class="fab fa-google text-blue-600"></i>
+            <span>Carregando integração com Google Agenda...</span>
+          </div>
+        </section>
+
         <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-3 md:p-4">
           <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-5 gap-3">
             <input type="search" id="agenda-search" oninput="renderAdminAgenda()" placeholder="Buscar por título ou local" class="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 outline-none min-h-[44px]">
@@ -1116,6 +1123,7 @@
   <script src="admin/crud-library.js"></script>
   <script src="admin/crud-certificates.js"></script>
   <script src="admin/crud-agenda.js"></script>
+  <script src="admin/google-calendar.js"></script>
   <script src="admin/crud-verses.js"></script>
   <script src="admin/crud-cofres.js"></script>
   <script src="admin/crud-app-updates.js"></script>
