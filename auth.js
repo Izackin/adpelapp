@@ -140,6 +140,9 @@ async function initAuth() {
     } else if (event === 'SIGNED_OUT') {
       currentUser = null;
       currentProfile = null;
+      if (typeof hidePushPermissionPrompt === 'function') {
+        hidePushPermissionPrompt(false);
+      }
       updateAuthUI(false);
       // Atualizar banner de boas-vindas
       if (typeof updateBannerWelcome === 'function') {
@@ -419,6 +422,13 @@ function bindAuthForms() {
   if (logoutBtn) {
     logoutBtn.addEventListener('click', async () => {
       try {
+        if (typeof removeCurrentPushSubscription === 'function') {
+          try {
+            await removeCurrentPushSubscription();
+          } catch (pushError) {
+            console.warn('Não foi possível remover a inscrição push durante a saída:', pushError);
+          }
+        }
         await ADPEL.auth.signOut();
         window.location.reload();
       } catch (error) {
