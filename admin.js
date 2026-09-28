@@ -47,7 +47,6 @@ if (typeof window.formatDate !== 'function') {
 // ============================================================
 
 function adminNavigateTo(view) {
-  if (view === 'studies') view = 'courses';
   if (view === 'avisos') view = 'agenda';
   var views = document.querySelectorAll('[id^="admin-view-"]');
   for (var i = 0; i < views.length; i++) {

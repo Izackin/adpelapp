@@ -577,7 +577,6 @@
   }
 
   #admin-courses-list,
-  #admin-studies-list,
   #admin-library-list,
   #admin-certificates-list,
   #admin-avisos-list,
@@ -597,7 +596,6 @@
   }
 
   #admin-courses-list > *,
-  #admin-studies-list > *,
   #admin-library-list > *,
   #admin-certificates-list > *,
   #admin-avisos-list > *,

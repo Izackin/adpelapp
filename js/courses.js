@@ -1,4 +1,4 @@
-// Courses and studies module - extracted from script.js without behavior changes.
+// Courses module - extracted from script.js without behavior changes.
 
 let ytPlayer = null;
 
@@ -7,12 +7,6 @@ let currentCourseForPlayer = null;
 let currentLessonIndexForPlayer = null;
 
 let currentOpenCourse = null;
-
-let studyYtPlayer = null;
-
-let currentStudyForPlayer = null;
-
-let currentStudyLessonIndexForPlayer = null;
 
 async function loadCoursesData() {
   try {
@@ -51,44 +45,6 @@ async function loadCoursesData() {
   } catch (e) {
     console.error(e);
   }
-}
-
-async function loadStudiesData() {
-  try {
-    const studies = await ADPEL.fetch.studies();
-    renderStudiesList((studies || []).filter(s => s.is_published));
-  } catch (e) {
-    console.error(e);
-  }
-}
-
-function renderFeaturedStudies(studies) {
-  const container = document.getElementById('featured-studies');
-  if (!container) return;
-  if (!studies || studies.length === 0) {
-    container.innerHTML = `
-      <div class="min-w-[300px] flex-shrink-0 w-full text-center py-8 bg-white rounded-xl border border-dashed border-gray-300">
-        <i class="fas fa-book-open text-4xl text-gray-300 mb-3"></i>
-        <p class="text-gray-500">Nenhum estudo em destaque.</p>
-      </div>`;
-    return;
-  }
-  container.innerHTML = studies.map(study => `
-    <div class="min-w-[300px] flex-shrink-0 snap-start bg-white rounded-xl shadow-sm overflow-hidden hover:shadow-lg transition cursor-pointer group" onclick="if(!getCurrentUserInfo().isLoggedIn){openModal('login-modal');return;} openStudyModal('${encodeInlineJson(study)}')">
-      <div class="relative h-40 bg-gradient-to-br from-amber-500 to-amber-600 overflow-hidden">
-        ${safeImageUrl(study.cover_url)
-          ? `<img src="${escapeHtml(safeImageUrl(study.cover_url))}" class="w-full h-full object-cover group-hover:scale-105 transition duration-500" alt="${escapeHtml(study.title)}">`
-          : `<div class="w-full h-full flex items-center justify-center text-white/50"><i class="fas fa-book-open text-5xl"></i></div>`}
-        <div class="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent flex items-end p-4">
-          <span class="bg-amber-500 text-white px-2 py-1 rounded text-xs font-bold">${escapeHtml(study.category || 'Estudo')}</span>
-        </div>
-      </div>
-      <div class="p-4">
-        <h4 class="font-bold text-gray-800 group-hover:text-amber-600 transition">${escapeHtml(study.title)}</h4>
-        <p class="text-sm text-gray-500 mt-2 line-clamp-2">${escapeHtml(study.description || 'Sem descricao')}</p>
-      </div>
-    </div>
-  `).join('');
 }
 
 function courseCarouselCard(course, actionLabel) {
@@ -166,35 +122,6 @@ function renderCoursesList(courses) {
   if (completedContainer) completedContainer.innerHTML = completed.map(c => courseCarouselCard(c, 'Revisar')).join('');
   if (inprogressContainer) inprogressContainer.innerHTML = inprogress.map(c => courseCarouselCard(c, 'Continuar')).join('');
   if (notstartedContainer) notstartedContainer.innerHTML = notstarted.map(c => courseCarouselCard(c, 'Assistir')).join('');
-}
-
-function renderStudiesList(studies) {
-  const container = document.getElementById('studies-list');
-  if (!container) return;
-  if (!studies || studies.length === 0) {
-    container.innerHTML = `
-      <div class="min-w-[300px] flex-shrink-0 w-full text-center py-8 bg-white rounded-xl border border-dashed border-gray-300">
-        <i class="fas fa-book-open text-4xl text-gray-300 mb-3"></i>
-        <p class="text-gray-500">Nenhum estudo disponível.</p>
-      </div>`;
-    return;
-  }
-  container.innerHTML = studies.map(study => `
-    <div class="min-w-[300px] flex-shrink-0 snap-start bg-white rounded-xl shadow-sm overflow-hidden hover:shadow-lg transition cursor-pointer group border border-gray-100" onclick="if(!getCurrentUserInfo().isLoggedIn){openModal('login-modal');return;} openStudyModal('${encodeInlineJson(study)}')">
-      <div class="relative h-40 bg-gradient-to-br from-amber-500 to-amber-600 overflow-hidden">
-        ${safeImageUrl(study.cover_url)
-          ? `<img src="${escapeHtml(safeImageUrl(study.cover_url))}" class="w-full h-full object-cover group-hover:scale-105 transition duration-500" alt="${escapeHtml(study.title)}">`
-          : `<div class="w-full h-full flex items-center justify-center text-white/50"><i class="fas fa-book-open text-5xl"></i></div>`}
-        <div class="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent flex items-end p-4">
-          <span class="bg-amber-500 text-white px-2 py-1 rounded text-xs font-bold">${escapeHtml(study.category || 'Estudo')}</span>
-        </div>
-      </div>
-      <div class="p-4">
-        <h4 class="font-bold text-gray-800 group-hover:text-amber-600 transition">${escapeHtml(study.title)}</h4>
-        <p class="text-sm text-gray-500 mt-2 line-clamp-2">${escapeHtml(study.description || 'Sem descricao')}</p>
-      </div>
-    </div>
-  `).join('');
 }
 
 function normalizeLessons(lessons) {
@@ -702,156 +629,12 @@ async function downloadCertificate() {
   certWindow.document.close();
 }
 
-function openStudyModal(encodedStudy) {
-  let study;
-  try {
-    study = JSON.parse(decodeURIComponent(encodedStudy));
-  } catch (e) {
-    console.error('Erro ao abrir estudo:', e);
-    return;
-  }
-  const titleEl = document.getElementById('study-modal-title');
-  const catEl = document.getElementById('study-modal-category');
-  const descEl = document.getElementById('study-modal-description');
-  const contentSection = document.getElementById('study-content-section');
-  const contentDiv = document.getElementById('study-modal-content');
-  const fileSection = document.getElementById('study-file-section');
-  const fileLink = document.getElementById('study-file-link');
-  const lessonsSection = document.getElementById('study-lessons-section');
-  const lessonsContainer = document.getElementById('study-lessons-container');
-  const noLessonsEl = document.getElementById('study-no-lessons');
-  const videoWrapper = document.getElementById('study-video-wrapper');
-
-  if (titleEl) titleEl.textContent = study.title || 'Estudo';
-  if (catEl) catEl.textContent = study.category || 'Estudo';
-  if (descEl) descEl.textContent = study.description || 'Sem descrição.';
-
-  if (study.content && contentSection && contentDiv) {
-    contentSection.classList.remove('hidden');
-    contentDiv.innerHTML = escapeHtml(study.content).replace(/\n/g, '<br>');
-  } else if (contentSection) {
-    contentSection.classList.add('hidden');
-  }
-
-  const studyFileUrl = safeNavigationUrl(study.file_url);
-  if (studyFileUrl && fileSection && fileLink) {
-    fileSection.classList.remove('hidden');
-    fileLink.href = studyFileUrl;
-  } else if (fileSection) {
-    fileSection.classList.add('hidden');
-  }
-
-  if (lessonsContainer) lessonsContainer.innerHTML = '';
-  if (noLessonsEl) noLessonsEl.classList.add('hidden');
-  if (videoWrapper) videoWrapper.classList.add('hidden');
-  if (studyYtPlayer && studyYtPlayer.destroy) { studyYtPlayer.destroy(); studyYtPlayer = null; }
-
-  const lessons = normalizeLessons(study.lessons);
-  if (lessons.length > 0 && lessonsSection && lessonsContainer) {
-    lessonsSection.classList.remove('hidden');
-    lessons.forEach((lesson, index) => {
-      const lessonTitle = lesson.title || `Aula ${index + 1}`;
-      const lessonUrl = lesson.url;
-      const youtubeVideo = normalizeYouTubeUrl(lessonUrl);
-      const div = document.createElement('div');
-      div.className = 'flex items-center gap-3 p-3 rounded-lg border border-gray-100 hover:bg-amber-50 transition cursor-pointer';
-      div.innerHTML = `
-        <div class="w-10 h-10 rounded-full bg-amber-100 text-amber-600 flex items-center justify-center flex-shrink-0 font-bold text-sm">${index + 1}</div>
-        <div class="flex-1 min-w-0">
-          <p class="text-sm font-medium text-gray-800 truncate">${escapeHtml(lessonTitle)}</p>
-          <p class="text-xs text-gray-500">${youtubeVideo ? 'Clique para assistir' : 'Vídeo indisponível'}</p>
-        </div>
-      `;
-      div.addEventListener('click', () => {
-        if (youtubeVideo && videoWrapper) {
-          videoWrapper.classList.remove('hidden');
-          loadStudyYouTubePlayer(youtubeVideo, study.id, index, lessonTitle);
-        } else {
-          if (videoWrapper) {
-            videoWrapper.classList.remove('hidden');
-            renderYouTubeFallback(videoWrapper, null);
-          }
-        }
-      });
-      lessonsContainer.appendChild(div);
-    });
-  } else if (lessonsSection) {
-    lessonsSection.classList.add('hidden');
-  }
-
-  const modal = document.getElementById('study-modal');
-  if (modal) {
-    modal.classList.remove('hidden');
-    modal.classList.add('flex');
-    restorePageScroll();
-  }
-}
-
-function closeStudyModal() {
-  const modal = document.getElementById('study-modal');
-  const videoWrapper = document.getElementById('study-video-wrapper');
-  if (studyYtPlayer && studyYtPlayer.destroy) { studyYtPlayer.destroy(); studyYtPlayer = null; }
-  if (videoWrapper) videoWrapper.classList.add('hidden');
-  if (modal) {
-    modal.classList.add('hidden');
-    modal.classList.remove('flex');
-    document.body.style.overflow = '';
-  }
-  currentStudyForPlayer = null;
-  currentStudyLessonIndexForPlayer = null;
-}
-
-function loadStudyYouTubePlayer(video, studyId, lessonIndex, lessonTitle, attempt) {
-  const normalizedVideo = typeof video === 'string'
-    ? normalizeYouTubeUrl(/^[A-Za-z0-9_-]{11}$/.test(video) ? `https://youtu.be/${video}` : video)
-    : video;
-  const wrapper = document.getElementById('study-video-wrapper');
-  if (!normalizedVideo || !wrapper) {
-    renderYouTubeFallback(wrapper, normalizedVideo);
-    return;
-  }
-
-  const currentAttempt = Number(attempt) || 0;
-  if (!window.YT || !window.YT.Player) {
-    if (currentAttempt >= 20) {
-      renderYouTubeFallback(wrapper, normalizedVideo);
-      return;
-    }
-    setTimeout(() => loadStudyYouTubePlayer(normalizedVideo, studyId, lessonIndex, lessonTitle, currentAttempt + 1), 500);
-    return;
-  }
-  currentStudyForPlayer = studyId;
-  currentStudyLessonIndexForPlayer = lessonIndex;
-  if (studyYtPlayer && studyYtPlayer.destroy) studyYtPlayer.destroy();
-  const iframe = createYouTubeIframe(wrapper, 'study-yt-player', normalizedVideo, `Aula em vídeo: ${lessonTitle || 'Estudo'}`);
-  studyYtPlayer = new YT.Player(iframe, {
-    events: {
-      'onStateChange': (event) => {
-        if (event.data === YT.PlayerState.ENDED) {
-          showToast('Aula concluída!', 'success');
-          if (window.ADPELJourney && typeof window.ADPELJourney.registerStudyCompleted === 'function') {
-            window.ADPELJourney.registerStudyCompleted(studyId);
-          }
-        }
-      },
-      'onError': (event) => {
-        console.warn('Falha no player de estudo do YouTube:', { code: event.data, videoId: normalizedVideo.videoId });
-        if (studyYtPlayer && studyYtPlayer.destroy) studyYtPlayer.destroy();
-        studyYtPlayer = null;
-        renderYouTubeFallback(wrapper, normalizedVideo);
-      }
-    }
-  });
-}
-
 // Bloquear orientação para landscape quando vídeo entrar em tela cheia
 ['fullscreenchange', 'webkitfullscreenchange'].forEach(eventName => {
   document.addEventListener(eventName, async () => {
     const fsElement = document.fullscreenElement || document.webkitFullscreenElement;
     const isCourseModalOpen = document.getElementById('course-modal') && !document.getElementById('course-modal').classList.contains('hidden');
-    const isStudyModalOpen = document.getElementById('study-modal') && !document.getElementById('study-modal').classList.contains('hidden');
-
-    if (fsElement && (isCourseModalOpen || isStudyModalOpen)) {
+    if (fsElement && isCourseModalOpen) {
       if (screen.orientation && screen.orientation.lock) {
         try { await screen.orientation.lock('landscape'); } catch (e) { console.log('Orientação não pôde ser travada.'); }
       }
@@ -865,11 +648,8 @@ function loadStudyYouTubePlayer(video, studyId, lessonIndex, lessonTitle, attemp
 
 Object.assign(window, {
   loadCoursesData,
-  loadStudiesData,
-  renderFeaturedStudies,
   courseCarouselCard,
   renderCoursesList,
-  renderStudiesList,
   normalizeLessons,
   normalizeLesson,
   normalizeYouTubeUrl,
@@ -885,8 +665,5 @@ Object.assign(window, {
   loadYouTubePlayer,
   onPlayerStateChange,
   updateCertificateButton,
-  downloadCertificate,
-  openStudyModal,
-  closeStudyModal,
-  loadStudyYouTubePlayer
+  downloadCertificate
 });

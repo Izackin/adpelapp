@@ -13,7 +13,6 @@
     book_completed: 50,
     hymn_opened: 1,
     lesson_watched: 0,
-    study_completed: 20,
     course_completed: 50,
     offering: 10,
     mission: 25
@@ -37,7 +36,6 @@
     { id: 'chapters_10', title: '10 capítulos', icon: 'fa-list-ol', earned: function (p) { return p.bible_chapters >= 10; }, target: 10, field: 'bible_chapters' },
     { id: 'chapters_100', title: '100 capítulos', icon: 'fa-book-open-reader', earned: function (p) { return p.bible_chapters >= 100; }, target: 100, field: 'bible_chapters' },
     { id: 'first_course', title: 'Primeiro Curso', icon: 'fa-graduation-cap', earned: function (p) { return p.courses_completed >= 1; } },
-    { id: 'first_study', title: 'Primeiro Estudo', icon: 'fa-book-open', earned: function (p) { return p.studies_completed >= 1; } },
     { id: 'streak_7', title: '7 dias consecutivos', icon: 'fa-fire', earned: function (p) { return p.longest_streak >= 7 || p.streak_days >= 7; }, target: 7, field: 'streak_days' },
     { id: 'streak_30', title: '30 dias consecutivos', icon: 'fa-fire-flame-curved', earned: function (p) { return p.longest_streak >= 30 || p.streak_days >= 30; }, target: 30, field: 'streak_days' },
     { id: 'streak_100', title: '100 dias consecutivos', icon: 'fa-award', earned: function (p) { return p.longest_streak >= 100 || p.streak_days >= 100; }, target: 100, field: 'streak_days' }
@@ -47,7 +45,6 @@
     chapter_read: 'bible_chapter_read',
     hymn_opened: 'hymn_opened',
     lesson_watched: 'lesson_watched',
-    study_completed: 'study_completed',
     offering: 'offering_made'
   };
 
@@ -118,7 +115,6 @@
       bible_chapters: 0,
       bible_books: 0,
       hymns_opened: 0,
-      studies_completed: 0,
       courses_completed: 0,
       prayers_made: 0,
       offerings: 0,
@@ -239,7 +235,6 @@
       bible_chapter_read: { label: 'Ir para Biblia', icon: 'fa-book-bible' },
       hymn_opened: { label: 'Ir para Harpa', icon: 'fa-music' },
       lesson_watched: { label: 'Ir para Cursos', icon: 'fa-graduation-cap' },
-      study_completed: { label: 'Ir para Cursos', icon: 'fa-graduation-cap' },
       offering_made: { label: 'Ir para Ofertas', icon: 'fa-hand-holding-heart' }
     };
     return map[activityType] || { label: 'Ir para', icon: 'fa-arrow-right' };
@@ -589,13 +584,6 @@
     return applyProgress('hymn_opened', { counter: 'hymns_opened' });
   }
 
-  async function registerStudyCompleted(studyId) {
-    return applyProgress('study_completed', {
-      counter: 'studies_completed',
-      uniqueKey: 'study_' + String(studyId || todayKey())
-    });
-  }
-
   async function registerCourseCompleted(courseId) {
     return applyProgress('course_completed', {
       counter: 'courses_completed',
@@ -828,11 +816,6 @@
       return;
     }
     if (activityType === 'lesson_watched') {
-      if (typeof navigateTo === 'function') navigateTo('courses');
-      else window.location.href = 'index.html#courses';
-      return;
-    }
-    if (activityType === 'study_completed') {
       if (typeof navigateTo === 'function') navigateTo('courses');
       else window.location.href = 'index.html#courses';
       return;
@@ -1199,7 +1182,6 @@
     registerBibleRead: registerBibleRead,
     registerChapterRead: registerChapterRead,
     registerBookCompleted: registerBookCompleted,
-    registerStudyCompleted: registerStudyCompleted,
     registerCourseCompleted: registerCourseCompleted,
     registerLessonWatched: registerLessonWatched,
     registerOffering: registerOffering,
@@ -1219,7 +1201,6 @@
   window.registerBibleRead = registerBibleRead;
   window.registerChapterRead = registerChapterRead;
   window.registerBookCompleted = registerBookCompleted;
-  window.registerStudyCompleted = registerStudyCompleted;
   window.registerCourseCompleted = registerCourseCompleted;
   window.registerLessonWatched = registerLessonWatched;
   window.registerOffering = registerOffering;

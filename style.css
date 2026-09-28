@@ -118,7 +118,6 @@ img { max-width: 100%; height: auto; }
   #login-modal,
   #register-modal,
   #course-modal,
-  #study-modal,
   #oferta-modal,
   #contribution-modal,
   #certificate-view-modal {
@@ -130,7 +129,6 @@ img { max-width: 100%; height: auto; }
   #login-modal > div,
   #register-modal > div,
   #course-modal > div,
-  #study-modal > div,
   #oferta-modal > div,
   #contribution-modal > div,
   #certificate-view-modal > div {
@@ -140,8 +138,7 @@ img { max-width: 100%; height: auto; }
     -webkit-overflow-scrolling: touch;
   }
 
-  #course-modal h2,
-  #study-modal h2 {
+  #course-modal h2 {
     white-space: normal;
     overflow-wrap: anywhere;
   }
@@ -158,7 +155,6 @@ img { max-width: 100%; height: auto; }
   #login-modal button,
   #register-modal button,
   #course-modal button,
-  #study-modal button,
   #oferta-modal button,
   #contribution-modal button,
   #certificate-view-modal button {
@@ -1106,7 +1102,6 @@ textarea::placeholder {
 
 #oferta-modal > div,
 #course-modal > div,
-#study-modal > div,
 #login-modal-content,
 #register-modal > div,
 #contribution-modal > div,

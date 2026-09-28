@@ -17,14 +17,6 @@ const RLS_SQL = {
     CREATE POLICY "Allow authenticated delete" ON courses FOR DELETE USING (true);
   `,
   
-  // Estudos
-  studies: `
-    CREATE POLICY "Allow public read" ON studies FOR SELECT USING (true);
-    CREATE POLICY "Allow authenticated insert" ON studies FOR INSERT WITH CHECK (true);
-    CREATE POLICY "Allow authenticated update" ON studies FOR UPDATE USING (true);
-    CREATE POLICY "Allow authenticated delete" ON studies FOR DELETE USING (true);
-  `,
-  
   // Biblioteca
   library_books: `
     CREATE POLICY "Allow public read" ON library_books FOR SELECT USING (true);
