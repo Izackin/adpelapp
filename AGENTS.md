@@ -49,7 +49,7 @@ Ajudar igrejas a discipular, informar, engajar e servir seus membros por meio de
 |-- auth.js                            # Login, cadastro, sessao e UI de autenticacao
 |-- supabase.js                        # Cliente Supabase e facade global ADPEL
 |-- fundraising.js                     # Cofres e contribuicoes publicas
-|-- spiritual-progress.js              # Minha Caminhada, XP, ranking, desafios
+|-- spiritual-progress.js              # Central de missoes, XP, sequencia, niveis e ranking
 |-- notifications.js                   # Inscricao push do usuario
 |-- admin.html                         # Painel administrativo
 |-- admin.js                           # Core do admin
@@ -62,7 +62,6 @@ Ajudar igrejas a discipular, informar, engajar e servir seus membros por meio de
 |   |-- crud-cofres.js
 |   |-- crud-courses.js
 |   |-- crud-library.js
-|   |-- crud-studies.js
 |   `-- crud-verses.js
 |-- js/
 |   |-- agenda.js                    # Agenda/eventos publicos
@@ -72,7 +71,7 @@ Ajudar igrejas a discipular, informar, engajar e servir seus membros por meio de
 |   |-- bootstrap.js                 # Helpers globais iniciais
 |   |-- certificates.js              # Certificados publicos
 |   |-- config.js                    # Configuracao base ADPEL
-|   |-- courses.js                   # Cursos, aulas e estudos publicos
+|   |-- courses.js                   # Cursos e aulas publicos
 |   |-- home.js                      # Home publica
 |   |-- library.js                   # Biblioteca publica
 |   |-- app-shell.js                 # Navegacao compartilhada entre paginas
@@ -136,9 +135,9 @@ O core publico foi dividido entre `script.js` e os modulos em `js/`. O core admi
 11. `text-fix.js`.
 12. `script.js`.
 
-`script.js` inicializa o app apos o carregamento do DOM e mantem helpers compartilhados. Modulos em `js/` cuidam de Navegacao, Home, Agenda, Cursos/Estudos, Biblioteca, Biblia embutida, Atualizacoes, Ofertas, Perfil e Certificados.
+`script.js` inicializa o app apos o carregamento do DOM e mantem helpers compartilhados. Modulos em `js/` cuidam de Navegacao, Home, Agenda, Cursos, Biblioteca, Biblia embutida, Atualizacoes, Ofertas, Perfil e Certificados.
 
-A navegacao principal usa `navigateTo(section)` e preserva o destino no hash da URL. A arquitetura publica possui cinco areas: `home`, `word`, `learn`, `community-hub` e `more`. Elas organizam os modulos existentes sem remove-los. As secoes internas `courses`, `studies`, `library`, `certificate`, `profile` e `community` exigem login.
+A navegacao principal usa `navigateTo(section)` e preserva o destino no hash da URL. A arquitetura publica possui cinco areas: `home`, `word`, `learn`, `community-hub` e `more`. As secoes internas `courses`, `library`, `certificate`, `profile` e `community` exigem login.
 
 ## Como o backend funciona
 
@@ -146,10 +145,12 @@ O backend e Supabase:
 
 - Auth controla usuarios e sessoes.
 - Database guarda conteudos, progresso, eventos, certificados e ofertas.
-- Storage guarda arquivos de estudos, livros e JSON da Harpa.
+- Storage guarda arquivos de cursos, livros e JSON da Harpa.
 - Edge Function `send-notification` envia push notifications.
 
 Nao existe servidor proprio neste repositorio. Toda operacao administrativa atual acontece pelo cliente Supabase no navegador, por isso as policies/RLS sao parte critica da seguranca real.
+
+Na Minha Caminhada, o navegador apenas informa uma acao permitida. As funcoes `get_daily_missions()` e `record_journey_action(action_type, source_key)` criam as missoes do dia, validam evidencias existentes, deduplicam eventos e calculam XP/sequencia no Postgres. Usuarios autenticados nao possuem `INSERT`/`UPDATE`/`DELETE` direto em `spiritual_progress` nem em `user_daily_challenges`.
 
 ## Como o Supabase esta organizado
 
@@ -175,7 +176,7 @@ Tabelas e views identificadas:
 
 - `profiles`
 - `courses`
-- `studies`
+- `studies` (tabela legada preservada somente para auditoria e futura migracao de conteudo; nao e mais exposta na aplicacao)
 - `library_books`
 - `announcements`
 - `events`
@@ -200,6 +201,8 @@ Tabelas e views identificadas:
 - `spiritual_progress`
 - `daily_challenges`
 - `user_daily_challenges`
+- `journey_activity_events`
+- `journey_daily_completions`
 - `app_updates`
 - `app_update_reads`
 - `push_subscriptions`
@@ -209,7 +212,7 @@ Tabelas e views identificadas:
 
 Uso encontrado:
 
-- Bucket `uploads` para arquivos de biblioteca e estudos.
+- Bucket `uploads` para arquivos de biblioteca e cursos.
 - Bucket/URL publico `harpa/harpa.json` para a Harpa Crista.
 - Imagens podem vir por URL externa ou Storage.
 
@@ -257,7 +260,6 @@ O fluxo atual e:
 - Progresso por usuario em `user_lesson_progress`.
 - Emissao de certificado ao concluir curso.
 - Visualizacao/impressao de certificados.
-- Estudos com conteudo, arquivo e aulas.
 - Biblioteca digital com arquivos.
 - Leitura de livro em nova aba.
 - Biblia embutida no app principal.
@@ -276,10 +278,12 @@ O fluxo atual e:
 - Geracao de QR Code PIX.
 - Registro de oferta confirmada.
 - Historico e resumo de ofertas no perfil.
-- Minha Caminhada com XP, niveis, streak e medalhas.
+- Minha Caminhada como central de missoes diarias, com XP, niveis, streak e medalhas subordinados a acoes reais.
 - Ranking geral.
-- Desafios diarios.
-- Registro de atividades espirituais: leitura, capitulos, hinos, aulas, ofertas e missao diaria.
+- Quatro missoes diarias configuradas no banco: retorno, versiculo do dia, leitura biblica e continuidade de curso.
+- Conclusao automatica de missoes por eventos reais do app, sem botao generico de marcar como concluida.
+- XP e sequencia concedidos pela funcao segura `record_journey_action`, sem aceitar valores enviados pelo navegador.
+- Registro deduplicado de atividades espirituais em `journey_activity_events`.
 - Novidades/atualizacoes do app.
 - Controle de atualizacoes lidas por usuario ou visitante.
 - Push notifications.
@@ -325,7 +329,7 @@ Cada arquivo `admin/crud-*.js` segue o padrao:
 - `renderAdminX()`
 - `editX(encodedItem)`
 
-Importante: `admin/crud-studies.js` e `admin/crud-avisos.js` existem, mas nem todos estao carregados/ativos no `admin.html`. O admin tambem redireciona `studies` para `courses` e `avisos` para `agenda` em alguns pontos.
+Importante: `admin/crud-avisos.js` existe, mas nao esta carregado/ativo no `admin.html`. O admin redireciona `avisos` para `agenda` em alguns pontos.
 
 ## Navegacao
 
@@ -334,12 +338,11 @@ Importante: `admin/crud-studies.js` e `admin/crud-avisos.js` existem, mas nem to
 App principal. Secoes:
 
 - `home`: saudacao contextual, versiculo, proximo evento, continuidade e acessos rapidos.
-- `word`: entrada para Biblia, Harpa e estudos.
+- `word`: entrada para Biblia, Tutor Teologico e Harpa.
 - `learn`: entrada para cursos, progresso e certificados.
 - `community-hub`: agenda publica e entrada para a comunidade autenticada.
 - `more`: biblioteca, ofertas, perfil, caminhada, instalacao e acesso administrativo autorizado.
 - `courses`: cursos e aulas.
-- `studies`: estudos publicados, acessiveis pela area Palavra.
 - `tutor`: Tutor Teologico autenticado, acessivel pela area Palavra sem novo item na navegacao inferior.
 - `library`: biblioteca.
 - `cofres`: objetivos e ofertas destinadas.
@@ -631,7 +634,6 @@ Nao altere sem necessidade e sem entender impacto:
 - Inconsistencias entre schemas antigos e codigo atual, como `file_data` vs `file_url`.
 - `fundraising_stats` aparece como view em um SQL e como tabela em migration.
 - Modelo de `lessons` inconsistente: admin salva objetos `{ title, url }`, mas partes do app tratam aula como string URL.
-- `study.content` e inserido com `innerHTML`, exigindo cuidado contra XSS.
 - Arquivos legados/alternativos (`app.js`, `data-layer.js`, `index-updated.html`) podem confundir manutencao.
 - Textos com encoding corrompido mitigados por `text-fix.js`.
 - Pouca separacao entre dados, estado e apresentacao.

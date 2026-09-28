@@ -26,8 +26,6 @@ async function loadPublicApp() {
       homeSections,
       featuredCourses,
       courses,
-      featuredStudies,
-      studies,
       featuredBooks,
       books,
       certificates,
@@ -37,8 +35,6 @@ async function loadPublicApp() {
       fetchHomeSections(),
       fetchFeaturedCourses(),
       fetchCourses(),
-      fetchFeaturedStudies(),
-      fetchStudies(),
       fetchFeaturedBooks(),
       fetchBooks(),
       fetchCertificates(),
@@ -49,8 +45,6 @@ async function loadPublicApp() {
     renderHomeSections((homeSections || []).filter(isVisibleByDate));
     renderFeaturedCourses((featuredCourses || []).filter(isVisibleByDate));
     renderCourses((courses || []).filter(isVisibleByDate));
-    renderFeaturedStudies((featuredStudies || []).filter(isVisibleByDate));
-    renderStudies((studies || []).filter(isVisibleByDate));
     renderFeaturedBooks((featuredBooks || []).filter(isVisibleByDate));
     renderBooks((books || []).filter(isVisibleByDate));
     renderCertificates(certificates);
@@ -101,26 +95,6 @@ function renderCourses(items) {
     return;
   }
   container.innerHTML = items.map(course => courseCard(course)).join('');
-}
-
-function renderFeaturedStudies(items) {
-  const container = document.getElementById('featured-studies');
-  if (!container) return;
-  if (!items.length) {
-    container.innerHTML = emptyState('Nenhum estudo em destaque no momento.');
-    return;
-  }
-  container.innerHTML = items.map(study => studyCard(study)).join('');
-}
-
-function renderStudies(items) {
-  const container = document.getElementById('studies-list');
-  if (!container) return;
-  if (!items.length) {
-    container.innerHTML = emptyState('Nenhum estudo disponível no momento.');
-    return;
-  }
-  container.innerHTML = items.map(study => studyCard(study)).join('');
 }
 
 function renderFeaturedBooks(items) {
@@ -211,28 +185,6 @@ function courseCard(course) {
           <p><strong>Categoria:</strong> ${escapeHtml(course.category || 'Sem categoria')}</p>
           <p><strong>Duração:</strong> ${escapeHtml(course.duration || 'A definir')}</p>
         </div>
-      </div>
-    </article>
-  `;
-}
-
-function studyCard(study) {
-  return `
-    <article class="bg-white rounded-2xl shadow-sm overflow-hidden">
-      ${study.cover_url ? `
-        <img src="${study.cover_url}" alt="${escapeHtml(study.title)}" class="w-full h-48 object-cover">
-      ` : `
-        <div class="w-full h-48 bg-gray-100 flex items-center justify-center text-gray-400">
-          Sem capa
-        </div>
-      `}
-      <div class="p-5">
-        <h3 class="text-lg font-bold text-gray-800">${escapeHtml(study.title)}</h3>
-        <p class="text-gray-500 mt-2">${escapeHtml(study.description || 'Sem descrição.')}</p>
-        <p class="mt-4 text-sm text-gray-600"><strong>Categoria:</strong> ${escapeHtml(study.category || 'Sem categoria')}</p>
-        <button onclick="if(typeof openStudyModal==='function'){openStudyModal('${encodeURIComponent(JSON.stringify(study))}')}else{console.error('openStudyModal não encontrado')}" class="mt-4 w-full py-2 bg-amber-600 text-white rounded-lg text-sm font-medium hover:bg-amber-700 transition">
-          Abrir Estudo
-        </button>
       </div>
     </article>
   `;

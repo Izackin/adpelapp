@@ -4,7 +4,6 @@
 
 const ADPEL_DATA_STORE = {
   courses: 'adpel_admin_courses',
-  studies: 'adpel_admin_studies',
   library: 'adpel_admin_library',
   announcements: 'adpel_admin_announcements',
   events: 'adpel_admin_events'
@@ -66,7 +65,6 @@ function syncAdpelData() {
   window.dispatchEvent(new CustomEvent('adpelDataSync', {
     detail: {
       courses: getAdpelData(ADPEL_DATA_STORE.courses),
-      studies: getAdpelData(ADPEL_DATA_STORE.studies),
       library: getAdpelData(ADPEL_DATA_STORE.library),
       announcements: getAdpelData(ADPEL_DATA_STORE.announcements),
       events: getAdpelData(ADPEL_DATA_STORE.events)

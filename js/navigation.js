@@ -6,7 +6,7 @@ var SECTION_LOAD_DEBOUNCE = 2000;
 function navigateTo(section, options) {
   var navigationOptions = options || {};
   // Seções que exigem login
-  var restrictedSections = ['courses', 'studies', 'library', 'certificate', 'profile', 'community'];
+  var restrictedSections = ['courses', 'library', 'certificate', 'profile', 'community'];
   var userInfo = getCurrentUserInfo();
 
   if (restrictedSections.indexOf(section) !== -1 && !userInfo.isLoggedIn) {
@@ -14,7 +14,7 @@ function navigateTo(section, options) {
     return;
   }
 
-  const sections = ['home', 'word', 'tutor', 'learn', 'community-hub', 'more', 'courses', 'studies', 'library', 'certificate', 'cofres', 'ranking', 'bible', 'profile', 'community'];
+  const sections = ['home', 'word', 'tutor', 'learn', 'community-hub', 'more', 'courses', 'library', 'certificate', 'cofres', 'ranking', 'bible', 'profile', 'community'];
   sections.forEach(s => {
     const el = document.getElementById(s);
     if (el) el.classList.add('hidden');
@@ -57,7 +57,6 @@ function loadSectionData(section) {
     case 'word': if (typeof renderReadingContinuation === 'function') renderReadingContinuation(); break;
     case 'tutor': if (window.ADPELTutor && typeof window.ADPELTutor.activate === 'function') window.ADPELTutor.activate(); break;
     case 'courses': loadCoursesData(); break;
-    case 'studies': loadStudiesData(); break;
     case 'library': loadLibraryData(); break;
     case 'certificate': loadCertificatesData(); break;
     case 'cofres': if (typeof loadCofresData === 'function') loadCofresData(); break;
@@ -70,7 +69,7 @@ function loadSectionData(section) {
 
 function handleNavigationHash() {
   const hash = window.location.hash.replace('#', '');
-  if (hash && ['home','word','tutor','learn','community-hub','more','courses','studies','library','certificate','cofres','ranking','profile','community'].includes(hash)) {
+  if (hash && ['home','word','tutor','learn','community-hub','more','courses','library','certificate','cofres','ranking','profile','community'].includes(hash)) {
     navigateTo(hash, { updateHistory: false });
   }
 }
@@ -111,7 +110,6 @@ function initModalInteractions() {
     'login-modal',
     'register-modal',
     'course-modal',
-    'study-modal',
     'oferta-modal',
     'contribution-modal',
     'certificate-view-modal'
@@ -145,7 +143,6 @@ function initModalInteractions() {
 function closeModalById(modalId) {
   const closers = {
     'course-modal': 'closeCourseModal',
-    'study-modal': 'closeStudyModal',
     'oferta-modal': 'closeOfertaModal',
     'contribution-modal': 'closeContributionModal',
     'certificate-view-modal': 'closeCertificateViewModal'

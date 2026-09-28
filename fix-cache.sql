@@ -16,7 +16,7 @@ SELECT
   rowsecurity
 FROM pg_tables
 WHERE schemaname = 'public'
-  AND tablename IN ('courses','studies','library_books','announcements','events','certificates','home_sections','profiles')
+  AND tablename IN ('courses','library_books','announcements','events','certificates','home_sections','profiles')
 ORDER BY tablename;
 
 -- 3. (Opcional) Listar políticas RLS ativas para conferência

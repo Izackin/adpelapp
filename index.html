@@ -318,12 +318,11 @@
 
       <!-- SECT: PALAVRA -->
       <section id="word" class="app-hub hidden">
-        <header class="app-hub-header"><p class="app-eyebrow">Palavra</p><h2>Leitura e crescimento espiritual</h2><p>Acesse a Bíblia, o Tutor Teológico, a Harpa Cristã e os estudos sem perder o foco.</p></header>
+        <header class="app-hub-header"><p class="app-eyebrow">Palavra</p><h2>Leitura e crescimento espiritual</h2><p>Acesse a Bíblia, o Tutor Teológico e a Harpa Cristã sem perder o foco.</p></header>
         <div class="app-destination-grid">
           <a href="bible.html" class="app-destination-card"><i class="fas fa-book-bible" aria-hidden="true"></i><div><strong>Bíblia</strong><span>Leia, pesquise e continue de onde parou.</span></div></a>
           <button onclick="navigateTo('tutor')" class="app-destination-card"><i class="fas fa-book-open" aria-hidden="true"></i><div><strong>Tutor Teológico <small class="tutor-beta-badge">BETA</small></strong><span>Estude temas bíblicos com fontes identificadas.</span></div></button>
           <a href="harpa.html" class="app-destination-card"><i class="fas fa-music" aria-hidden="true"></i><div><strong>Harpa Cristã</strong><span>Encontre hinos por número, título ou trecho.</span></div></a>
-          <button onclick="navigateTo('studies')" class="app-destination-card"><i class="fas fa-book-open-reader" aria-hidden="true"></i><div><strong>Estudos</strong><span>Conteúdos para aprofundar a fé.</span></div></button>
         </div>
         <div id="word-continue-reading" class="app-hub-section hidden"></div>
       </section>
@@ -379,9 +378,10 @@
 
       <!-- SECT: APRENDER -->
       <section id="learn" class="app-hub hidden">
-        <header class="app-hub-header"><p class="app-eyebrow">Aprender</p><h2>Sua jornada de formação</h2><p>Cursos, progresso e certificados reunidos em uma área simples.</p></header>
+        <header class="app-hub-header"><p class="app-eyebrow">Aprender</p><h2>Sua jornada de formação</h2><p>Cursos e biblioteca reunidos com seu progresso e certificados.</p></header>
         <div class="app-destination-grid">
           <button onclick="navigateTo('courses')" class="app-destination-card"><i class="fas fa-graduation-cap" aria-hidden="true"></i><div><strong>Cursos</strong><span>Comece ou continue sua formação.</span></div></button>
+          <button onclick="navigateTo('library')" class="app-destination-card"><i class="fas fa-book" aria-hidden="true"></i><div><strong>Biblioteca</strong><span>Leia livros e materiais digitais.</span></div></button>
           <button onclick="navigateTo('certificate')" class="app-destination-card"><i class="fas fa-certificate" aria-hidden="true"></i><div><strong>Certificados</strong><span>Veja suas conquistas concluídas.</span></div></button>
           <button onclick="navigateTo('ranking')" class="app-destination-card"><i class="fas fa-chart-line" aria-hidden="true"></i><div><strong>Progresso</strong><span>Acompanhe sua caminhada.</span></div></button>
         </div>
@@ -486,32 +486,6 @@
             <p>Não há cursos publicados no momento.</p>
           </div>
         </div>
-      </div>
-
-      <!-- SECT: STUDIES -->
-      <div id="studies" class="hidden space-y-8">
-        <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <div>
-            <h2 class="text-3xl font-bold text-gray-800">Centro de Estudos</h2>
-            <p class="text-gray-500 mt-1">Materiais para crescimento doctrinário e espiritual.</p>
-          </div>
-        </div>
-
-        <!-- Categories & Search -->
-        <div class="flex flex-col sm:flex-row gap-4">
-          <div class="relative flex-1">
-            <i class="fas fa-search absolute left-4 top-3.5 text-gray-400"></i>
-            <input type="text" placeholder="Buscar estudos..." class="w-full pl-11 pr-4 py-3 bg-white border border-gray-200 rounded-xl focus:ring-2 focus:ring-adpel-500 outline-none">
-          </div>
-          <div class="flex gap-2 overflow-x-auto pb-2">
-            <button class="px-4 py-2 bg-adpel-600 text-white rounded-lg text-sm font-medium whitespace-nowrap">Todos</button>
-            <button class="px-4 py-2 bg-white text-gray-600 border border-gray-200 rounded-lg text-sm font-medium whitespace-nowrap hover:bg-gray-50">Devocionais</button>
-            <button class="px-4 py-2 bg-white text-gray-600 border border-gray-200 rounded-lg text-sm font-medium whitespace-nowrap hover:bg-gray-50">Estudos Sistemáticos</button>
-          </div>
-        </div>
-
-        <!-- Study List -->
-        <div id="studies-list" class="flex gap-6 overflow-x-auto pb-4 snap-x snap-mandatory scrollbar-hide"></div>
       </div>
 
       <!-- SECT: LIBRARY -->
@@ -881,43 +855,6 @@
         <button onclick="closeOfertaModal()" class="w-full py-2 border border-gray-300 text-gray-600 rounded-xl hover:bg-gray-50 transition">
           Cancelar
         </button>
-      </div>
-    </div>
-  </div>
-
-  <!-- STUDY MODAL -->
-  <div id="study-modal" class="hidden fixed inset-0 z-50 flex items-start sm:items-center justify-center bg-black/50 backdrop-blur-sm overflow-y-auto py-4 sm:py-10 px-4">
-    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-3xl mx-4 overflow-hidden animate-fade-in my-auto relative">
-      <div class="bg-gradient-to-r from-amber-800 to-amber-600 p-6 text-white flex justify-between items-start gap-4">
-        <div class="min-w-0">
-          <span id="study-modal-category" class="text-xs font-bold bg-white/20 px-2 py-1 rounded mb-2 inline-block">Estudo</span>
-          <h2 id="study-modal-title" class="text-2xl font-bold truncate">Título do Estudo</h2>
-        </div>
-        <button onclick="closeStudyModal()" class="text-white/80 hover:text-white transition p-1 flex-shrink-0"><i class="fas fa-times text-xl"></i></button>
-      </div>
-      <div class="p-6 space-y-6">
-        <p id="study-modal-description" class="text-gray-600 text-sm leading-relaxed"></p>
-        
-        <div id="study-video-wrapper" class="hidden aspect-video bg-black rounded-xl overflow-hidden shadow-lg">
-          <div id="study-yt-player" class="w-full h-full"></div>
-        </div>
-
-        <div id="study-file-section" class="hidden">
-          <a id="study-file-link" href="#" target="_blank" class="inline-flex items-center gap-2 px-4 py-2 bg-amber-50 text-amber-700 rounded-lg text-sm font-medium hover:bg-amber-100 transition border border-amber-200">
-            <i class="fas fa-file-download"></i> Baixar Material de Apoio
-          </a>
-        </div>
-
-        <div id="study-content-section" class="hidden">
-          <h3 class="font-bold text-gray-800 mb-3 flex items-center gap-2"><i class="fas fa-align-left text-amber-600"></i> Conteúdo</h3>
-          <div id="study-modal-content" class="prose prose-sm max-w-none text-gray-600 bg-gray-50 p-4 rounded-lg border border-gray-100"></div>
-        </div>
-
-        <div id="study-lessons-section" class="hidden">
-          <h3 class="font-bold text-gray-800 mb-3 flex items-center gap-2"><i class="fas fa-list-ul text-amber-600"></i> Aulas/Vídeos</h3>
-          <div id="study-lessons-container" class="space-y-2"></div>
-          <p id="study-no-lessons" class="hidden text-sm text-gray-500 italic mt-2">Nenhuma aula cadastrada.</p>
-        </div>
       </div>
     </div>
   </div>

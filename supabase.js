@@ -156,28 +156,6 @@ async function fetchFeaturedCourses() {
   }
 }
 
-async function fetchStudies() {
-  try {
-    const { data, error } = await supabase.from('studies').select('*').order('created_at', { ascending: false });
-    if (error) throw error;
-    return data || [];
-  } catch (e) {
-    console.error('Erro ao buscar estudos:', e);
-    return [];
-  }
-}
-
-async function fetchFeaturedStudies() {
-  try {
-    const { data, error } = await supabase.from('studies').select('*').eq('is_published', true).eq('is_featured', true).limit(3).order('created_at', { ascending: false });
-    if (error) throw error;
-    return data || [];
-  } catch (e) {
-    console.error('Erro ao buscar estudos em destaque:', e);
-    return [];
-  }
-}
-
 async function fetchLibrary() {
   try {
     const { data, error } = await supabase.from('library_books').select('*').order('created_at', { ascending: false });
@@ -238,7 +216,6 @@ async function fetchFundraisingStats() {
 
 const LOCAL_KEYS = {
   courses: 'adpel_admin_courses',
-  studies: 'adpel_admin_studies',
   library: 'adpel_admin_library',
   announcements: 'adpel_admin_announcements',
   events: 'adpel_admin_events'
@@ -276,8 +253,6 @@ function saveLocalData(key, data) {
       events: fetchEvents,
       courses: fetchCourses,
       featuredCourses: fetchFeaturedCourses,
-      studies: fetchStudies,
-      featuredStudies: fetchFeaturedStudies,
       library: fetchLibrary,
       featuredBooks: fetchFeaturedBooks,
       certificates: fetchCertificates,

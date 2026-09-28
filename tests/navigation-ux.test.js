@@ -29,8 +29,9 @@ assert.doesNotMatch(index, /desktop-primary-nav/);
 assert.match(index, /onclick="openOfertaModal\(\)"/);
 assert.match(auth, /adminLinkMobile\.classList\.toggle\('hidden', !isMaster\)/);
 
-assert.match(navigation, /case 'studies': loadStudiesData\(\)/);
-assert.doesNotMatch(navigation, /section === 'studies'\) section = 'courses'/);
+assert.doesNotMatch(index, /id="studies"|navigateTo\('studies'\)|id="study-modal"/);
+assert.doesNotMatch(navigation, /studies|loadStudiesData|study-modal/);
+assert.match(index, /<strong>Biblioteca<\/strong>/);
 assert.match(navigation, /history\.pushState/);
 assert.match(navigation, /window\.addEventListener\('popstate'/);
 assert.match(navigation, /handleInitialHash !== false/);
