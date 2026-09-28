@@ -56,6 +56,10 @@ Ajudar igrejas a discipular, informar, engajar e servir seus membros por meio de
 |-- admin.js                           # Core do admin
 |-- admin-notifications.js             # Envio de push pelo admin
 |-- admin/
+|   |-- member-data-core.js            # Parser, normalizacao, validacao e deduplicacao de membros
+|   |-- member-import.js               # Fluxo CSV/XLSX com previa e lotes
+|   |-- member-export.js               # Exportacao filtrada CSV/XLSX
+|   |-- member-reports.js              # Indicadores e PDFs de membros
 |   |-- crud-agenda.js
 |   |-- crud-app-updates.js
 |   |-- crud-avisos.js
@@ -207,6 +211,8 @@ Tabelas e views identificadas:
 - `app_updates`
 - `app_update_reads`
 - `push_subscriptions`
+- `member_imports`
+- `member_import_errors`
 - `public_profiles` (view publica segura; filtra perfis privados e mascara `phone` quando `show_phone` nao e verdadeiro)
 
 ### Storage
@@ -311,6 +317,9 @@ O painel fica em `admin.html`. Ele possui:
 - CRUD de cofres.
 - CRUD de atualizacoes do app.
 - Tela de notificacoes push.
+- Importacao de membros por CSV/XLSX com mapeamento, validacao, previa, duplicidades e historico.
+- Exportacao filtrada de membros em CSV/XLSX.
+- Relatorios consolidados de membros e PDFs administrativos sem observacoes internas.
 - View antiga/retirada de avisos.
 
 `admin.js` carrega dados com `loadAllData()` e preenche arrays globais:
@@ -625,6 +634,8 @@ Nao altere sem necessidade e sem entender impacto:
 - YouTube IFrame API.
 - VAPID public key em `notifications.js`.
 - VAPID private/public secrets na Edge Function.
+- SheetJS 0.20.3 no `admin.html` para importacao/exportacao XLSX de membros.
+- jsPDF 4.2.1 no `admin.html` para relatorios locais de membros.
 - QR Code API externa.
 - Storage publico da Harpa.
 
@@ -644,6 +655,19 @@ Nao altere sem necessidade e sem entender impacto:
 - Falta suite de testes automatizados.
 - PIX ainda depende de confirmacao manual do usuario, sem webhook real de pagamento.
 - Multi-tenant ainda nao esta implementado de ponta a ponta.
+- O preset de importacao "Membros Web" permanece desabilitado ate existir um arquivo real de exemplo; nao inferir seu layout.
+
+## Migracao de dados de membros
+
+- O fluxo vive em `admin/member-data-core.js`, `admin/member-import.js`, `admin/member-export.js` e `admin/member-reports.js`.
+- A importacao aceita `.csv` e `.xlsx`, le o arquivo no navegador, exige mapeamento de nome completo e mostra previa paginada antes de salvar.
+- Datas aceitam `DD/MM/AAAA`, `AAAA-MM-DD`, celulas de data do Excel e numeros seriais do Excel.
+- Duplicidades sao detectadas por email, telefone e nome mais data de nascimento. O administrador pode ignorar, atualizar sem apagar campos vazios ou revisar linha a linha.
+- Gravacoes usam lotes de 100 e registram um evento consolidado em `audit_logs`; nunca criar contas em `auth.users` ou registros em `profiles` por esse fluxo.
+- `member_imports` guarda o resumo e `member_import_errors` guarda apenas linha, codigo e mensagem, sem copiar os dados pessoais do arquivo.
+- Exportacoes CSV neutralizam celulas iniciadas por `=`, `+`, `-` ou `@`; a protecao equivalente tambem e usada no XLSX.
+- PDFs de membros nao incluem `notes`.
+- O preset `Membros Web` so pode ser implementado depois de receber e testar um arquivo real de exemplo.
 
 ## Melhorias sugeridas
 
