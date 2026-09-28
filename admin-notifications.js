@@ -62,11 +62,11 @@ async function loadNotificationStats() {
   const countEl = document.getElementById('notif-subscriber-count');
   if (!countEl || !window.supabaseClient) return;
   try {
-    const { count, error } = await window.supabaseClient
-      .from('push_subscriptions')
-      .select('*', { count: 'exact', head: true });
+    const { data, error } = await window.supabaseClient.functions.invoke('send-notification', {
+      body: { action: 'stats' }
+    });
     if (error) throw error;
-    countEl.textContent = (count || 0) + ' dispositivo(s) inscrito(s)';
+    countEl.textContent = (data?.subscriberCount || 0) + ' dispositivo(s) inscrito(s)';
   } catch (e) {
     countEl.textContent = 'Erro ao carregar estatísticas';
   }

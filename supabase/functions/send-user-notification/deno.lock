@@ -1,0 +1,16 @@
+{
+  "version": "5",
+  "redirects": {
+    "https://esm.sh/@types/web-push@~3.6.4/index.d.ts": "https://esm.sh/@types/web-push@3.6.4/index.d.ts"
+  },
+  "remote": {
+    "https://esm.sh/@supabase/supabase-js@2.42.0": "9aa41b81533203560b902bdf13d45dcb8d0201b0f9b1526929bd6756ba015032",
+    "https://esm.sh/web-push@3.6.7": "e3c6dacc6581629be7433797d5fe1f756ad12d3f8732f97c9b71129affd90906"
+  },
+  "workspace": {
+    "dependencies": [
+      "jsr:@supabase/functions-js@2",
+      "npm:@supabase/server@1"
+    ]
+  }
+}

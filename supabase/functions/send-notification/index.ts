@@ -155,6 +155,19 @@ Deno.serve(async (req) => {
     return jsonResponse({ error: "Corpo da requisição inválido." }, 400);
   }
 
+  if (requestBody.action === "stats") {
+    const { count, error: countError } = await supabaseAdmin
+      .from("push_subscriptions")
+      .select("id", { count: "exact", head: true });
+
+    if (countError) {
+      console.error("Falha ao carregar estatísticas de push.");
+      return jsonResponse({ error: "Não foi possível carregar as estatísticas." }, 500);
+    }
+
+    return jsonResponse({ success: true, subscriberCount: count ?? 0 });
+  }
+
   let title: string;
   let body: string;
   let url: string;
