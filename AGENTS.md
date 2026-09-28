@@ -36,6 +36,7 @@ Ajudar igrejas a discipular, informar, engajar e servir seus membros por meio de
 - Supabase Edge Functions.
 - Service Worker e Web App Manifest para PWA.
 - Push Notifications com VAPID.
+- Central de notificacoes em `app_notifications`, sincronizada por Supabase Realtime e entregue por push segmentado via Database Webhook.
 - YouTube IFrame API para aulas em video.
 - QR Code externo via `api.qrserver.com`.
 - LocalStorage para cache e estados locais.
@@ -287,6 +288,9 @@ O fluxo atual e:
 - Novidades/atualizacoes do app.
 - Controle de atualizacoes lidas por usuario ou visitante.
 - Push notifications.
+- Sino de notificacoes internas atualizado em tempo real, com fallback periodico.
+- Push automatico por destinatario para novas `app_notifications`, sem interferir no envio global do master.
+- Convite contextual de permissao push, sempre iniciado por acao explicita do usuario.
 - Tutor Teologico autenticado, com fontes identificadas, contexto vindo da Biblia e historico apenas em memoria.
 - PWA instalavel.
 - Service Worker com HTML network-first, fallback offline local, bypass de Supabase/APIs e cache limitado a recursos publicos locais.

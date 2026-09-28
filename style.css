@@ -162,6 +162,84 @@ img { max-width: 100%; height: auto; }
   }
 }
 
+/* Consentimento contextual para notificações push */
+.push-permission-prompt {
+  position: fixed;
+  right: max(1rem, env(safe-area-inset-right));
+  bottom: max(5.75rem, calc(4.75rem + env(safe-area-inset-bottom)));
+  z-index: 10050;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 0.85rem 1rem;
+  width: min(27rem, calc(100vw - 2rem));
+  padding: 1rem;
+  border: 1px solid rgba(96, 165, 250, 0.34);
+  border-radius: 1.1rem;
+  color: #e5edf9;
+  background: linear-gradient(145deg, rgba(15, 23, 42, 0.98), rgba(8, 17, 31, 0.98));
+  box-shadow: 0 22px 64px rgba(0, 0, 0, 0.48);
+  animation: fadeInUp 220ms ease-out;
+}
+
+.push-permission-icon {
+  display: grid;
+  place-items: center;
+  width: 2.75rem;
+  height: 2.75rem;
+  border-radius: 0.85rem;
+  color: #facc15;
+  background: rgba(250, 204, 21, 0.12);
+}
+
+.push-permission-copy {
+  display: grid;
+  gap: 0.25rem;
+  min-width: 0;
+}
+
+.push-permission-copy strong {
+  color: #fff;
+  font-size: 0.95rem;
+}
+
+.push-permission-copy span {
+  color: #b6c2d4;
+  font-size: 0.82rem;
+  line-height: 1.45;
+}
+
+.push-permission-actions {
+  grid-column: 1 / -1;
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.6rem;
+}
+
+.push-permission-actions button {
+  min-height: 44px;
+  padding: 0.65rem 0.95rem;
+  border-radius: 0.75rem;
+  font-size: 0.85rem;
+  font-weight: 700;
+}
+
+.push-permission-later {
+  color: #cbd5e1;
+  background: transparent;
+}
+
+.push-permission-enable {
+  color: #fff;
+  background: linear-gradient(135deg, #2563eb, #1d4ed8);
+  box-shadow: 0 8px 24px rgba(37, 99, 235, 0.25);
+}
+
+@media (min-width: 768px) {
+  .push-permission-prompt {
+    bottom: 1.25rem;
+  }
+}
+
 /* ============================================================
    ADPEL Premium App Theme
    Inspirado no mockup: azul institucional, fogo/dourado e app escuro.

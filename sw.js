@@ -166,9 +166,16 @@ self.addEventListener('push', (event) => {
       body: data.body || 'Você recebeu uma nova mensagem.',
       icon: data.icon || './images/icon-192.png',
       badge: data.badge || './images/icon-192.png',
+      tag: data.notification_id ? 'app-notification-' + data.notification_id : undefined,
       vibrate: [100, 50, 100],
       requireInteraction: true,
-      data: { url: targetUrl }
+      data: {
+        url: targetUrl,
+        notification_id: data.notification_id || null,
+        type: data.type || 'system',
+        entity_type: data.entity_type || null,
+        entity_id: data.entity_id || null
+      }
     };
     event.waitUntil(self.registration.showNotification(title, options));
   } catch (error) {
@@ -184,9 +191,10 @@ self.addEventListener('notificationclick', (event) => {
     : self.location.origin + '/';
 
   event.waitUntil(
-    clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
+    clients.matchAll({ type: 'window', includeUncontrolled: true }).then(async (clientList) => {
       for (const client of clientList) {
-        if (new URL(client.url).href === urlToOpen && 'focus' in client) {
+        if (new URL(client.url).origin === self.location.origin && 'focus' in client) {
+          if ('navigate' in client) await client.navigate(urlToOpen);
           return client.focus();
         }
       }

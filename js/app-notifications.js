@@ -1,6 +1,8 @@
 var appNotificationsCache = [];
 var appNotificationsPollingId = null;
 var appNotificationsPanelOpen = false;
+var appNotificationsRealtimeChannel = null;
+var appNotificationsRealtimeUserId = null;
 
 function getAppNotificationUser() {
   var userInfo = typeof getCurrentUserInfo === 'function' ? getCurrentUserInfo() : {};
@@ -33,6 +35,7 @@ function formatNotificationDate(value) {
 async function loadUserNotifications() {
   var user = getAppNotificationUser();
   if (!user || !window.supabaseClient) {
+    stopNotificationsRealtime();
     appNotificationsCache = [];
     updateNotificationBadge();
     renderNotificationsPanel();
@@ -40,6 +43,7 @@ async function loadUserNotifications() {
   }
 
   try {
+    startNotificationsRealtime(user.id);
     var result = await window.supabaseClient
       .from('app_notifications')
       .select('id, recipient_id, actor_id, type, title, body, entity_type, entity_id, url, read_at, created_at')
@@ -50,6 +54,7 @@ async function loadUserNotifications() {
     appNotificationsCache = result.data || [];
     updateNotificationBadge();
     renderNotificationsPanel();
+    openPendingNotificationTarget();
   } catch (error) {
     if (!isAppNotificationsSchemaError(error)) {
       console.warn('Erro ao carregar notificações internas:', error);
@@ -58,6 +63,53 @@ async function loadUserNotifications() {
     updateNotificationBadge();
     renderNotificationsPanel();
   }
+}
+
+function mergeRealtimeNotification(notification) {
+  if (!notification || !notification.id) return;
+  var existingIndex = appNotificationsCache.findIndex(function(item) {
+    return item.id === notification.id;
+  });
+  if (existingIndex >= 0) {
+    appNotificationsCache[existingIndex] = Object.assign({}, appNotificationsCache[existingIndex], notification);
+  } else {
+    appNotificationsCache.unshift(notification);
+    appNotificationsCache = appNotificationsCache.slice(0, 20);
+  }
+  updateNotificationBadge();
+  renderNotificationsPanel();
+}
+
+function startNotificationsRealtime(userId) {
+  if (!window.supabaseClient || !userId) return;
+  if (appNotificationsRealtimeChannel && appNotificationsRealtimeUserId === userId) return;
+  stopNotificationsRealtime();
+  appNotificationsRealtimeUserId = userId;
+  appNotificationsRealtimeChannel = window.supabaseClient
+    .channel('app-notifications-' + userId)
+    .on('postgres_changes', {
+      event: '*',
+      schema: 'public',
+      table: 'app_notifications',
+      filter: 'recipient_id=eq.' + userId
+    }, function(payload) {
+      if (payload && payload.new && payload.new.recipient_id === userId) {
+        mergeRealtimeNotification(payload.new);
+      }
+    })
+    .subscribe(function(status) {
+      if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+        console.warn('Realtime de notificações indisponível; a atualização periódica continua ativa.');
+      }
+    });
+}
+
+function stopNotificationsRealtime() {
+  if (appNotificationsRealtimeChannel && window.supabaseClient) {
+    window.supabaseClient.removeChannel(appNotificationsRealtimeChannel);
+  }
+  appNotificationsRealtimeChannel = null;
+  appNotificationsRealtimeUserId = null;
 }
 
 function updateNotificationBadge() {
@@ -202,24 +254,7 @@ function openNotificationTarget(notification) {
   if (!notification) return;
   closeNotificationsPanel();
   if (notification.entity_type === 'community_post') {
-    if (typeof navigateTo === 'function') {
-      navigateTo('community');
-      var attempts = 0;
-      var scrollToCommunityPost = function() {
-        attempts += 1;
-        var card = document.getElementById('community-post-' + notification.entity_id);
-        if (card) {
-          card.scrollIntoView({ behavior: 'smooth', block: 'center' });
-          card.classList.add('community-post-highlight');
-          setTimeout(function() {
-            card.classList.remove('community-post-highlight');
-          }, 2000);
-          return;
-        }
-        if (attempts < 6) setTimeout(scrollToCommunityPost, 300);
-      };
-      setTimeout(scrollToCommunityPost, 500);
-    }
+    openCommunityPostNotification(notification.entity_id);
     return;
   }
   if (notification.url && notification.url.charAt(0) === '#') {
@@ -227,6 +262,38 @@ function openNotificationTarget(notification) {
     if (section && typeof navigateTo === 'function') navigateTo(section);
     return;
   }
+  if (notification.url && notification.url.charAt(0) === '/') {
+    var target = new URL(notification.url, window.location.origin);
+    if (target.origin === window.location.origin) window.location.assign(target.href);
+  }
+}
+
+function openCommunityPostNotification(postId) {
+  if (!postId || typeof navigateTo !== 'function') return;
+  navigateTo('community');
+  var attempts = 0;
+  var scrollToCommunityPost = function() {
+    attempts += 1;
+    var card = document.getElementById('community-post-' + postId);
+    if (card) {
+      card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      card.classList.add('community-post-highlight');
+      setTimeout(function() { card.classList.remove('community-post-highlight'); }, 2000);
+      return;
+    }
+    if (attempts < 8) setTimeout(scrollToCommunityPost, 300);
+  };
+  setTimeout(scrollToCommunityPost, 500);
+}
+
+function openPendingNotificationTarget() {
+  var params = new URLSearchParams(window.location.search);
+  var postId = params.get('notification_post');
+  if (!postId || !/^[0-9a-f-]{36}$/i.test(postId) || !getAppNotificationUser()) return;
+  params.delete('notification_post');
+  var cleanQuery = params.toString();
+  window.history.replaceState({}, '', window.location.pathname + (cleanQuery ? '?' + cleanQuery : '') + '#community');
+  openCommunityPostNotification(postId);
 }
 
 function startNotificationsPolling() {
@@ -259,5 +326,7 @@ Object.assign(window, {
   closeNotificationsPanel: closeNotificationsPanel,
   getNotificationIcon: getNotificationIcon,
   markNotificationAsRead: markNotificationAsRead,
-  markAllNotificationsAsRead: markAllNotificationsAsRead
+  markAllNotificationsAsRead: markAllNotificationsAsRead,
+  startNotificationsRealtime: startNotificationsRealtime,
+  stopNotificationsRealtime: stopNotificationsRealtime
 });
