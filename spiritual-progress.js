@@ -7,17 +7,6 @@
 (function () {
   'use strict';
 
-  var XP_ACTIONS = {
-    bible_open: 2,
-    chapter_read: 5,
-    book_completed: 50,
-    hymn_opened: 1,
-    lesson_watched: 0,
-    course_completed: 50,
-    offering: 10,
-    mission: 25
-  };
-
   var LEVELS = [
     { level: 1, title: 'Discípulo', minXp: 0 },
     { level: 2, title: 'Servo', minXp: 100 },
@@ -41,13 +30,6 @@
     { id: 'streak_100', title: '100 dias consecutivos', icon: 'fa-award', earned: function (p) { return p.longest_streak >= 100 || p.streak_days >= 100; }, target: 100, field: 'streak_days' }
   ];
 
-  var ACTION_TO_ACTIVITY = {
-    chapter_read: 'bible_chapter_read',
-    hymn_opened: 'hymn_opened',
-    lesson_watched: 'lesson_watched',
-    offering: 'offering_made'
-  };
-
   var currentProgressCache = null;
   var progressRequestPromise = null;
   var rankingCache = [];
@@ -55,7 +37,12 @@
   var challengeTableUnavailable = false;
   var dailyChallengesCache = [];
   var dailyChallengesLoadError = null;
-  var eventMemory = {};
+  var dailySummaryCache = {
+    completed_count: 0,
+    total_count: 0,
+    day_completed: false,
+    completion_xp: 0
+  };
 
   function getUserInfo() {
     if (typeof getCurrentUserInfo !== 'function') return { isLoggedIn: false };
@@ -83,21 +70,6 @@
     } catch (error) {
       return existing;
     }
-  }
-
-  function todayKey() {
-    return new Date().toISOString().slice(0, 10);
-  }
-
-  function dateKey(date) {
-    if (!date) return '';
-    return String(date).slice(0, 10);
-  }
-
-  function daysBetween(a, b) {
-    var first = new Date(a + 'T00:00:00');
-    var second = new Date(b + 'T00:00:00');
-    return Math.round((second.getTime() - first.getTime()) / 86400000);
   }
 
   function defaultProgress(userInfo) {
@@ -172,37 +144,6 @@
     };
   }
 
-  function updateLevel(progress) {
-    var info = getLevelInfo(progress.xp);
-    progress.level = info.level;
-    return progress;
-  }
-
-  function updateStreak(progress) {
-    var today = todayKey();
-    var last = dateKey(progress.last_activity);
-    if (!last) {
-      progress.streak_days = Math.max(1, Number(progress.streak_days) || 0);
-    } else {
-      var gap = daysBetween(last, today);
-      if (gap === 1) {
-        progress.streak_days = (Number(progress.streak_days) || 0) + 1;
-      } else if (gap > 1) {
-        progress.streak_days = 1;
-      }
-    }
-    progress.last_activity = today;
-    progress.longest_streak = Math.max(Number(progress.longest_streak) || 0, Number(progress.streak_days) || 0);
-    return progress;
-  }
-
-  function updateXP(progress, amount) {
-    var points = Number(amount) || 0;
-    progress.xp = (Number(progress.xp) || 0) + points;
-    progress.total_points = (Number(progress.total_points) || 0) + points;
-    return updateLevel(progress);
-  }
-
   function isMissingTableError(error) {
     var message = String(error && (error.message || error.details || error.code) || '').toLowerCase();
     return message.indexOf('spiritual_progress') !== -1 || message.indexOf('42p01') !== -1 || message.indexOf('does not exist') !== -1;
@@ -213,28 +154,13 @@
     return message.indexOf('daily_challenges') !== -1 || message.indexOf('user_daily_challenges') !== -1 || message.indexOf('42p01') !== -1 || message.indexOf('does not exist') !== -1;
   }
 
-  function hashString(value) {
-    var hash = 0;
-    var input = String(value || '');
-    for (var i = 0; i < input.length; i++) {
-      hash = ((hash << 5) - hash) + input.charCodeAt(i);
-      hash |= 0;
-    }
-    return Math.abs(hash);
-  }
-
-  function pickDailyChallenges(challenges, progress) {
-    var seed = todayKey() + '_' + (progress.user_id || '') + '_' + (progress.level || 1);
-    return (challenges || []).slice().sort(function (a, b) {
-      return hashString(seed + '_' + a.id) - hashString(seed + '_' + b.id);
-    }).slice(0, 3);
-  }
-
   function getChallengeMeta(activityType) {
     var map = {
-      bible_chapter_read: { label: 'Ir para Biblia', icon: 'fa-book-bible' },
+      daily_visit: { label: 'Concluída', icon: 'fa-fire' },
+      verse_of_day_read: { label: 'Ver versículo', icon: 'fa-scroll' },
+      bible_chapter_read: { label: 'Abrir Bíblia', icon: 'fa-book-bible' },
       hymn_opened: { label: 'Ir para Harpa', icon: 'fa-music' },
-      lesson_watched: { label: 'Ir para Cursos', icon: 'fa-graduation-cap' },
+      lesson_watched: { label: 'Ver cursos', icon: 'fa-graduation-cap' },
       offering_made: { label: 'Ir para Ofertas', icon: 'fa-hand-holding-heart' }
     };
     return map[activityType] || { label: 'Ir para', icon: 'fa-arrow-right' };
@@ -290,178 +216,47 @@
     return [];
   }
 
-  async function getDailyChallenges(progress) {
-    if (!progress || !window.supabaseClient || challengeTableUnavailable) return [];
-    var today = todayKey();
-    var stage = 'ler user_daily_challenges';
-    try {
-      var existing = await window.supabaseClient
-        .from('user_daily_challenges')
-        .select('*, daily_challenges(*)')
-        .eq('user_id', progress.user_id)
-        .eq('challenge_date', today)
-        .order('created_at', { ascending: true });
+  async function applyMissionSnapshot(snapshot, userInfo) {
+    var payload = snapshot || {};
+    var progress = payload.progress || null;
+    dailyChallengesCache = (payload.missions || []).map(normalizeChallenge);
+    dailySummaryCache = {
+      completed_count: Number(payload.completed_count) || 0,
+      total_count: Number(payload.total_count) || dailyChallengesCache.length,
+      day_completed: !!payload.day_completed,
+      completion_xp: Number(payload.completion_xp) || 0
+    };
+    dailyChallengesLoadError = null;
+    challengeTableUnavailable = false;
 
-      if (existing.error) return handleDailyChallengesLoadError(stage, existing.error, 'leitura user_daily_challenges');
-      var rows = (existing.data || []).slice(0, 3);
-      if (rows.length >= 3) {
-        dailyChallengesLoadError = null;
-        dailyChallengesCache = rows.map(normalizeChallenge);
-        return dailyChallengesCache;
-      }
-
-      stage = 'consultar daily_challenges';
-      var available = await window.supabaseClient
-        .from('daily_challenges')
-        .select('*')
-        .eq('is_active', true)
-        .lte('level_min', Number(progress.level) || 1)
-        .gte('level_max', Number(progress.level) || 1);
-
-      if (available.error) return handleDailyChallengesLoadError(stage, available.error, 'leitura daily_challenges');
-
-      var existingIds = rows.map(function (row) { return row.challenge_id; });
-      var missingPool = (available.data || []).filter(function (item) {
-        return existingIds.indexOf(item.id) === -1;
-      });
-      var picked = pickDailyChallenges(missingPool, progress).slice(0, Math.max(0, 3 - rows.length));
-
-      if (picked.length) {
-        stage = 'inserir atribuições';
-        var inserts = picked.map(function (challenge) {
-          return {
-            user_id: progress.user_id,
-            challenge_id: challenge.id,
-            challenge_date: today,
-            current_count: 0,
-            target_count: Number(challenge.target_count) || 1,
-            completed: false,
-            reward_claimed: false
-          };
-        });
-        var insert = await window.supabaseClient
-          .from('user_daily_challenges')
-          .insert(inserts);
-        if (insert.error) return handleDailyChallengesLoadError(stage, insert.error, 'inserção de atribuições');
-        return getDailyChallenges(progress);
-      }
-
-      dailyChallengesLoadError = null;
-      dailyChallengesCache = rows.map(normalizeChallenge);
-      return dailyChallengesCache;
-    } catch (error) {
-      if (isMissingChallengeTableError(error)) {
-        challengeTableUnavailable = true;
-        dailyChallengesLoadError = null;
-        renderDailyChallenges(null);
-        return [];
-      }
-      return handleDailyChallengesLoadError(stage, error, stage === 'inserir atribuições' ? 'inserção de atribuições' : stage === 'consultar daily_challenges' ? 'leitura daily_challenges' : 'leitura user_daily_challenges');
+    if (!progress) return null;
+    currentProgressCache = normalizeProgress(progress);
+    if (userInfo && userInfo.user) {
+      currentProgressCache = applyJourneyProfile(
+        currentProgressCache,
+        await loadJourneyProfile(userInfo.user.id)
+      );
     }
-  }
-
-  async function recordChallengeProgress(progress, activityType, count) {
-    if (!progress || !activityType || challengeTableUnavailable || !window.supabaseClient) return progress;
-    var challenges = await getDailyChallenges(progress);
-    var matching = challenges.filter(function (challenge) {
-      return challenge.activity_type === activityType && !challenge.completed;
-    });
-    if (!matching.length) return progress;
-
-    var reward = 0;
-    for (var i = 0; i < matching.length; i++) {
-      var challenge = matching[i];
-      var nextCount = Math.min(challenge.target_count, challenge.current_count + (Number(count) || 1));
-      var completedNow = nextCount >= challenge.target_count;
-      var shouldReward = completedNow && !challenge.reward_claimed;
-      var update = await window.supabaseClient
-        .from('user_daily_challenges')
-        .update({
-          current_count: nextCount,
-          completed: completedNow,
-          reward_claimed: challenge.reward_claimed || shouldReward,
-          completed_at: completedNow ? new Date().toISOString() : null
-        })
-        .eq('id', challenge.id)
-        .eq('user_id', progress.user_id)
-        .select('*, daily_challenges(*)')
-        .single();
-
-      if (update.error) {
-        if (isMissingChallengeTableError(update.error)) challengeTableUnavailable = true;
-        console.error('[Minha Caminhada] Erro ao atualizar desafio:', update.error);
-        continue;
-      }
-      if (shouldReward) reward += challenge.xp_reward;
-    }
-
-    if (reward > 0) {
-      progress = updateXP(progress, reward);
-      progress = await saveProgress(progress);
-      if (typeof showToast === 'function') showToast('Desafio concluido! +' + reward + ' XP', 'success');
-    }
-
-    dailyChallengesCache = await getDailyChallenges(progress || currentProgressCache);
-    renderDailyChallenges(dailyChallengesCache);
-    return progress || currentProgressCache;
+    return currentProgressCache;
   }
 
   async function getOrCreateProgressInternal() {
     var userInfo = await resolveUserInfo();
     if (!userInfo.isLoggedIn || !userInfo.user || progressTableUnavailable || !window.supabaseClient) return null;
 
-    var user = userInfo.user;
     try {
-      var result = await window.supabaseClient
-        .from('spiritual_progress')
-        .select('*')
-        .eq('user_id', user.id)
-        .maybeSingle();
-
+      var result = await window.supabaseClient.rpc('get_daily_missions');
       if (result.error) throw result.error;
-      if (result.data) {
-        currentProgressCache = normalizeProgress(result.data);
-        currentProgressCache = applyJourneyProfile(currentProgressCache, await loadJourneyProfile(user.id));
-        return currentProgressCache;
-      }
-
-      var newProgress = defaultProgress(userInfo);
-      newProgress = applyJourneyProfile(newProgress, await loadJourneyProfile(user.id));
-      var insert = await window.supabaseClient
-        .from('spiritual_progress')
-        .insert([newProgress])
-        .select('*')
-        .single();
-
-      if (insert.error && insert.error.code === '23505') {
-        var retry = await window.supabaseClient
-          .from('spiritual_progress')
-          .select('*')
-          .eq('user_id', user.id)
-          .maybeSingle();
-
-        if (retry.error) throw retry.error;
-        if (!retry.data) throw insert.error;
-
-        currentProgressCache = normalizeProgress(retry.data);
-        currentProgressCache = applyJourneyProfile(
-          currentProgressCache,
-          await loadJourneyProfile(user.id)
-        );
-        return currentProgressCache;
-      }
-
-      if (insert.error) throw insert.error;
-      currentProgressCache = normalizeProgress(insert.data);
-      return currentProgressCache;
+      return await applyMissionSnapshot(result.data, userInfo);
     } catch (error) {
-      if (isMissingTableError(error)) {
+      if (isMissingTableError(error) || isMissingChallengeTableError(error)) {
         progressTableUnavailable = true;
-        console.warn('[Minha Caminhada] Tabela spiritual_progress ainda nao encontrada.');
+        challengeTableUnavailable = true;
+        console.warn('[Minha Caminhada] Estrutura segura de missões ainda não encontrada.');
         renderJourneyUnavailable();
         return null;
       }
-      console.error('[Minha Caminhada] Erro ao carregar progresso:', error);
+      handleDailyChallengesLoadError('carregar missões', error, 'RPC get_daily_missions');
       return null;
     }
   }
@@ -480,150 +275,76 @@
     }
   }
 
-  async function saveProgress(progress) {
-    if (!progress || !window.supabaseClient || progressTableUnavailable) return null;
-    progress.updated_at = new Date().toISOString();
+  async function recordJourneyAction(activityType, sourceKey, options) {
+    var userInfo = await resolveUserInfo();
+    if (!userInfo.isLoggedIn || !userInfo.user || !window.supabaseClient) return currentProgressCache;
+    var actionOptions = options || {};
 
     try {
-      var update = await window.supabaseClient
-        .from('spiritual_progress')
-        .update(progress)
-        .eq('user_id', progress.user_id)
-        .select('*')
-        .single();
+      var result = await window.supabaseClient.rpc('record_journey_action', {
+        action_type: activityType,
+        source_key: sourceKey == null ? null : String(sourceKey)
+      });
+      if (result.error) throw result.error;
+      var progress = await applyMissionSnapshot(result.data, userInfo);
+      renderJourneyWidgets(progress);
 
-      if (update.error) throw update.error;
-      currentProgressCache = normalizeProgress(update.data);
-      renderJourneyWidgets(currentProgressCache);
-      return currentProgressCache;
-    } catch (error) {
-      if (isMissingTableError(error)) progressTableUnavailable = true;
-      console.error('[Minha Caminhada] Erro ao salvar progresso:', error);
-      return null;
-    }
-  }
-
-  function oncePerDay(key) {
-    var userInfo = getUserInfo();
-    var userId = userInfo.user && userInfo.user.id ? userInfo.user.id : 'anon';
-    var storageKey = 'adpel_journey_' + userId + '_' + key;
-    var today = todayKey();
-    if (localStorage.getItem(storageKey) === today) return false;
-    localStorage.setItem(storageKey, today);
-    return true;
-  }
-
-  function rememberEvent(key) {
-    var userInfo = getUserInfo();
-    var userId = userInfo.user && userInfo.user.id ? userInfo.user.id : 'anon';
-    var storageKey = 'adpel_journey_event_' + userId + '_' + key;
-    if (eventMemory[storageKey] || localStorage.getItem(storageKey)) return false;
-    eventMemory[storageKey] = true;
-    localStorage.setItem(storageKey, '1');
-    return true;
-  }
-
-  function rememberDailyEvent(key) {
-    var userInfo = getUserInfo();
-    var userId = userInfo.user && userInfo.user.id ? userInfo.user.id : 'anon';
-    var storageKey = 'adpel_journey_daily_event_' + userId + '_' + key;
-    var today = todayKey();
-    if (localStorage.getItem(storageKey) === today) return false;
-    localStorage.setItem(storageKey, today);
-    return true;
-  }
-
-  async function applyProgress(action, options) {
-    options = options || {};
-    var progress = await getOrCreateProgress();
-    if (!progress) return null;
-
-    var shouldApplyBaseProgress = !options.uniqueKey || rememberEvent(options.uniqueKey);
-    var saved = progress;
-
-    if (shouldApplyBaseProgress) {
-      progress = updateStreak(progress);
-      progress = updateXP(progress, XP_ACTIONS[action] || 0);
-
-      if (options.counter) {
-        progress[options.counter] = (Number(progress[options.counter]) || 0) + (options.count || 1);
+      var reward = Number(result.data && result.data.xp_awarded) || 0;
+      if (result.data && result.data.day_completed_now && typeof showToast === 'function') {
+        showToast('Caminhada de hoje concluída! +' + Number(result.data.completion_xp || 0) + ' XP', 'success');
+      } else if (reward > 0 && !actionOptions.silent && typeof showToast === 'function') {
+        showToast('Missão concluída! +' + reward + ' XP', 'success');
       }
-
-      saved = await saveProgress(progress);
+      return progress;
+    } catch (error) {
+      console.error('[Minha Caminhada] Não foi possível registrar a ação:', {
+        activityType: activityType,
+        code: error && error.code,
+        message: error && error.message
+      });
+      return currentProgressCache;
     }
-
-    var activityType = ACTION_TO_ACTIVITY[action];
-    var challengeKey = action + '_' + (options.uniqueKey || 'daily');
-    if (activityType && rememberDailyEvent(challengeKey)) {
-      return recordChallengeProgress(saved || progress, activityType, options.count || 1);
-    }
-    return saved;
   }
 
-  async function registerBibleRead() {
-    if (!oncePerDay('bible_open')) return currentProgressCache;
-    return applyProgress('bible_open', { counter: 'bible_reads' });
+  function registerDailyVisit() {
+    return recordJourneyAction('daily_visit', null, { silent: true });
   }
 
-  async function registerChapterRead(book, chapter) {
-    return applyProgress('chapter_read', {
-      counter: 'bible_chapters',
-      uniqueKey: 'chapter_' + String(book || '').toLowerCase() + '_' + String(chapter || '')
-    });
+  function registerVerseOfDayRead() {
+    return recordJourneyAction('verse_of_day_read');
   }
 
-  async function registerBookCompleted(book) {
-    return applyProgress('book_completed', {
-      counter: 'bible_books',
-      uniqueKey: 'book_' + String(book || '').toLowerCase()
-    });
+  function registerBibleRead() {
+    return recordJourneyAction('bible_open', null, { silent: true });
   }
 
-  async function registerHymnOpened() {
-    if (!oncePerDay('hymn_opened')) return currentProgressCache;
-    return applyProgress('hymn_opened', { counter: 'hymns_opened' });
+  function registerChapterRead(bookId, chapter) {
+    return recordJourneyAction('bible_chapter_read', String(bookId || '') + ':' + String(chapter || ''));
   }
 
-  async function registerCourseCompleted(courseId) {
-    return applyProgress('course_completed', {
-      counter: 'courses_completed',
-      uniqueKey: 'course_' + String(courseId || todayKey())
-    });
+  function registerBookCompleted(bookId) {
+    return recordJourneyAction('bible_book_completed', String(bookId || ''));
   }
 
-  async function registerLessonWatched(courseId, lessonIndex) {
-    return applyProgress('lesson_watched', {
-      uniqueKey: 'lesson_' + String(courseId || 'course') + '_' + String(lessonIndex || 0)
-    });
+  function registerHymnOpened() {
+    return recordJourneyAction('hymn_opened');
   }
 
-  async function registerOffering() {
-    return applyProgress('offering', { counter: 'offerings' });
+  function registerCourseCompleted(courseId) {
+    return recordJourneyAction('course_completed', String(courseId || ''));
   }
 
-  async function registerSpiritualActivity(activityType) {
+  function registerLessonWatched(courseId, lessonIndex) {
+    return recordJourneyAction('lesson_watched', String(courseId || '') + ':' + String(lessonIndex));
+  }
+
+  function registerOffering() {
+    return recordJourneyAction('offering_made');
+  }
+
+  function registerSpiritualActivity(activityType) {
     if (activityType === 'offering_made') return registerOffering();
     return currentProgressCache;
-  }
-
-  async function registerChallengeProgress(activityType, count) {
-    var progress = await getOrCreateProgress();
-    if (!progress) return null;
-    return recordChallengeProgress(progress, activityType, count || 1);
-  }
-
-  async function registerMission() {
-    if (!oncePerDay('mission')) return currentProgressCache;
-    return applyProgress('mission', { counter: 'missions_completed' });
-  }
-
-  async function completeDailyMission() {
-    var before = currentProgressCache ? Number(currentProgressCache.missions_completed) || 0 : 0;
-    var progress = await registerMission();
-    var after = progress ? Number(progress.missions_completed) || 0 : before;
-    if (typeof showToast === 'function') {
-      showToast(after > before ? 'Missão diária registrada!' : 'Missão diária já registrada hoje.', after > before ? 'success' : 'info');
-    }
   }
 
   async function getRanking() {
@@ -711,23 +432,6 @@
     return getEarnedMedals(progress).find(function (medal) { return !medal.earned; }) || null;
   }
 
-  function setDailyMissionAvailability(isAvailable) {
-    var button = document.getElementById('journey-daily-action');
-    if (!button) return;
-
-    button.disabled = !isAvailable;
-    button.setAttribute('aria-disabled', isAvailable ? 'false' : 'true');
-    button.classList.toggle('is-unavailable', !isAvailable);
-
-    if (isAvailable) {
-      button.setAttribute('onclick', 'ADPELJourney.completeDailyMission()');
-      button.innerHTML = '<i class="fas fa-check"></i> Missão diária';
-    } else {
-      button.removeAttribute('onclick');
-      button.innerHTML = '<i class="fas fa-clock"></i> Missões em breve';
-    }
-  }
-
   function renderJourneyUnavailable() {
     var card = document.getElementById('journey-card-content');
     if (card) {
@@ -739,69 +443,22 @@
     renderJourneyCardPremium(progress);
     renderJourneyProfilePremium(progress);
     renderMedalsPremium(progress);
-    if (progress) {
-      getDailyChallenges(progress).then(renderDailyChallengesPremium);
-    } else {
-      renderDailyChallengesPremium([]);
-    }
-  }
-
-  function renderDailyChallenges(challenges) {
-    var container = document.getElementById('daily-challenges-content');
-    if (!container) return;
-    if (dailyChallengesLoadError) {
-      container.innerHTML = '<div class="journey-empty-note">Não foi possível carregar suas missões agora. Tente novamente.</div>';
-      setDailyMissionAvailability(false);
-      return;
-    }
-    if (challengeTableUnavailable) {
-      container.innerHTML = '<div class="journey-empty-note">Suas missões diárias estarão disponíveis em breve.</div>';
-      setDailyMissionAvailability(false);
-      return;
-    }
-    if (challenges === null) {
-      container.innerHTML = '<div class="journey-empty-note">Suas missões diárias estarão disponíveis em breve.</div>';
-      setDailyMissionAvailability(false);
-      return;
-    }
-    var list = (challenges || dailyChallengesCache || []).slice(0, 3);
-    if (!list.length) {
-      container.innerHTML = '<div class="journey-empty-note">Nenhuma missão ativa para seu nível hoje.</div>';
-      setDailyMissionAvailability(false);
-      return;
-    }
-
-    setDailyMissionAvailability(true);
-
-    container.innerHTML = list.map(function (challenge) {
-      var percent = Math.min(100, Math.round((challenge.current_count / challenge.target_count) * 100));
-      var meta = getChallengeMeta(challenge.activity_type);
-      var button = challenge.completed
-        ? '<button disabled class="journey-challenge-action is-done"><i class="fas fa-check"></i> Concluída</button>'
-        : '<button onclick="ADPELJourney.goToChallengeTarget(&quot;' + escapeHtml(challenge.activity_type) + '&quot;)" class="journey-challenge-action"><i class="fas fa-arrow-right"></i> ' + escapeHtml(meta.label) + '</button>';
-      return [
-        '<article class="journey-challenge-card ' + (challenge.completed ? 'is-completed' : '') + '">',
-          '<div class="journey-challenge-icon"><i class="fas ' + escapeHtml(challenge.icon || meta.icon) + '"></i></div>',
-          '<div class="journey-challenge-main">',
-            '<div class="journey-challenge-head">',
-              '<div class="min-w-0">',
-                '<h4>' + escapeHtml(challenge.title) + '</h4>',
-                challenge.description ? '<p>' + escapeHtml(challenge.description) + '</p>' : '',
-              '</div>',
-              button,
-            '</div>',
-            '<div class="journey-challenge-progress">',
-              '<div class="journey-progress-track"><div class="journey-progress-fill" style="width:' + percent + '%"></div></div>',
-              '<span>' + challenge.current_count + '/' + challenge.target_count + '</span>',
-            '</div>',
-            '<div class="journey-challenge-reward"><i class="fas fa-star"></i> +' + challenge.xp_reward + ' XP</div>',
-          '</div>',
-        '</article>'
-      ].join('');
-    }).join('');
+    renderDailyChallengesPremium(progress ? dailyChallengesCache : []);
   }
 
   function goToChallengeTarget(activityType) {
+    if (activityType === 'verse_of_day_read') {
+      if (typeof navigateTo === 'function') {
+        navigateTo('home');
+        setTimeout(function () {
+          var verse = document.querySelector('.app-verse-card');
+          if (verse) verse.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }, 100);
+      } else {
+        window.location.href = 'index.html#home';
+      }
+      return;
+    }
     if (activityType === 'bible_chapter_read') {
       if (typeof navigateTo === 'function') {
         navigateTo('bible');
@@ -824,61 +481,6 @@
       if (typeof openOfertaModal === 'function') openOfertaModal();
       else window.location.href = 'index.html#home';
     }
-  }
-
-  function renderJourneyCard(progress) {
-    var container = document.getElementById('journey-card-content');
-    if (!container) return;
-    var userInfo = getUserInfo();
-    if (!userInfo.isLoggedIn) {
-      container.innerHTML = '<div class="text-center py-6"><p class="text-sm text-gray-500 mb-4">Entre para acompanhar sua caminhada espiritual.</p><button onclick="openModal(&quot;login-modal&quot;)" class="px-5 py-2 bg-emerald-600 text-white rounded-lg text-sm font-bold hover:bg-emerald-700 transition">Entrar</button></div>';
-      return;
-    }
-
-    var safeProgress = normalizeProgress(progress || currentProgressCache);
-    var level = getLevelInfo(safeProgress.xp);
-    var nextMedal = getNextMedal(safeProgress);
-    var avatar = safeImageUrl(safeProgress.avatar || '');
-    var initials = String(safeProgress.user_name || 'M').trim().charAt(0).toUpperCase();
-
-    container.innerHTML = [
-      '<div class="flex items-center gap-4">',
-        '<div class="w-16 h-16 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center overflow-hidden font-bold text-xl">',
-          avatar ? '<img src="' + escapeHtml(avatar) + '" alt="' + escapeHtml(safeProgress.user_name || 'Perfil') + '" class="w-full h-full object-cover">' : initials,
-        '</div>',
-        '<div class="min-w-0 flex-1">',
-          '<p class="text-sm text-gray-500">Minha Caminhada</p>',
-          '<h3 class="text-lg font-bold text-gray-800 truncate">' + escapeHtml(safeProgress.user_name || 'Membro') + '</h3>',
-          '<p class="text-sm text-emerald-600 font-semibold">Nível ' + level.level + ' - ' + escapeHtml(level.title) + '</p>',
-        '</div>',
-      '</div>',
-      '<div class="mt-4 grid grid-cols-3 gap-3 text-center">',
-        '<div class="bg-gray-50 rounded-lg p-3"><p class="text-xl font-bold text-gray-800">' + safeProgress.xp + '</p><p class="text-xs text-gray-500">XP</p></div>',
-        '<div class="bg-gray-50 rounded-lg p-3"><p class="text-xl font-bold text-gray-800">' + safeProgress.streak_days + '</p><p class="text-xs text-gray-500">Sequência</p></div>',
-        '<div class="bg-gray-50 rounded-lg p-3"><p class="text-xl font-bold text-gray-800">' + safeProgress.total_points + '</p><p class="text-xs text-gray-500">Pontos</p></div>',
-      '</div>',
-      '<div class="mt-4">',
-        '<div class="flex justify-between text-xs text-gray-500 mb-1"><span>Progresso do nível</span><span>' + level.progressPercent + '%</span></div>',
-        '<div class="h-2 rounded-full bg-gray-100 overflow-hidden"><div class="h-full bg-emerald-500 rounded-full" style="width:' + level.progressPercent + '%"></div></div>',
-      '</div>',
-      '<div class="mt-4 flex items-center justify-between gap-3 text-sm">',
-        '<span class="text-gray-500">Próxima medalha</span>',
-        '<span class="font-semibold text-gray-800 text-right">' + escapeHtml(nextMedal ? nextMedal.title : 'Todas conquistadas') + '</span>',
-      '</div>',
-      '<div class="mt-5 pt-4 border-t border-gray-100">',
-        '<div class="flex items-center justify-between mb-3">',
-          '<h3 class="font-bold text-gray-800 text-sm">Desafios de hoje</h3>',
-          '<span class="text-xs text-gray-500">max. 3</span>',
-        '</div>',
-        '<div id="daily-challenges-content" class="space-y-3">',
-          '<div class="text-sm text-gray-500 bg-gray-50 rounded-lg p-3">Carregando desafios diarios...</div>',
-        '</div>',
-      '</div>',
-      '<div class="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-3">',
-        '<button onclick="ADPELJourney.completeDailyMission()" class="w-full py-2 bg-emerald-600 text-white rounded-lg text-sm font-bold hover:bg-emerald-700 transition">Missão diária</button>',
-        '<button onclick="navigateTo(&quot;ranking&quot;)" class="w-full py-2 bg-gray-100 text-gray-700 rounded-lg text-sm font-bold hover:bg-gray-200 transition">Ver Ranking</button>',
-      '</div>'
-    ].join('');
   }
 
   function renderJourneyProfile(progress) {
@@ -966,27 +568,21 @@
     if (!container) return;
     if (dailyChallengesLoadError) {
       container.innerHTML = '<div class="journey-empty-note">Não foi possível carregar suas missões agora. Tente novamente.</div>';
-      setDailyMissionAvailability(false);
       return;
     }
     if (challengeTableUnavailable) {
       container.innerHTML = '<div class="journey-empty-note">Suas missões diárias estarão disponíveis em breve.</div>';
-      setDailyMissionAvailability(false);
       return;
     }
     if (challenges === null) {
       container.innerHTML = '<div class="journey-empty-note">Suas missões diárias estarão disponíveis em breve.</div>';
-      setDailyMissionAvailability(false);
       return;
     }
-    var list = (challenges || dailyChallengesCache || []).slice(0, 3);
+    var list = (challenges || dailyChallengesCache || []).slice(0, 4);
     if (!list.length) {
       container.innerHTML = '<div class="journey-empty-note">Nenhuma missão ativa para seu nível hoje.</div>';
-      setDailyMissionAvailability(false);
       return;
     }
-
-    setDailyMissionAvailability(true);
 
     container.innerHTML = list.map(function (challenge) {
       var percent = Math.min(100, Math.round((challenge.current_count / challenge.target_count) * 100));
@@ -1030,16 +626,46 @@
     var nextMedal = getNextMedal(safeProgress);
     var avatar = safeImageUrl(safeProgress.avatar || '');
     var initials = String(safeProgress.user_name || 'M').trim().charAt(0).toUpperCase();
-    var isStarting = Number(safeProgress.total_points) === 0 && Number(safeProgress.streak_days) === 0 && level.progressPercent === 0;
     var currentXp = Number(safeProgress.xp) || 0;
     var progressPoints = level.next ? currentXp + ' de ' + level.next.minXp + ' pontos' : currentXp + ' pontos';
     var progressStatus = level.next ? level.progressPercent + '% para o próximo nível' : 'Nível máximo alcançado';
-    var dailyAction = challengeTableUnavailable
-      ? '<button id="journey-daily-action" type="button" disabled aria-disabled="true" class="journey-primary-action is-unavailable"><i class="fas fa-clock"></i> Missões em breve</button>'
-      : '<button id="journey-daily-action" type="button" aria-disabled="false" onclick="ADPELJourney.completeDailyMission()" class="journey-primary-action"><i class="fas fa-check"></i> Missão diária</button>';
+    var completedCount = Number(dailySummaryCache.completed_count) || 0;
+    var totalCount = Number(dailySummaryCache.total_count) || dailyChallengesCache.length;
+    var dailyPercent = totalCount ? Math.min(100, Math.round((completedCount / totalCount) * 100)) : 0;
+    var remaining = Math.max(0, totalCount - completedCount);
+    var dailyMessage = dailySummaryCache.day_completed
+      ? 'Você cumpriu todas as missões e preservou sua sequência.'
+      : remaining === 1
+        ? 'Falta apenas uma missão para completar sua caminhada de hoje.'
+        : remaining > 1
+          ? 'Faltam ' + remaining + ' missões para concluir o dia.'
+          : 'Suas missões estão sendo preparadas.';
+    var completionPanel = dailySummaryCache.day_completed
+      ? [
+          '<div class="journey-completion-card">',
+            '<div class="journey-completion-icon"><i class="fas fa-check"></i></div>',
+            '<div><p class="app-eyebrow">Dia concluído</p><h4>Caminhada de hoje concluída</h4><span>+' + dailySummaryCache.completion_xp + ' XP recebidos · ' + safeProgress.streak_days + ' dia' + (Number(safeProgress.streak_days) === 1 ? '' : 's') + ' de sequência</span></div>',
+          '</div>'
+        ].join('')
+      : '';
 
     container.innerHTML = [
       '<div class="journey-shell">',
+        '<section class="journey-daily-section journey-daily-section--primary">',
+          '<div class="journey-section-head">',
+            '<div><p class="app-eyebrow">Hoje</p><h3>Sua caminhada de hoje</h3></div>',
+            '<strong class="journey-today-count">' + completedCount + ' de ' + totalCount + '</strong>',
+          '</div>',
+          '<div class="journey-today-progress" aria-label="' + dailyPercent + '% das missões concluídas">',
+            '<div class="journey-progress-track"><div class="journey-progress-fill" style="width:' + dailyPercent + '%"></div></div>',
+            '<span>' + dailyPercent + '%</span>',
+          '</div>',
+          '<p class="journey-today-message">' + escapeHtml(dailyMessage) + '</p>',
+          completionPanel,
+          '<div id="daily-challenges-content" class="journey-challenges-list">',
+            '<div class="journey-empty-note">Carregando missões diárias...</div>',
+          '</div>',
+        '</section>',
         '<section class="journey-hero-card">',
           '<div class="journey-member-row">',
             '<div class="journey-avatar">',
@@ -1052,38 +678,20 @@
           '</div>',
           '<div class="journey-hero-copy">',
             '<p class="app-eyebrow">Minha Caminhada</p>',
-            '<h3>Acompanhe sua evolução espiritual na ADPEL</h3>',
+            '<h3>Seu progresso nasce das ações de cada dia</h3>',
           '</div>',
         '</section>',
-        isStarting ? [
-          '<section class="journey-start-card">',
-            '<div><h3>Comece sua caminhada</h3><p>Complete sua primeira atividade e acompanhe seu crescimento espiritual na ADPEL.</p></div>',
-            '<button type="button" onclick="navigateTo(&quot;bible&quot;)" class="journey-start-action"><i class="fas fa-book-bible"></i> Começar agora</button>',
-          '</section>'
-        ].join('') : '',
         '<div class="journey-stats-grid">',
-          '<div class="journey-stat-card"><i class="fas fa-seedling"></i><strong>' + safeProgress.total_points + '</strong><span>Pontos</span>' + (Number(safeProgress.total_points) === 0 ? '<small>Complete uma atividade</small>' : '') + '</div>',
-          '<div class="journey-stat-card"><i class="fas fa-fire"></i><strong>' + safeProgress.streak_days + '</strong><span>Sequência</span>' + (Number(safeProgress.streak_days) === 0 ? '<small>Volte todos os dias</small>' : '') + '</div>',
-          '<div class="journey-stat-card"><i class="fas fa-layer-group"></i><strong>' + level.progressPercent + '%</strong><span>Evolução</span>' + (level.progressPercent === 0 ? '<small>Seu progresso começa aqui</small>' : '') + '</div>',
+          '<div class="journey-stat-card"><i class="fas fa-fire"></i><strong>' + safeProgress.streak_days + '</strong><span>Sequência</span><small>dias concluídos</small></div>',
+          '<div class="journey-stat-card"><i class="fas fa-seedling"></i><strong>' + safeProgress.xp + '</strong><span>XP</span><small>ações validadas</small></div>',
+          '<div class="journey-stat-card"><i class="fas fa-layer-group"></i><strong>' + level.level + '</strong><span>' + escapeHtml(level.title) + '</span><small>nível atual</small></div>',
         '</div>',
         '<section class="journey-progress-card">',
           '<div class="journey-progress-summary"><strong>' + escapeHtml(progressPoints) + '</strong><span>' + escapeHtml(progressStatus) + '</span></div>',
           '<div class="journey-progress-track"><div class="journey-progress-fill" style="width:' + level.progressPercent + '%"></div></div>',
           '<div class="journey-next-medal"><span>Próxima medalha</span><strong>' + escapeHtml(nextMedal ? nextMedal.title : 'Todas conquistadas') + '</strong></div>',
         '</section>',
-        '<section class="journey-daily-section">',
-          '<div class="journey-section-head">',
-            '<div><p class="app-eyebrow">Missão de Hoje</p><h3>Continue sua jornada</h3></div>',
-            '<span>máx. 3</span>',
-          '</div>',
-          '<div id="daily-challenges-content" class="journey-challenges-list">',
-            '<div class="journey-empty-note">Carregando missões diárias...</div>',
-          '</div>',
-          '<div class="journey-actions">',
-            dailyAction,
-            '<button onclick="navigateTo(&quot;ranking&quot;)" class="journey-secondary-action"><i class="fas fa-ranking-star"></i> Ver ranking</button>',
-          '</div>',
-        '</section>',
+        '<button onclick="navigateTo(&quot;ranking&quot;)" class="journey-secondary-action"><i class="fas fa-ranking-star"></i> Ver ranking e conquistas</button>',
       '</div>'
     ].join('');
   }
@@ -1167,11 +775,14 @@
 
   async function initJourney() {
     var progress = await getOrCreateProgress();
-    renderJourneyWidgets(progress);
+    if (!progress) {
+      renderJourneyWidgets(null);
+      return;
+    }
+    await registerDailyVisit();
   }
 
   window.ADPELJourney = {
-    XP_ACTIONS: XP_ACTIONS,
     LEVELS: LEVELS,
     MEDALS: MEDALS,
     init: initJourney,
@@ -1179,6 +790,9 @@
     renderRanking: renderRankingPremium,
     renderDailyChallenges: renderDailyChallengesPremium,
     goToChallengeTarget: goToChallengeTarget,
+    recordAction: recordJourneyAction,
+    registerDailyVisit: registerDailyVisit,
+    registerVerseOfDayRead: registerVerseOfDayRead,
     registerBibleRead: registerBibleRead,
     registerChapterRead: registerChapterRead,
     registerBookCompleted: registerBookCompleted,
@@ -1186,18 +800,13 @@
     registerLessonWatched: registerLessonWatched,
     registerOffering: registerOffering,
     registerSpiritualActivity: registerSpiritualActivity,
-    registerChallengeProgress: registerChallengeProgress,
-    registerMission: registerMission,
-    completeDailyMission: completeDailyMission,
     registerHymnOpened: registerHymnOpened,
-    updateXP: updateXP,
-    updateLevel: updateLevel,
-    updateStreak: updateStreak,
     getRanking: getRanking,
     getLevelInfo: getLevelInfo,
     getEarnedMedals: getEarnedMedals
   };
 
+  window.registerVerseOfDayRead = registerVerseOfDayRead;
   window.registerBibleRead = registerBibleRead;
   window.registerChapterRead = registerChapterRead;
   window.registerBookCompleted = registerBookCompleted;
@@ -1205,10 +814,5 @@
   window.registerLessonWatched = registerLessonWatched;
   window.registerOffering = registerOffering;
   window.registerSpiritualActivity = registerSpiritualActivity;
-  window.registerChallengeProgress = registerChallengeProgress;
-  window.registerMission = registerMission;
-  window.updateXP = updateXP;
-  window.updateLevel = updateLevel;
-  window.updateStreak = updateStreak;
   window.getRanking = getRanking;
 })();

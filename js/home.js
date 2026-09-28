@@ -91,6 +91,7 @@ async function carregarVersiculoDoDia() {
 
     if (textEl) textEl.textContent = versiculo.text || '';
     if (refEl) refEl.textContent = versiculo.reference ? '— ' + versiculo.reference : '';
+    trackVerseOfDayEngagement();
   } catch (e) {
     console.error('Erro em carregarVersiculoDoDia:', e);
     const textEl = document.getElementById('verse-text');
@@ -98,6 +99,44 @@ async function carregarVersiculoDoDia() {
     if (textEl) textEl.textContent = 'Não foi possível carregar o versículo agora.';
     if (refEl) refEl.textContent = '';
   }
+}
+
+function trackVerseOfDayEngagement() {
+  const card = document.querySelector('.app-verse-card');
+  if (!card || card.dataset.journeyTracking === 'ready') return;
+  card.dataset.journeyTracking = 'ready';
+
+  let readingTimer = null;
+  let recorded = false;
+  const stopTimer = () => {
+    if (readingTimer) window.clearTimeout(readingTimer);
+    readingTimer = null;
+  };
+  const recordReading = () => {
+    if (recorded || !window.ADPELJourney?.registerVerseOfDayRead) return;
+    recorded = true;
+    stopTimer();
+    window.ADPELJourney.registerVerseOfDayRead();
+  };
+  const startTimer = () => {
+    if (recorded || readingTimer || document.visibilityState !== 'visible') return;
+    readingTimer = window.setTimeout(recordReading, 4000);
+  };
+
+  const bibleLink = card.querySelector('a[href="bible.html"]');
+  if (bibleLink) bibleLink.addEventListener('click', recordReading, { once: true });
+
+  if (!('IntersectionObserver' in window)) return;
+  const observer = new IntersectionObserver((entries) => {
+    const visible = entries.some((entry) => entry.isIntersecting && entry.intersectionRatio >= 0.65);
+    if (visible) startTimer();
+    else stopTimer();
+  }, { threshold: [0.65] });
+  observer.observe(card);
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible') startTimer();
+    else stopTimer();
+  });
 }
 
 async function loadHomeData() {

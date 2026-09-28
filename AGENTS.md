@@ -49,7 +49,7 @@ Ajudar igrejas a discipular, informar, engajar e servir seus membros por meio de
 |-- auth.js                            # Login, cadastro, sessao e UI de autenticacao
 |-- supabase.js                        # Cliente Supabase e facade global ADPEL
 |-- fundraising.js                     # Cofres e contribuicoes publicas
-|-- spiritual-progress.js              # Minha Caminhada, XP, ranking, desafios
+|-- spiritual-progress.js              # Central de missoes, XP, sequencia, niveis e ranking
 |-- notifications.js                   # Inscricao push do usuario
 |-- admin.html                         # Painel administrativo
 |-- admin.js                           # Core do admin
@@ -150,6 +150,8 @@ O backend e Supabase:
 
 Nao existe servidor proprio neste repositorio. Toda operacao administrativa atual acontece pelo cliente Supabase no navegador, por isso as policies/RLS sao parte critica da seguranca real.
 
+Na Minha Caminhada, o navegador apenas informa uma acao permitida. As funcoes `get_daily_missions()` e `record_journey_action(action_type, source_key)` criam as missoes do dia, validam evidencias existentes, deduplicam eventos e calculam XP/sequencia no Postgres. Usuarios autenticados nao possuem `INSERT`/`UPDATE`/`DELETE` direto em `spiritual_progress` nem em `user_daily_challenges`.
+
 ## Como o Supabase esta organizado
 
 ### Authentication
@@ -199,6 +201,8 @@ Tabelas e views identificadas:
 - `spiritual_progress`
 - `daily_challenges`
 - `user_daily_challenges`
+- `journey_activity_events`
+- `journey_daily_completions`
 - `app_updates`
 - `app_update_reads`
 - `push_subscriptions`
@@ -274,10 +278,12 @@ O fluxo atual e:
 - Geracao de QR Code PIX.
 - Registro de oferta confirmada.
 - Historico e resumo de ofertas no perfil.
-- Minha Caminhada com XP, niveis, streak e medalhas.
+- Minha Caminhada como central de missoes diarias, com XP, niveis, streak e medalhas subordinados a acoes reais.
 - Ranking geral.
-- Desafios diarios.
-- Registro de atividades espirituais: leitura, capitulos, hinos, aulas, ofertas e missao diaria.
+- Quatro missoes diarias configuradas no banco: retorno, versiculo do dia, leitura biblica e continuidade de curso.
+- Conclusao automatica de missoes por eventos reais do app, sem botao generico de marcar como concluida.
+- XP e sequencia concedidos pela funcao segura `record_journey_action`, sem aceitar valores enviados pelo navegador.
+- Registro deduplicado de atividades espirituais em `journey_activity_events`.
 - Novidades/atualizacoes do app.
 - Controle de atualizacoes lidas por usuario ou visitante.
 - Push notifications.

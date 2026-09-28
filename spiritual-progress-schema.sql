@@ -1,7 +1,8 @@
 -- ============================================================
 -- ADPEL Digital - Minha Caminhada
 -- Progresso espiritual gamificado, mantendo historico por usuario.
--- Execute no SQL Editor do Supabase caso a migracao automatica nao esteja disponivel.
+-- Bootstrap legado. Depois dele, aplique a migration
+-- 20260928010000_secure_daily_missions.sql para habilitar as missoes e a escrita segura.
 -- ============================================================
 
 create table if not exists public.spiritual_progress (
@@ -35,18 +36,6 @@ drop policy if exists "Own Progress Select" on public.spiritual_progress;
 create policy "Own Progress Select"
 on public.spiritual_progress
 for select
-using (auth.uid() = user_id);
-
-drop policy if exists "Own Progress Insert" on public.spiritual_progress;
-create policy "Own Progress Insert"
-on public.spiritual_progress
-for insert
-with check (auth.uid() = user_id);
-
-drop policy if exists "Own Progress Update" on public.spiritual_progress;
-create policy "Own Progress Update"
-on public.spiritual_progress
-for update
 using (auth.uid() = user_id);
 
 drop policy if exists "Ranking Public" on public.spiritual_progress;
@@ -102,18 +91,6 @@ drop policy if exists "Usuario le proprios desafios" on public.user_daily_challe
 create policy "Usuario le proprios desafios"
 on public.user_daily_challenges
 for select
-using (auth.uid() = user_id);
-
-drop policy if exists "Usuario cria proprios desafios" on public.user_daily_challenges;
-create policy "Usuario cria proprios desafios"
-on public.user_daily_challenges
-for insert
-with check (auth.uid() = user_id);
-
-drop policy if exists "Usuario atualiza proprios desafios" on public.user_daily_challenges;
-create policy "Usuario atualiza proprios desafios"
-on public.user_daily_challenges
-for update
 using (auth.uid() = user_id);
 
 create index if not exists idx_daily_challenges_level

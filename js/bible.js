@@ -487,7 +487,7 @@
     }
     if (error) return showMessage('Não foi possível atualizar o progresso.', 'error');
     state.progress.set(key, { ...existing, book_id: state.book.id, chapter: state.chapter, is_read: nowRead });
-    if (firstEver && window.ADPELJourney?.registerChapterRead) window.ADPELJourney.registerChapterRead(state.book.name_pt, state.chapter);
+    if (firstEver && window.ADPELJourney?.registerChapterRead) window.ADPELJourney.registerChapterRead(state.book.id, state.chapter);
     if (nowRead) await recordBookCompletionIfNeeded();
     renderProgress();
     showMessage(nowRead ? 'Capítulo marcado como lido.' : 'Marcação de leitura removida.', 'success');
@@ -497,7 +497,7 @@
     const count = [...state.progress.values()].filter((item) => item.book_id === state.book.id && item.is_read).length;
     if (count !== state.book.chapter_count) return;
     const { error } = await client().from('bible_completed_books').insert({ user_id: state.user.id, book_id: state.book.id });
-    if (!error && window.ADPELJourney?.registerBookCompleted) window.ADPELJourney.registerBookCompleted(state.book.name_pt);
+    if (!error && window.ADPELJourney?.registerBookCompleted) window.ADPELJourney.registerBookCompleted(state.book.id);
     if (!error) showMessage(`${state.book.name_pt} concluído!`, 'success');
     else if (error.code !== '23505') console.error('Não foi possível registrar a conclusão do livro:', error.message);
   }
