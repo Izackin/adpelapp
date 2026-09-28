@@ -11,6 +11,7 @@ var coursesData = [];
 var libraryData = [];
 var certificatesData = [];
 var agendaData = [];
+var agendaAttendancesData = [];
 var versesData = [];
 var cofresData = [];
 var cofresStatsData = {};
@@ -129,9 +130,17 @@ async function loadAllData() {
     if (typeof renderAdminCertificates === 'function') renderAdminCertificates();
 
     // Agenda (tabela: events)
-    var agResult = await window.supabaseClient
-      .from('events').select('*').order('event_date', { ascending: true });
+    var agendaResults = await Promise.all([
+      window.supabaseClient.from('events').select('*').order('event_date', { ascending: true }),
+      window.supabaseClient.from('event_attendances').select('id,event_id,user_id,user_name,created_at')
+    ]);
+    var agResult = agendaResults[0];
+    var attendanceResult = agendaResults[1];
     agendaData = agResult.data || [];
+    agendaAttendancesData = attendanceResult.error ? [] : (attendanceResult.data || []);
+    if (attendanceResult.error) {
+      console.warn('Não foi possível carregar confirmações da agenda:', attendanceResult.error);
+    }
     if (typeof renderAdminAgenda === 'function') renderAdminAgenda();
 
     // Atualizacoes do App
