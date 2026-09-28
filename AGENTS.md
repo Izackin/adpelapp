@@ -252,6 +252,7 @@ O fluxo atual e:
 - Home com saudacao personalizada.
 - Versiculo do dia.
 - Agenda unificada de eventos e avisos.
+- Agenda V2 com periodo inicial/final, imagem, destaque e separacao entre ativo e publicado.
 - Confirmacao/cancelamento de presenca em eventos.
 - Lista de participantes em eventos.
 - Cursos publicados.
@@ -307,6 +308,7 @@ O painel fica em `admin.html`. Ele possui:
 - CRUD de biblioteca.
 - CRUD de certificados.
 - CRUD de agenda/eventos.
+- Busca e filtros cronologicos da agenda, duplicacao de evento, contagem/lista de confirmados e relatorio CSV de participantes.
 - CRUD de versiculos do dia.
 - CRUD de cofres.
 - CRUD de atualizacoes do app.
