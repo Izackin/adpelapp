@@ -14,6 +14,8 @@ const GOOGLE_SCOPE = "https://www.googleapis.com/auth/calendar.readonly";
 const GOOGLE_AUTH_URL = "https://accounts.google.com/o/oauth2/v2/auth";
 const GOOGLE_TOKEN_URL = "https://oauth2.googleapis.com/token";
 const GOOGLE_API_URL = "https://www.googleapis.com/calendar/v3";
+const ADPEL_SYNC_TIME_MIN = "2026-10-01T00:00:00-03:00";
+const ADPEL_SYNC_TIME_MAX = "2027-01-01T00:00:00-03:00";
 
 function requiredEnv(name: string) {
   const value = Deno.env.get(name)?.trim();
@@ -372,7 +374,7 @@ function publicSyncError(error: unknown) {
   return new SafeError("Falha temporária ao sincronizar o Google Calendar.", 502);
 }
 
-export async function syncGoogleCalendar(integrationOrId: string | Record<string, unknown>, forceFull = false) {
+export async function syncGoogleCalendar(integrationOrId: string | Record<string, unknown>, _forceFull = false) {
   const integration = typeof integrationOrId === "string"
     ? await getIntegrationById(integrationOrId)
     : integrationOrId;
@@ -380,58 +382,56 @@ export async function syncGoogleCalendar(integrationOrId: string | Record<string
 
   try {
     const accessToken = await accessTokenForUser(String(integration.user_id));
-    let syncToken = forceFull ? null : integration.sync_token;
-    let resetAfterGone = false;
+    const counts = { created: 0, updated: 0, deactivated: 0, skipped: 0 };
+    const seen = new Set<string>();
+    let pageToken = "";
 
-    for (;;) {
-      const counts = { created: 0, updated: 0, deactivated: 0, skipped: 0 };
-      const seen = new Set<string>();
-      let pageToken = "";
-      let nextSyncToken = "";
-      try {
-        do {
-          const params = new URLSearchParams({
-            maxResults: "2500",
-            singleEvents: "true",
-            showDeleted: "true",
-          });
-          if (syncToken) params.set("syncToken", String(syncToken));
-          if (pageToken) params.set("pageToken", pageToken);
-          const endpoint = `${GOOGLE_API_URL}/calendars/${encodeURIComponent(String(integration.calendar_id))}/events?${params}`;
-          const payload = await googleRequest(endpoint, accessToken);
-          for (const item of payload.items || []) {
-            if (item.id) seen.add(item.id);
-            const mapped = mapGoogleEvent(item, integration.calendar_id, integration.calendar_timezone || "UTC");
-            if (!mapped) {
-              counts.skipped += 1;
-              continue;
-            }
-            addCounts(counts, await applyGoogleEvent(integration, mapped));
-          }
-          pageToken = payload.nextPageToken || "";
-          if (!pageToken) nextSyncToken = payload.nextSyncToken || "";
-        } while (pageToken);
-      } catch (error) {
-        if (error instanceof GoogleHttpError && error.status === 410 && syncToken && !resetAfterGone) {
-          syncToken = null;
-          resetAfterGone = true;
-          await adminClient.from("calendar_integrations").update({ sync_token: null }).eq("id", integration.id);
+    do {
+      const params = new URLSearchParams({
+        maxResults: "2500",
+        singleEvents: "true",
+        showDeleted: "true",
+        timeMin: ADPEL_SYNC_TIME_MIN,
+        timeMax: ADPEL_SYNC_TIME_MAX,
+      });
+      if (pageToken) params.set("pageToken", pageToken);
+
+      const endpoint = `${GOOGLE_API_URL}/calendars/${encodeURIComponent(String(integration.calendar_id))}/events?${params}`;
+      const payload = await googleRequest(endpoint, accessToken);
+
+      for (const item of payload.items || []) {
+        if (item.id) seen.add(item.id);
+        const mapped = mapGoogleEvent(item, integration.calendar_id, integration.calendar_timezone || "UTC");
+        if (!mapped) {
+          counts.skipped += 1;
           continue;
         }
-        throw error;
+        addCounts(counts, await applyGoogleEvent(integration, mapped));
       }
 
-      if (!syncToken) counts.deactivated += await deactivateMissing(String(integration.calendar_id), seen);
-      const finishedAt = new Date().toISOString();
-      const { error: updateError } = await adminClient.from("calendar_integrations").update({
-        sync_token: nextSyncToken || null,
-        last_synced_at: finishedAt,
-        last_error: null,
-        status: "active",
-      }).eq("id", integration.id);
-      if (updateError) throw updateError;
-      return { ...counts, full_sync: !integration.sync_token || forceFull || resetAfterGone, synced_at: finishedAt };
-    }
+      pageToken = payload.nextPageToken || "";
+    } while (pageToken);
+
+    // O usuário optou por sincronizar somente outubro-dezembro de 2026.
+    // Eventos Google fora dessa janela permanecem no histórico, porém inativos.
+    counts.deactivated += await deactivateMissing(String(integration.calendar_id), seen);
+
+    const finishedAt = new Date().toISOString();
+    const { error: updateError } = await adminClient.from("calendar_integrations").update({
+      sync_token: null,
+      last_synced_at: finishedAt,
+      last_error: null,
+      status: "active",
+    }).eq("id", integration.id);
+    if (updateError) throw updateError;
+
+    return {
+      ...counts,
+      full_sync: true,
+      synced_at: finishedAt,
+      window_start: "2026-10-01",
+      window_end: "2026-12-31",
+    };
   } catch (error) {
     const safe = publicSyncError(error);
     await adminClient.from("calendar_integrations").update({
