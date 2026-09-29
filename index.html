@@ -28,6 +28,7 @@
   <script src="js/library.js" defer></script>
   <script src="js/agenda.js" defer></script>
   <script src="js/courses.js" defer></script>
+  <script src="js/paid-courses.js" defer></script>
   <script src="js/home.js" defer></script>
   <script src="fundraising.js" defer></script>
   <script src="js/offerings.js" defer></script>
@@ -719,17 +720,36 @@
       </div>
       <div class="p-6 space-y-6">
         <p id="course-modal-description" class="text-gray-600 text-sm leading-relaxed"></p>
-        
-        <div id="course-video-wrapper" class="hidden aspect-video bg-black rounded-xl overflow-hidden shadow-lg">
-          <div id="yt-player" class="w-full h-full"></div>
-        </div>
-        
-        <div>
-          <h3 class="font-bold text-gray-800 mb-3 flex items-center gap-2"><i class="fas fa-list-ul text-adpel-600"></i> Aulas do Curso</h3>
-          <div id="course-lessons-container" class="space-y-2">
-            <!-- Lessons -->
+
+        <div id="course-access-panel" class="hidden course-access-panel">
+          <div class="course-access-panel__icon"><i class="fas fa-lock"></i></div>
+          <div class="course-access-panel__content">
+            <p class="course-access-panel__eyebrow">Conteúdo exclusivo</p>
+            <h3 id="course-access-title">Acesso ao curso</h3>
+            <p id="course-access-message">Este curso requer liberação de acesso.</p>
+            <div class="course-access-panel__price">
+              <span>Valor do curso</span>
+              <strong id="course-access-price">R$ 0,00</strong>
+            </div>
+            <button type="button" id="course-access-action" onclick="requestCurrentCourseAccess()" class="course-access-panel__button">
+              Solicitar acesso
+            </button>
+            <p id="course-access-note" class="course-access-panel__note">A confirmação do pagamento é manual nesta primeira versão.</p>
           </div>
-          <p id="course-no-lessons" class="hidden text-sm text-gray-500 italic mt-2">Nenhuma aula foi cadastrada para este curso.</p>
+        </div>
+
+        <div id="course-content-area">
+          <div id="course-video-wrapper" class="hidden aspect-video bg-black rounded-xl overflow-hidden shadow-lg">
+            <div id="yt-player" class="w-full h-full"></div>
+          </div>
+          
+          <div class="mt-6">
+            <h3 class="font-bold text-gray-800 mb-3 flex items-center gap-2"><i class="fas fa-list-ul text-adpel-600"></i> Aulas do Curso</h3>
+            <div id="course-lessons-container" class="space-y-2">
+              <!-- Lessons -->
+            </div>
+            <p id="course-no-lessons" class="hidden text-sm text-gray-500 italic mt-2">Nenhuma aula foi cadastrada para este curso.</p>
+          </div>
         </div>
       </div>
     </div>

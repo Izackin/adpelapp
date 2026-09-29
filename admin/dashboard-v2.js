@@ -153,7 +153,22 @@ function adminDashboardPendingItems() {
       item.status === 'completed_with_errors';
   }).length;
 
+  var paidCoursePending = Array.isArray(window.courseAccessRequestsData)
+    ? window.courseAccessRequestsData.filter(function(item) { return item.status === 'pending'; }).length
+    : 0;
+
   var items = [];
+
+  if (paidCoursePending) {
+    items.push({
+      level: 'warning',
+      icon: 'lock-open',
+      title: paidCoursePending + (paidCoursePending === 1 ? ' acesso a curso aguardando' : ' acessos a cursos aguardando'),
+      text: 'Há solicitações de cursos pagos esperando liberação manual.',
+      action: "adminNavigateTo('courses')"
+    });
+  }
+
   if (eventDrafts) {
     items.push({
       level: 'warning',
@@ -321,7 +336,10 @@ function adminDashboardActivityLabel(item) {
     cash_movement_created: 'Movimentação de caixa registrada',
     course_created: 'Curso criado',
     course_updated: 'Curso atualizado',
-    course_deleted: 'Curso excluído'
+    course_deleted: 'Curso excluído',
+    course_access_approved: 'Acesso a curso liberado',
+    course_access_rejected: 'Solicitação de curso recusada',
+    course_access_revoked: 'Acesso a curso revogado'
   };
   return labels[item.action] || String(item.action || 'Atividade administrativa').replaceAll('_', ' ');
 }
@@ -344,6 +362,7 @@ function adminDashboardActivityIcon(item) {
   if (table.indexOf('member') >= 0) return 'users';
   if (table.indexOf('event') >= 0) return 'calendar-days';
   if (table.indexOf('certificate') >= 0) return 'certificate';
+  if (table.indexOf('course_access') >= 0) return 'unlock-keyhole';
   if (table.indexOf('course') >= 0) return 'graduation-cap';
   if (table.indexOf('cash') >= 0) return 'wallet';
   return 'clock-rotate-left';
