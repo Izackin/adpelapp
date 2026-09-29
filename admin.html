@@ -439,6 +439,23 @@
                 <label class="block text-sm font-medium text-gray-700 mb-1">Duração (horas)</label>
                 <input type="number" id="course-duration" min="0" placeholder="Ex: 20" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-adpel-500 outline-none">
               </div>
+              <div class="md:col-span-2 rounded-xl border border-amber-200 bg-amber-50/70 p-4">
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                  <div>
+                    <p class="text-sm font-semibold text-gray-800 flex items-center gap-2"><i class="fas fa-lock text-amber-600"></i> Acesso ao curso</p>
+                    <p class="text-xs text-gray-500 mt-1">Cursos pagos ficam bloqueados até a liberação do acesso.</p>
+                  </div>
+                  <label class="inline-flex items-center gap-2 cursor-pointer">
+                    <input type="checkbox" id="course-paid" onchange="toggleCoursePricingFields()" class="rounded text-amber-600 focus:ring-amber-500">
+                    <span class="text-sm font-semibold text-gray-700">Curso pago</span>
+                  </label>
+                </div>
+                <div id="course-price-fields" class="hidden mt-4 max-w-xs">
+                  <label class="block text-sm font-medium text-gray-700 mb-1">Valor do curso (R$) <span class="text-red-500">*</span></label>
+                  <input type="number" id="course-price" min="0.01" step="0.01" inputmode="decimal" placeholder="Ex: 49,90" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 outline-none">
+                  <p class="text-xs text-gray-500 mt-1">A confirmação do pagamento será manual nesta primeira versão.</p>
+                </div>
+              </div>
               <div class="md:col-span-2">
                 <label class="block text-sm font-medium text-gray-700 mb-1">Descrição</label>
                 <textarea id="course-description" rows="3" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-adpel-500 outline-none"></textarea>
@@ -488,6 +505,25 @@
 
         <div id="admin-courses-list" class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden space-y-3 p-3 md:p-4">
         </div>
+
+        <section class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+          <div class="p-4 md:p-5 border-b border-gray-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div>
+              <p class="text-xs font-bold uppercase tracking-wider text-amber-600">Cursos pagos</p>
+              <h3 class="font-bold text-gray-800 mt-1">Solicitações de acesso</h3>
+              <p class="text-xs text-gray-500 mt-1">Enquanto não houver integração bancária, a liberação é confirmada manualmente aqui.</p>
+            </div>
+            <div class="flex items-center gap-2">
+              <span id="course-access-pending-count" class="hidden px-2.5 py-1 rounded-full bg-amber-100 text-amber-700 text-xs font-bold">0 pendentes</span>
+              <button type="button" onclick="loadCourseAccessRequests()" class="px-3 py-2 border border-gray-200 rounded-lg text-xs font-semibold text-gray-600 hover:bg-gray-50 min-h-[40px]">
+                <i class="fas fa-rotate mr-1"></i> Atualizar
+              </button>
+            </div>
+          </div>
+          <div id="course-access-admin-list" class="p-3 md:p-4">
+            <div class="text-sm text-gray-500 py-6 text-center">Carregando solicitações...</div>
+          </div>
+        </section>
       </div>
 
       <!-- LIBRARY MANAGEMENT -->
@@ -1204,6 +1240,7 @@
   <script src="admin.js"></script>
   <script src="admin/dashboard-v2.js"></script>
   <script src="admin/crud-courses.js"></script>
+  <script src="admin/course-access.js"></script>
   <script src="admin/crud-library.js"></script>
   <script src="admin/crud-certificates.js"></script>
   <script src="admin/crud-agenda.js"></script>
