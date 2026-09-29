@@ -19,6 +19,9 @@ assert.match(html, /id="admin-dashboard-members"/);
 assert.match(html, /id="admin-dashboard-activity"/);
 assert.match(html, /adminDashboardQuickAction\('member'\)/);
 assert.match(html, /adminDashboardQuickAction\('notification'\)/);
+assert.match(html, /adminDashboardOpenVerseEditor\(\)/);
+assert.match(html, /id="admin-verses-editor"/);
+assert.match(dashboard, /function adminDashboardOpenVerseEditor/);
 
 assert.match(core, /await loadAdminDashboardData\(\)/);
 assert.match(core, /view === 'home'[\s\S]*renderAdminDashboardV2/);
