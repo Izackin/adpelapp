@@ -421,16 +421,36 @@ async function requestCurrentCourseAccess() {
   }
 }
 
+var paidCoursesOriginalDownloadCertificate = window.downloadCertificate;
+
+async function paidCoursesDownloadCertificate() {
+  if (currentOpenCourse && currentOpenCourse.is_paid) {
+    var access = await paidGetCurrentCourseAccess(currentOpenCourse.id);
+    if (!access || access.status !== 'active') {
+      if (typeof showToast === 'function') {
+        showToast('Este certificado só fica disponível após a liberação do curso.', 'warning');
+      }
+      return;
+    }
+  }
+
+  if (typeof paidCoursesOriginalDownloadCertificate === 'function') {
+    return paidCoursesOriginalDownloadCertificate();
+  }
+}
+
 // Replace the original public course entry points without changing
 // progress, player or certificate code.
 loadCoursesData = paidLoadCoursesData;
 courseCarouselCard = paidCourseCarouselCard;
 renderCoursesList = paidRenderCoursesList;
 openCourseModal = paidOpenCourseModal;
+downloadCertificate = paidCoursesDownloadCertificate;
 
 window.loadCoursesData = paidLoadCoursesData;
 window.courseCarouselCard = paidCourseCarouselCard;
 window.renderCoursesList = paidRenderCoursesList;
 window.openCourseModal = paidOpenCourseModal;
+window.downloadCertificate = paidCoursesDownloadCertificate;
 window.requestCurrentCourseAccess = requestCurrentCourseAccess;
 window.formatCoursePrice = paidCoursesFormatBRL;
