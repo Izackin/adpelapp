@@ -20,6 +20,7 @@ const migration = read('supabase/migrations/20260929150026_paid_courses_v1.sql')
 const rlsTune = read('supabase/migrations/20260929150112_paid_courses_v1_rls_tune.sql');
 const legacyGuard = read('supabase/migrations/20260929151545_paid_courses_v1_legacy_guard.sql');
 const rlsSplit = read('supabase/migrations/20260929152001_paid_courses_v1_content_rls_split.sql');
+const progressGuard = read('supabase/migrations/20260929152552_paid_courses_v1_progress_guards.sql');
 
 assert.doesNotThrow(() => new Function(paid));
 assert.doesNotThrow(() => new Function(adminCourses));
@@ -42,6 +43,8 @@ assert.ok(paid.includes("amount_cents: Number(currentOpenCourse.price_cents || 0
 assert.ok(paid.includes('paidSetCourseContentVisibility(false)'));
 assert.ok(paid.includes('course.status === \'locked\''));
 assert.ok(paid.includes('loadCoursesData = paidLoadCoursesData'));
+assert.ok(paid.includes('paidCoursesDownloadCertificate'));
+assert.ok(paid.includes("access.status !== 'active'"));
 assert.ok(home.includes('window.formatCoursePrice'));
 
 assert.ok(adminHtml.includes('id="course-paid"'));
@@ -75,5 +78,7 @@ assert.ok(rlsTune.includes('course_access_update_allowed'));
 assert.ok(legacyGuard.includes('courses_paid_content_must_be_protected'));
 assert.ok(rlsSplit.includes('course_content_read_anon_free'));
 assert.ok(rlsSplit.includes('course_content_read_authenticated'));
+assert.ok(progressGuard.includes('user_lesson_progress_paid_course_insert_guard'));
+assert.ok(progressGuard.includes('certificates_paid_course_insert_guard'));
 
 console.log('paid-courses-v1: all assertions passed');
