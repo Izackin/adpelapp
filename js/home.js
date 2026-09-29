@@ -324,6 +324,11 @@ function renderFeaturedCourses(courses) {
         <p class="app-context-card__label">${escapeHtml(course.category || 'Curso')}</p>
         <h3>${escapeHtml(course.title)}</h3>
         <p>${escapeHtml(course.description || 'Novo conteúdo disponível na área de formação.')}</p>
+        <p class="mt-2 text-xs font-bold ${course.is_paid ? 'text-amber-300' : 'text-emerald-300'}">
+          ${course.is_paid
+            ? '<i class="fas fa-lock mr-1"></i>' + escapeHtml(typeof window.formatCoursePrice === 'function' ? window.formatCoursePrice(course.price_cents) : 'Curso pago')
+            : '<i class="fas fa-unlock mr-1"></i>Gratuito'}
+        </p>
         <button onclick="if(!getCurrentUserInfo().isLoggedIn){openModal('login-modal');return;} openCourseModal('${courseData}')" class="app-primary-action mt-3">Conhecer curso</button>
       </article>
   `;
