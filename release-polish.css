@@ -949,3 +949,179 @@ body.agenda-sheet-open {
     transition: none !important;
   }
 }
+
+
+/* Home + Agenda V2 polish pass */
+#community-hub > .app-hub-header {
+  margin-bottom: 1rem;
+  padding: 1.05rem 1.1rem;
+  border: 1px solid rgba(96, 165, 250, 0.14);
+  border-radius: 1.25rem;
+  background:
+    radial-gradient(circle at 92% 5%, rgba(37, 99, 235, 0.16), transparent 9rem),
+    linear-gradient(145deg, rgba(15, 23, 42, 0.88), rgba(8, 17, 31, 0.92));
+  box-shadow: 0 16px 34px rgba(0, 0, 0, 0.16);
+}
+
+#community-hub > .app-hub-header h2 {
+  font-size: clamp(1.55rem, 5.4vw, 2.2rem);
+}
+
+#community-hub > .app-hub-header p:last-child {
+  margin-top: 0.35rem;
+  max-width: 34rem;
+}
+
+#community-hub > .app-destination-grid .app-destination-card {
+  min-height: 6.7rem;
+  gap: 0.55rem;
+  padding: 0.85rem;
+  border-radius: 1.1rem;
+}
+
+#community-hub > .app-destination-grid .app-destination-card i {
+  font-size: 1.18rem;
+}
+
+#community-hub > .app-destination-grid .app-destination-card strong {
+  font-size: 0.92rem;
+}
+
+#community-hub > .app-destination-grid .app-destination-card span {
+  font-size: 0.72rem;
+}
+
+.home-next-event-card__content {
+  gap: 0.42rem;
+}
+
+.home-next-event-card__title {
+  font-size: 1.08rem;
+}
+
+.home-next-event-card__meta {
+  gap: 0.3rem 0.7rem;
+}
+
+.home-next-event-card__meta span {
+  max-width: 100%;
+}
+
+.agenda-v2-counter--events {
+  width: auto;
+  min-width: 0;
+  padding: 0 0.7rem;
+  white-space: nowrap;
+}
+
+.agenda-v2-month-nav {
+  display: grid;
+  gap: 0.45rem;
+}
+
+.agenda-v2-year {
+  color: #64748b;
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+}
+
+.agenda-v2-months button {
+  padding-inline: 0.9rem;
+}
+
+.agenda-v2-row__location {
+  max-width: min(19rem, 42vw);
+}
+
+.agenda-v2-attendee-chip,
+.agenda-v2-attendee-more {
+  display: inline-flex;
+  align-items: center;
+  min-height: 1.7rem;
+  padding: 0.28rem 0.55rem;
+  border: 1px solid rgba(167, 139, 250, 0.18);
+  border-radius: 999px;
+  color: #ddd6fe;
+  background: rgba(76, 29, 149, 0.18);
+  font-size: 0.67rem;
+  font-weight: 700;
+}
+
+.agenda-v2-attendee-more {
+  color: #c4b5fd;
+  background: rgba(30, 41, 59, 0.9);
+  border-color: rgba(148, 163, 184, 0.16);
+}
+
+.agenda-v2-attendee-extra {
+  display: flex;
+  flex-wrap: wrap;
+  width: 100%;
+  gap: 0.3rem;
+  margin-top: 0.1rem;
+}
+
+.agenda-v2-attendee-extra.hidden {
+  display: none !important;
+}
+
+@media (max-width: 640px) {
+  #community-hub > .app-hub-header {
+    padding: 0.9rem 0.95rem;
+    border-radius: 1.05rem;
+  }
+
+  #community-hub > .app-hub-header h2 {
+    font-size: 1.55rem;
+    line-height: 1.08;
+  }
+
+  #community-hub > .app-hub-header p:last-child {
+    font-size: 0.82rem;
+    line-height: 1.45;
+  }
+
+  #community-hub > .app-destination-grid .app-destination-card {
+    min-height: 6.1rem;
+    padding: 0.75rem;
+  }
+
+  .home-next-event-card {
+    padding-block: 0.8rem;
+  }
+
+  .home-next-event-card__meta {
+    display: flex;
+    flex-wrap: wrap;
+  }
+
+  .home-next-event-card__meta span {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .agenda-v2-section-heading {
+    align-items: center;
+  }
+
+  .agenda-v2-counter--events {
+    height: 1.85rem;
+    padding-inline: 0.6rem;
+    font-size: 0.68rem;
+  }
+
+  .agenda-v2-months {
+    gap: 0.42rem;
+  }
+
+  .agenda-v2-months button {
+    padding: 0.54rem 0.8rem;
+    font-size: 0.72rem;
+  }
+
+  .agenda-v2-row__location {
+    max-width: 13rem !important;
+  }
+}
