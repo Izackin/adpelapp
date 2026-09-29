@@ -423,6 +423,11 @@ async function requestCurrentCourseAccess() {
 
 // Replace the original public course entry points without changing
 // progress, player or certificate code.
+loadCoursesData = paidLoadCoursesData;
+courseCarouselCard = paidCourseCarouselCard;
+renderCoursesList = paidRenderCoursesList;
+openCourseModal = paidOpenCourseModal;
+
 window.loadCoursesData = paidLoadCoursesData;
 window.courseCarouselCard = paidCourseCarouselCard;
 window.renderCoursesList = paidRenderCoursesList;
