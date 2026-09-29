@@ -32,7 +32,8 @@ function adminDashboardDateLabel(dateString) {
   var value = String(dateString).slice(0, 10);
   var date = new Date(value + 'T12:00:00');
   if (Number.isNaN(date.getTime())) return 'Data a confirmar';
-  return date.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' }).replace('.', '');
+  var months = ['JAN', 'FEV', 'MAR', 'ABR', 'MAI', 'JUN', 'JUL', 'AGO', 'SET', 'OUT', 'NOV', 'DEZ'];
+  return String(date.getDate()).padStart(2, '0') + ' ' + months[date.getMonth()];
 }
 
 function adminDashboardDateTime(value) {
@@ -91,16 +92,6 @@ function adminDashboardStats() {
     coursesPublished: courses.filter(function(course) { return course.is_published === true; }).length,
     coursesTotal: courses.length
   };
-}
-
-function adminDashboardOpenVerseEditor() {
-  adminNavigateTo('home');
-  window.setTimeout(function() {
-    var editor = document.getElementById('admin-verses-editor');
-    if (editor && typeof editor.scrollIntoView === 'function') {
-      editor.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    }
-  }, 80);
 }
 
 function adminDashboardQuickAction(action) {
@@ -362,7 +353,7 @@ function renderAdminDashboardActivity() {
   var container = document.getElementById('admin-dashboard-activity');
   if (!container) return;
 
-  var items = Array.isArray(adminDashboardAuditData) ? adminDashboardAuditData.slice(0, 7) : [];
+  var items = Array.isArray(adminDashboardAuditData) ? adminDashboardAuditData.slice(0, 5) : [];
   if (!items.length) {
     container.innerHTML = '<div class="admin-v2-empty"><i class="fas fa-clock-rotate-left"></i><p>Nenhuma atividade administrativa registrada.</p></div>';
     return;
@@ -456,7 +447,6 @@ async function loadAdminDashboardData() {
 }
 
 Object.assign(window, {
-  adminDashboardOpenVerseEditor,
   adminDashboardQuickAction,
   renderAdminDashboardV2,
   loadAdminDashboardData
