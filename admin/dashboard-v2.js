@@ -93,6 +93,16 @@ function adminDashboardStats() {
   };
 }
 
+function adminDashboardOpenVerseEditor() {
+  adminNavigateTo('home');
+  window.setTimeout(function() {
+    var editor = document.getElementById('admin-verses-editor');
+    if (editor && typeof editor.scrollIntoView === 'function') {
+      editor.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  }, 80);
+}
+
 function adminDashboardQuickAction(action) {
   if (action === 'member') {
     adminNavigateTo('church');
@@ -446,6 +456,7 @@ async function loadAdminDashboardData() {
 }
 
 Object.assign(window, {
+  adminDashboardOpenVerseEditor,
   adminDashboardQuickAction,
   renderAdminDashboardV2,
   loadAdminDashboardData
