@@ -1565,3 +1565,27 @@
     transition: none !important;
   }
 }
+
+
+/* Admin V2 mobile polish */
+.admin-v2-hero--compact {
+  padding-block: 1rem;
+}
+
+.admin-v2-hero--compact h2 {
+  font-size: 1.55rem;
+}
+
+@media (max-width: 767px) {
+  #admin-view-verses {
+    gap: 0.85rem !important;
+  }
+
+  #admin-view-verses .admin-v2-hero {
+    padding: 0.9rem;
+  }
+
+  #admin-verses-editor {
+    margin-top: 0 !important;
+  }
+}
