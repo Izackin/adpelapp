@@ -1125,3 +1125,199 @@ body.agenda-sheet-open {
     max-width: 13rem !important;
   }
 }
+
+
+/* Paid Courses V1 */
+.course-catalog-card__access {
+  position: absolute;
+  top: 0.75rem;
+  left: 0.75rem;
+  z-index: 2;
+}
+
+.course-paid-badge,
+.course-free-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  min-height: 1.75rem;
+  padding: 0.32rem 0.58rem;
+  border-radius: 999px;
+  font-size: 0.68rem;
+  font-weight: 800;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.16);
+  backdrop-filter: blur(8px);
+}
+
+.course-paid-badge {
+  color: #fff7ed;
+  border: 1px solid rgba(251, 191, 36, 0.34);
+  background: rgba(146, 64, 14, 0.88);
+}
+
+.course-free-badge {
+  color: #ecfdf5;
+  border: 1px solid rgba(52, 211, 153, 0.28);
+  background: rgba(6, 95, 70, 0.86);
+}
+
+.course-locked-summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  min-height: 2.4rem;
+  margin-top: 1rem;
+  padding: 0.58rem 0.7rem;
+  border: 1px solid rgba(245, 158, 11, 0.2);
+  border-radius: 0.75rem;
+  color: #92400e;
+  background: rgba(255, 251, 235, 0.86);
+  font-size: 0.68rem;
+}
+
+.course-locked-summary span {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  color: #78716c;
+}
+
+.course-locked-summary strong {
+  color: #b45309;
+  font-size: 0.66rem;
+  text-align: right;
+}
+
+.course-paid-action {
+  background: linear-gradient(135deg, #d97706, #b45309);
+  box-shadow: 0 10px 22px rgba(217, 119, 6, 0.18);
+}
+
+.course-paid-action:hover {
+  background: linear-gradient(135deg, #b45309, #92400e);
+}
+
+.course-access-panel {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 1rem;
+  padding: 1rem;
+  border: 1px solid rgba(245, 158, 11, 0.25);
+  border-radius: 1rem;
+  background:
+    radial-gradient(circle at 100% 0%, rgba(245, 158, 11, 0.1), transparent 10rem),
+    linear-gradient(145deg, #fffbeb, #fff7ed);
+}
+
+.course-access-panel.hidden {
+  display: none !important;
+}
+
+.course-access-panel__icon {
+  width: 3rem;
+  height: 3rem;
+  display: grid;
+  place-items: center;
+  border-radius: 0.9rem;
+  color: #fff7ed;
+  background: linear-gradient(145deg, #d97706, #b45309);
+  box-shadow: 0 10px 24px rgba(217, 119, 6, 0.2);
+}
+
+.course-access-panel__content {
+  min-width: 0;
+}
+
+.course-access-panel__eyebrow {
+  margin: 0;
+  color: #b45309;
+  font-size: 0.64rem;
+  font-weight: 850;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.course-access-panel__content h3 {
+  margin-top: 0.18rem;
+  color: #292524;
+  font-size: 1rem;
+  font-weight: 850;
+}
+
+.course-access-panel__content > p:not(.course-access-panel__eyebrow):not(.course-access-panel__note) {
+  margin-top: 0.28rem;
+  color: #78716c;
+  font-size: 0.76rem;
+  line-height: 1.5;
+}
+
+.course-access-panel__price {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-top: 0.9rem;
+  padding: 0.75rem;
+  border: 1px solid rgba(217, 119, 6, 0.14);
+  border-radius: 0.8rem;
+  background: rgba(255, 255, 255, 0.72);
+}
+
+.course-access-panel__price span {
+  color: #78716c;
+  font-size: 0.7rem;
+}
+
+.course-access-panel__price strong {
+  color: #92400e;
+  font-size: 1.25rem;
+  font-weight: 850;
+}
+
+.course-access-panel__button {
+  width: 100%;
+  min-height: 2.8rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+  margin-top: 0.75rem;
+  padding: 0.7rem 1rem;
+  border-radius: 0.8rem;
+  color: #fff;
+  background: linear-gradient(135deg, #d97706, #b45309);
+  font-size: 0.78rem;
+  font-weight: 800;
+  box-shadow: 0 10px 22px rgba(217, 119, 6, 0.18);
+}
+
+.course-access-panel__button:disabled {
+  cursor: not-allowed;
+  opacity: 0.68;
+  box-shadow: none;
+}
+
+.course-access-panel__note {
+  margin-top: 0.55rem;
+  color: #a8a29e;
+  font-size: 0.66rem;
+  line-height: 1.45;
+}
+
+@media (max-width: 640px) {
+  .course-access-panel {
+    grid-template-columns: 1fr;
+    gap: 0.75rem;
+    padding: 0.85rem;
+  }
+
+  .course-access-panel__icon {
+    width: 2.6rem;
+    height: 2.6rem;
+  }
+
+  .course-access-panel__price strong {
+    font-size: 1.12rem;
+  }
+}
