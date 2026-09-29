@@ -136,7 +136,7 @@ async function fetchEvents() {
 
 async function fetchCourses() {
   try {
-    const { data, error } = await supabase.from('courses').select('*').order('created_at', { ascending: false });
+    const { data, error } = await supabase.from('courses').select('id,title,slug,description,thumbnail_url,teacher_name,category,duration,is_featured,is_published,display_order,created_at,updated_at,certificate_title,certificate_description,is_paid,price_cents,lesson_count').order('created_at', { ascending: false });
     if (error) throw error;
     return data || [];
   } catch (e) {
@@ -147,7 +147,7 @@ async function fetchCourses() {
 
 async function fetchFeaturedCourses() {
   try {
-    const { data, error } = await supabase.from('courses').select('*').eq('is_published', true).eq('is_featured', true).limit(4).order('created_at', { ascending: false });
+    const { data, error } = await supabase.from('courses').select('id,title,slug,description,thumbnail_url,teacher_name,category,duration,is_featured,is_published,display_order,created_at,updated_at,certificate_title,certificate_description,is_paid,price_cents,lesson_count').eq('is_published', true).eq('is_featured', true).limit(4).order('created_at', { ascending: false });
     if (error) throw error;
     return data || [];
   } catch (e) {
