@@ -154,15 +154,25 @@ async function renderEventAttendees(eventId) {
     const visible = attendees.slice(0, 3);
     const hidden = attendees.slice(3);
     const hiddenCount = hidden.length;
+    const isAgendaSheet = container.classList && container.classList.contains('agenda-v2-attendees');
+    const attendeeClass = isAgendaSheet
+      ? 'agenda-v2-attendee-chip'
+      : 'inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium bg-purple-100 text-purple-700 border border-purple-200';
+    const toggleClass = isAgendaSheet
+      ? 'agenda-v2-attendee-more'
+      : 'inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium bg-gray-100 text-gray-600 border border-gray-200 hover:bg-gray-200 transition';
+    const extraClass = isAgendaSheet
+      ? 'hidden agenda-v2-attendee-extra'
+      : 'hidden flex flex-wrap gap-1 w-full mt-1';
     
     let html = visible.map(a => 
-      `<span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium bg-purple-100 text-purple-700 border border-purple-200">${escapeHtml(a.user_name || 'Membro')}</span>`
+      `<span class="${attendeeClass}">${escapeHtml(a.user_name || 'Membro')}</span>`
     ).join('');
     
     if (hiddenCount > 0) {
-      html += `<button onclick="toggleAttendees('${eventId}')" id="attendees-toggle-${eventId}" data-count="${hiddenCount}" class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium bg-gray-100 text-gray-600 border border-gray-200 hover:bg-gray-200 transition">+${hiddenCount}</button>`;
-      html += `<div id="attendees-extra-${eventId}" class="hidden flex flex-wrap gap-1 w-full mt-1">`;
-      html += hidden.map(a => `<span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium bg-purple-100 text-purple-700 border border-purple-200">${escapeHtml(a.user_name || 'Membro')}</span>`).join('');
+      html += `<button onclick="toggleAttendees('${eventId}')" id="attendees-toggle-${eventId}" data-count="${hiddenCount}" class="${toggleClass}">+${hiddenCount}</button>`;
+      html += `<div id="attendees-extra-${eventId}" class="${extraClass}">`;
+      html += hidden.map(a => `<span class="${attendeeClass}">${escapeHtml(a.user_name || 'Membro')}</span>`).join('');
       html += `</div>`;
     }
     
@@ -342,8 +352,19 @@ function communityAgendaMonthLabel(monthKey) {
   if (!/^\d{4}-\d{2}$/.test(String(monthKey || ''))) return '';
   const date = new Date(monthKey + '-01T12:00:00');
   if (Number.isNaN(date.getTime())) return '';
-  const text = date.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
+  const text = date.toLocaleDateString('pt-BR', { month: 'long' });
   return text.charAt(0).toUpperCase() + text.slice(1);
+}
+
+function communityAgendaYearLabel(monthKey) {
+  return /^\d{4}-\d{2}$/.test(String(monthKey || '')) ? String(monthKey).slice(0, 4) : '';
+}
+
+function communityAgendaCompactLocation(location) {
+  const text = String(location || '').trim();
+  if (!text) return '';
+  const firstSegment = text.split(/\s+-\s+|,/)[0].trim();
+  return firstSegment || text;
 }
 
 function communityAgendaDayParts(item) {
@@ -391,7 +412,6 @@ function renderHomeEvents(events, attendancesByEvent = {}) {
   const event = events[0];
   const date = communityAgendaDayParts(event);
   const time = communityAgendaTime(event.event_time);
-  const meta = [time, event.location].filter(Boolean).join(' · ');
 
   container.innerHTML = `
     <button type="button" class="home-next-event-card" onclick="navigateTo('community-hub')" aria-label="Abrir agenda e ver detalhes de ${escapeHtml(event.title || 'evento')}">
@@ -400,11 +420,10 @@ function renderHomeEvents(events, attendancesByEvent = {}) {
         <small>${escapeHtml(date.month || 'EM BREVE')}</small>
       </span>
       <span class="home-next-event-card__content">
-        <span class="home-next-event-card__eyebrow"><i class="fas fa-calendar-check"></i> Próximo acontecimento</span>
         <strong class="home-next-event-card__title">${escapeHtml(event.title || 'Evento')}</strong>
         <span class="home-next-event-card__meta">
-          ${date.weekday ? `<span><i class="fas fa-calendar-day"></i> ${escapeHtml(date.weekday)}</span>` : ''}
-          ${meta ? `<span><i class="fas fa-clock"></i> ${escapeHtml(meta)}</span>` : ''}
+          ${time ? `<span><i class="fas fa-clock"></i> ${escapeHtml(time)}</span>` : ''}
+          ${event.location ? `<span><i class="fas fa-location-dot"></i> ${escapeHtml(communityAgendaCompactLocation(event.location))}</span>` : ''}
         </span>
       </span>
       <span class="home-next-event-card__arrow" aria-hidden="true"><i class="fas fa-arrow-right"></i></span>
@@ -545,8 +564,10 @@ function renderCommunityAgendaView() {
 
   const selectedMonth = communityAgendaState.selectedMonth;
   const nextEventMonth = nextEvent ? communityAgendaMonthKey(nextEvent) : '';
-  const selectedEvents = events.filter(item => {
-    if (communityAgendaMonthKey(item) !== selectedMonth) return false;
+  const selectedMonthEvents = events.filter(item => communityAgendaMonthKey(item) === selectedMonth);
+  const selectedMonthTotal = selectedMonthEvents.length;
+  const selectedYear = communityAgendaYearLabel(selectedMonth);
+  const selectedEvents = selectedMonthEvents.filter(item => {
     return !(nextEvent && selectedMonth === nextEventMonth && String(item.id) === String(nextEvent.id));
   });
   const visibleEvents = selectedEvents.slice(0, communityAgendaState.visibleCount);
@@ -577,15 +598,18 @@ function renderCommunityAgendaView() {
       <section class="agenda-v2-calendar">
         <div class="agenda-v2-section-heading">
           <div><span class="agenda-v2-kicker">Programação</span><h3>Agenda da igreja</h3></div>
-          <span class="agenda-v2-counter">${events.length}</span>
+          <span class="agenda-v2-counter agenda-v2-counter--events">${selectedMonthTotal} ${selectedMonthTotal === 1 ? 'evento' : 'eventos'}</span>
         </div>
 
-        <div class="agenda-v2-months" role="tablist" aria-label="Meses da agenda">
-          ${months.map(month => `
-            <button type="button" role="tab" aria-selected="${month === selectedMonth ? 'true' : 'false'}" class="${month === selectedMonth ? 'is-active' : ''}" onclick="setCommunityAgendaMonth('${month}')">
-              ${escapeHtml(communityAgendaMonthLabel(month))}
-            </button>
-          `).join('')}
+        <div class="agenda-v2-month-nav">
+          <span class="agenda-v2-year">${escapeHtml(selectedYear)}</span>
+          <div class="agenda-v2-months" role="tablist" aria-label="Meses da agenda">
+            ${months.map(month => `
+              <button type="button" role="tab" aria-selected="${month === selectedMonth ? 'true' : 'false'}" class="${month === selectedMonth ? 'is-active' : ''}" onclick="setCommunityAgendaMonth('${month}')">
+                ${escapeHtml(communityAgendaMonthLabel(month))}
+              </button>
+            `).join('')}
+          </div>
         </div>
 
         <div class="agenda-v2-list">
@@ -600,7 +624,7 @@ function renderCommunityAgendaView() {
                   <strong>${escapeHtml(item.title || 'Evento')}</strong>
                   <span>
                     ${time ? `<em><i class="fas fa-clock"></i> ${escapeHtml(time)}</em>` : ''}
-                    ${item.location ? `<em><i class="fas fa-location-dot"></i> ${escapeHtml(item.location)}</em>` : ''}
+                    ${item.location ? `<em class="agenda-v2-row__location"><i class="fas fa-location-dot"></i> ${escapeHtml(communityAgendaCompactLocation(item.location))}</em>` : ''}
                   </span>
                 </span>
                 ${confirmedCount ? `<span class="agenda-v2-row__confirmed"><i class="fas fa-user-check"></i> ${confirmedCount}</span>` : ''}
