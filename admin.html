@@ -221,70 +221,142 @@
     <main class="flex-1 md:ml-64 p-4 md:p-6 pt-20 md:pt-6 pb-24 md:pb-6 overflow-y-auto touch-pan-y min-h-0">
       <!-- DASHBOARD HOME -->
       <div id="admin-view-home" class="space-y-6 animate-fade-in">
-        <h2 class="text-xl md:text-2xl font-bold text-gray-800">Painel de Controle</h2>
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
-          <div class="bg-adpel-50 p-4 md:p-6 rounded-xl border border-adpel-100 cursor-pointer hover:bg-adpel-100 active:scale-[0.98] transition select-none" onclick="adminNavigateTo('courses')">
-            <h3 class="font-semibold text-adpel-800 mb-2 md:mb-4 flex items-center gap-2 text-sm md:text-base"><i class="fas fa-graduation-cap"></i> Cursos</h3>
-            <div class="text-2xl md:text-3xl font-bold text-adpel-700" id="stat-courses">0</div>
-            <p class="text-xs md:text-sm text-gray-500 mt-1">Cursos criados</p>
+        <section class="admin-v2-hero">
+          <div>
+            <p class="admin-v2-eyebrow">Central de trabalho</p>
+            <h2>Visão geral</h2>
+            <p>Veja o que precisa da sua atenção e acesse as tarefas mais usadas sem procurar pelo painel.</p>
           </div>
-          <div class="bg-blue-50 p-4 md:p-6 rounded-xl border border-blue-100 cursor-pointer hover:bg-blue-100 active:scale-[0.98] transition select-none" onclick="adminNavigateTo('library')">
-            <h3 class="font-semibold text-blue-800 mb-2 md:mb-4 flex items-center gap-2 text-sm md:text-base"><i class="fas fa-book"></i> Biblioteca</h3>
-            <div class="text-2xl md:text-3xl font-bold text-blue-700" id="stat-library">0</div>
-            <p class="text-xs md:text-sm text-gray-500 mt-1">Livros cadastrados</p>
+          <div class="admin-v2-hero__actions">
+            <span id="admin-dashboard-updated">Carregando dados...</span>
+            <button type="button" onclick="loadAllData()" class="admin-v2-refresh">
+              <i class="fas fa-rotate"></i> Atualizar
+            </button>
           </div>
-          <div class="bg-green-50 p-4 md:p-6 rounded-xl border border-green-100 cursor-pointer hover:bg-green-100 active:scale-[0.98] transition select-none" onclick="adminNavigateTo('cofres')">
-            <h3 class="font-semibold text-green-800 mb-2 md:mb-4 flex items-center gap-2 text-sm md:text-base"><i class="fas fa-piggy-bank"></i> Cofres</h3>
-            <div class="text-2xl md:text-3xl font-bold text-green-700" id="stat-cofres">0</div>
-            <p class="text-xs md:text-sm text-gray-500 mt-1">Cofres ativos</p>
-          </div>
-          <div class="bg-emerald-50 p-4 md:p-6 rounded-xl border border-emerald-100 cursor-pointer hover:bg-emerald-100 active:scale-[0.98] transition select-none" onclick="adminNavigateTo('app-updates')">
-            <h3 class="font-semibold text-emerald-800 mb-2 md:mb-4 flex items-center gap-2 text-sm md:text-base"><i class="fas fa-bullhorn"></i> Atualizações</h3>
-            <div class="text-2xl md:text-3xl font-bold text-emerald-700" id="stat-app-updates">0</div>
-            <p class="text-xs md:text-sm text-gray-500 mt-1">Novidades cadastradas</p>
-          </div>
-        </div>
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
-          <div class="bg-cyan-50 p-4 md:p-6 rounded-xl border border-cyan-100 cursor-pointer hover:bg-cyan-100 active:scale-[0.98] transition select-none" onclick="adminNavigateTo('church')">
-            <h3 class="font-semibold text-cyan-800 mb-2 md:mb-4 flex items-center gap-2 text-sm md:text-base"><i class="fas fa-users"></i> Membros ativos</h3>
-            <div class="text-2xl md:text-3xl font-bold text-cyan-700" id="stat-active-members">0</div>
-            <p class="text-xs md:text-sm text-gray-500 mt-1">Membresia atual</p>
-          </div>
-          <div class="bg-green-50 p-4 md:p-6 rounded-xl border border-green-100 cursor-pointer hover:bg-green-100 active:scale-[0.98] transition select-none" onclick="adminNavigateTo('church')">
-            <h3 class="font-semibold text-green-800 mb-2 md:mb-4 flex items-center gap-2 text-sm md:text-base"><i class="fas fa-user-plus"></i> Novos no mes</h3>
-            <div class="text-2xl md:text-3xl font-bold text-green-700" id="stat-new-members">0</div>
-            <p class="text-xs md:text-sm text-gray-500 mt-1">Entradas do mes</p>
-          </div>
-          <div class="bg-red-50 p-4 md:p-6 rounded-xl border border-red-100 cursor-pointer hover:bg-red-100 active:scale-[0.98] transition select-none" onclick="adminNavigateTo('church')">
-            <h3 class="font-semibold text-red-800 mb-2 md:mb-4 flex items-center gap-2 text-sm md:text-base"><i class="fas fa-user-minus"></i> Saidas no mes</h3>
-            <div class="text-2xl md:text-3xl font-bold text-red-700" id="stat-member-exits">0</div>
-            <p class="text-xs md:text-sm text-gray-500 mt-1">Movimentacoes de saida</p>
-          </div>
-          <div class="bg-yellow-50 p-4 md:p-6 rounded-xl border border-yellow-100 cursor-pointer hover:bg-yellow-100 active:scale-[0.98] transition select-none" onclick="adminNavigateTo('church')">
-            <h3 class="font-semibold text-yellow-800 mb-2 md:mb-4 flex items-center gap-2 text-sm md:text-base"><i class="fas fa-wallet"></i> Saldo do caixa</h3>
-            <div class="text-2xl md:text-3xl font-bold text-yellow-700" id="stat-cash-balance">R$ 0,00</div>
-            <p class="text-xs md:text-sm text-gray-500 mt-1">Entradas menos saidas</p>
-          </div>
-          <div class="bg-purple-50 p-4 md:p-6 rounded-xl border border-purple-100 cursor-pointer hover:bg-purple-100 active:scale-[0.98] transition select-none" onclick="adminNavigateTo('certificates')">
-            <h3 class="font-semibold text-purple-800 mb-2 md:mb-4 flex items-center gap-2 text-sm md:text-base"><i class="fas fa-certificate"></i> Certificados</h3>
-            <div class="text-2xl md:text-3xl font-bold text-purple-700" id="stat-certificates">0</div>
-            <p class="text-xs md:text-sm text-gray-500 mt-1">Emitidos/cadastrados</p>
-          </div>
-          <div class="bg-blue-50 p-4 md:p-6 rounded-xl border border-blue-100 cursor-pointer hover:bg-blue-100 active:scale-[0.98] transition select-none" onclick="adminNavigateTo('agenda')">
-            <h3 class="font-semibold text-blue-800 mb-2 md:mb-4 flex items-center gap-2 text-sm md:text-base"><i class="fas fa-calendar-check"></i> Eventos proximos</h3>
-            <div class="text-2xl md:text-3xl font-bold text-blue-700" id="stat-upcoming-events">0</div>
-            <p class="text-xs md:text-sm text-gray-500 mt-1">Agenda futura</p>
-          </div>
-        </div>
+        </section>
 
-        <div class="bg-white p-4 md:p-6 rounded-xl shadow-sm border border-gray-200 mt-6">
-          <h3 class="font-bold text-gray-800 mb-4">Recentes</h3>
-          <div id="recent-activity" class="space-y-3">
-            <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-              <div class="text-sm text-gray-600">Nenhum dado recente encontrado</div>
+        <section class="admin-v2-section">
+          <div class="admin-v2-section-heading">
+            <div>
+              <p class="admin-v2-eyebrow">Atalhos</p>
+              <h3>Ações rápidas</h3>
             </div>
           </div>
+          <div class="admin-v2-quick-actions">
+            <button type="button" onclick="adminDashboardQuickAction('member')" class="admin-v2-quick-action">
+              <span class="is-blue"><i class="fas fa-user-plus"></i></span>
+              <div><strong>Novo membro</strong><small>Abrir cadastro</small></div>
+              <i class="fas fa-arrow-right"></i>
+            </button>
+            <button type="button" onclick="adminDashboardQuickAction('event')" class="admin-v2-quick-action">
+              <span class="is-purple"><i class="fas fa-calendar-plus"></i></span>
+              <div><strong>Novo evento</strong><small>Adicionar à agenda</small></div>
+              <i class="fas fa-arrow-right"></i>
+            </button>
+            <button type="button" onclick="adminDashboardQuickAction('notification')" class="admin-v2-quick-action">
+              <span class="is-amber"><i class="fas fa-bell"></i></span>
+              <div><strong>Enviar aviso</strong><small>Notificação push</small></div>
+              <i class="fas fa-arrow-right"></i>
+            </button>
+            <button type="button" onclick="adminDashboardQuickAction('course')" class="admin-v2-quick-action">
+              <span class="is-cyan"><i class="fas fa-graduation-cap"></i></span>
+              <div><strong>Novo curso</strong><small>Criar formação</small></div>
+              <i class="fas fa-arrow-right"></i>
+            </button>
+          </div>
+        </section>
+
+        <section class="admin-v2-metrics" aria-label="Resumo administrativo">
+          <button type="button" onclick="adminNavigateTo('church')" class="admin-v2-metric">
+            <span class="admin-v2-metric__icon is-blue"><i class="fas fa-users"></i></span>
+            <div><small>Membros ativos</small><strong id="admin-v2-members-active">0</strong><em id="admin-v2-members-meta">0 cadastrados</em></div>
+          </button>
+          <button type="button" onclick="adminNavigateTo('church')" class="admin-v2-metric">
+            <span class="admin-v2-metric__icon is-green"><i class="fas fa-user-plus"></i></span>
+            <div><small>Novos no mês</small><strong id="admin-v2-members-new">0</strong><em>Entradas recentes</em></div>
+          </button>
+          <button type="button" onclick="adminNavigateTo('agenda')" class="admin-v2-metric">
+            <span class="admin-v2-metric__icon is-purple"><i class="fas fa-calendar-check"></i></span>
+            <div><small>Próximos 7 dias</small><strong id="admin-v2-events-week">0</strong><em id="admin-v2-events-meta">0 futuros no total</em></div>
+          </button>
+          <button type="button" onclick="adminNavigateTo('courses')" class="admin-v2-metric">
+            <span class="admin-v2-metric__icon is-cyan"><i class="fas fa-graduation-cap"></i></span>
+            <div><small>Cursos publicados</small><strong id="admin-v2-courses-published">0</strong><em id="admin-v2-courses-meta">0 de 0 publicados</em></div>
+          </button>
+        </section>
+
+        <div class="admin-v2-layout">
+          <section class="admin-v2-card">
+            <div class="admin-v2-card-heading">
+              <div>
+                <p class="admin-v2-eyebrow">Prioridades</p>
+                <h3>Precisa de atenção</h3>
+              </div>
+              <span id="admin-dashboard-pending-count" class="admin-v2-count">0</span>
+            </div>
+            <div id="admin-dashboard-pendings" class="admin-v2-stack">
+              <div class="admin-v2-skeleton"></div>
+              <div class="admin-v2-skeleton is-short"></div>
+            </div>
+          </section>
+
+          <section class="admin-v2-card">
+            <div class="admin-v2-card-heading">
+              <div>
+                <p class="admin-v2-eyebrow">Integrações</p>
+                <h3>Google Agenda</h3>
+              </div>
+              <i class="fab fa-google admin-v2-heading-icon"></i>
+            </div>
+            <div id="admin-dashboard-google" class="admin-v2-stack">
+              <div class="admin-v2-skeleton"></div>
+              <div class="admin-v2-skeleton is-short"></div>
+            </div>
+          </section>
         </div>
+
+        <div class="admin-v2-layout">
+          <section class="admin-v2-card">
+            <div class="admin-v2-card-heading">
+              <div>
+                <p class="admin-v2-eyebrow">Agenda</p>
+                <h3>Próximos eventos</h3>
+              </div>
+              <button type="button" onclick="adminNavigateTo('agenda')" class="admin-v2-text-action">Ver agenda <i class="fas fa-arrow-right"></i></button>
+            </div>
+            <div id="admin-dashboard-events" class="admin-v2-event-list">
+              <div class="admin-v2-skeleton"></div>
+              <div class="admin-v2-skeleton"></div>
+            </div>
+          </section>
+
+          <section class="admin-v2-card">
+            <div class="admin-v2-card-heading">
+              <div>
+                <p class="admin-v2-eyebrow">Igreja</p>
+                <h3>Resumo de membros</h3>
+              </div>
+              <i class="fas fa-users admin-v2-heading-icon"></i>
+            </div>
+            <div id="admin-dashboard-members">
+              <div class="admin-v2-skeleton"></div>
+            </div>
+          </section>
+        </div>
+
+        <section class="admin-v2-card">
+          <div class="admin-v2-card-heading">
+            <div>
+              <p class="admin-v2-eyebrow">Histórico</p>
+              <h3>Atividade recente</h3>
+            </div>
+            <span class="admin-v2-card-note">Auditoria do sistema</span>
+          </div>
+          <div id="admin-dashboard-activity" class="admin-v2-activity-list">
+            <div class="admin-v2-skeleton"></div>
+            <div class="admin-v2-skeleton"></div>
+          </div>
+        </section>
 
         <!-- Versículos do Dia -->
         <div class="bg-white p-4 md:p-6 rounded-xl shadow-sm border border-gray-200 mt-6">
@@ -1119,6 +1191,7 @@
     }
   </script>
   <script src="admin.js"></script>
+  <script src="admin/dashboard-v2.js"></script>
   <script src="admin/crud-courses.js"></script>
   <script src="admin/crud-library.js"></script>
   <script src="admin/crud-certificates.js"></script>
