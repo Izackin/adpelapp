@@ -131,7 +131,13 @@ async function renderEventAttendees(eventId) {
     
     // Atualiza botão
     if (btn) {
-      if (hasConfirmed) {
+      const isAgendaSheetButton = btn.classList && btn.classList.contains('agenda-attendance-button');
+      if (isAgendaSheetButton) {
+        btn.className = 'agenda-attendance-button' + (hasConfirmed ? ' is-confirmed' : '');
+        btn.innerHTML = hasConfirmed
+          ? '<i class="fas fa-check"></i> Presença confirmada'
+          : '<i class="fas fa-hand-point-up"></i> Marcar presença';
+      } else if (hasConfirmed) {
         btn.className = 'w-full py-1.5 px-3 rounded-lg text-xs font-bold transition bg-green-100 text-green-700 border border-green-200';
         btn.innerHTML = '<i class="fas fa-check mr-1"></i> Presença Confirmada';
       } else {
@@ -191,7 +197,11 @@ Object.assign(window, {
   renderAnnouncements,
   renderEvents,
   renderHomeEvents,
-  renderCommunityAgenda
+  renderCommunityAgenda,
+  setCommunityAgendaMonth,
+  showMoreCommunityAgenda,
+  openCommunityEventDetails,
+  closeCommunityEventDetails
 });
 
 function renderAnnouncements(announcements) {
@@ -310,6 +320,63 @@ function renderEvents(events, attendancesByEvent = {}) {
   }
 }
 
+var COMMUNITY_AGENDA_BATCH = 5;
+var communityAgendaState = {
+  events: [],
+  announcements: [],
+  attendancesByEvent: {},
+  selectedMonth: '',
+  visibleCount: COMMUNITY_AGENDA_BATCH
+};
+
+function communityAgendaDateValue(item) {
+  return String(item && item.event_date || '').slice(0, 10);
+}
+
+function communityAgendaMonthKey(item) {
+  const value = communityAgendaDateValue(item);
+  return /^\d{4}-\d{2}-\d{2}$/.test(value) ? value.slice(0, 7) : '';
+}
+
+function communityAgendaMonthLabel(monthKey) {
+  if (!/^\d{4}-\d{2}$/.test(String(monthKey || ''))) return '';
+  const date = new Date(monthKey + '-01T12:00:00');
+  if (Number.isNaN(date.getTime())) return '';
+  const text = date.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
+  return text.charAt(0).toUpperCase() + text.slice(1);
+}
+
+function communityAgendaDayParts(item) {
+  const value = communityAgendaDateValue(item);
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+    return { day: '--', month: '', weekday: '', longDate: 'Data a confirmar' };
+  }
+  const date = new Date(value + 'T12:00:00');
+  if (Number.isNaN(date.getTime())) {
+    return { day: '--', month: '', weekday: '', longDate: 'Data a confirmar' };
+  }
+  return {
+    day: value.slice(8, 10),
+    month: date.toLocaleDateString('pt-BR', { month: 'short' }).replace('.', '').toUpperCase(),
+    weekday: date.toLocaleDateString('pt-BR', { weekday: 'short' }).replace('.', ''),
+    longDate: date.toLocaleDateString('pt-BR', { weekday: 'long', day: '2-digit', month: 'long', year: 'numeric' })
+  };
+}
+
+function communityAgendaTime(value) {
+  return value ? String(value).slice(0, 5) : '';
+}
+
+function communityAgendaEventDomId(value) {
+  return String(value || '').replace(/[^a-zA-Z0-9_-]/g, '');
+}
+
+function communityAgendaHasConfirmed(eventId) {
+  const userInfo = getCurrentUserInfo();
+  const attendees = communityAgendaState.attendancesByEvent[eventId] || [];
+  return !!(userInfo.isLoggedIn && attendees.some(item => item.user_id === userInfo.user?.id));
+}
+
 function renderHomeEvents(events, attendancesByEvent = {}) {
   const section = document.getElementById('home-events-section');
   const container = document.getElementById('home-events-container');
@@ -322,61 +389,254 @@ function renderHomeEvents(events, attendancesByEvent = {}) {
 
   section.classList.remove('hidden');
   const event = events[0];
-  const date = event.event_date ? new Date(`${String(event.event_date).slice(0, 10)}T12:00:00`) : null;
-  const formattedDate = date && !Number.isNaN(date.getTime())
-    ? date.toLocaleDateString('pt-BR', { weekday: 'short', day: '2-digit', month: 'short' })
-    : '';
+  const date = communityAgendaDayParts(event);
+  const time = communityAgendaTime(event.event_time);
+  const meta = [time, event.location].filter(Boolean).join(' · ');
+
   container.innerHTML = `
-    <article class="app-context-card">
-      <p class="app-context-card__label">${escapeHtml(formattedDate || 'Em breve')}${event.event_time ? ` · ${escapeHtml(event.event_time)}` : ''}</p>
-      <h3>${escapeHtml(event.title || 'Evento')}</h3>
-      ${event.location ? `<p><i class="fas fa-location-dot" aria-hidden="true"></i> ${escapeHtml(event.location)}</p>` : ''}
-      <button onclick="navigateTo('community-hub')" class="app-secondary-action mt-3">Ver detalhes</button>
-    </article>`;
+    <button type="button" class="home-next-event-card" onclick="navigateTo('community-hub')" aria-label="Abrir agenda e ver detalhes de ${escapeHtml(event.title || 'evento')}">
+      <span class="home-next-event-card__date" aria-hidden="true">
+        <strong>${escapeHtml(date.day)}</strong>
+        <small>${escapeHtml(date.month || 'EM BREVE')}</small>
+      </span>
+      <span class="home-next-event-card__content">
+        <span class="home-next-event-card__eyebrow"><i class="fas fa-calendar-check"></i> Próximo acontecimento</span>
+        <strong class="home-next-event-card__title">${escapeHtml(event.title || 'Evento')}</strong>
+        <span class="home-next-event-card__meta">
+          ${date.weekday ? `<span><i class="fas fa-calendar-day"></i> ${escapeHtml(date.weekday)}</span>` : ''}
+          ${meta ? `<span><i class="fas fa-clock"></i> ${escapeHtml(meta)}</span>` : ''}
+        </span>
+      </span>
+      <span class="home-next-event-card__arrow" aria-hidden="true"><i class="fas fa-arrow-right"></i></span>
+    </button>`;
+}
+
+function setCommunityAgendaMonth(monthKey) {
+  if (!communityAgendaState.events.some(item => communityAgendaMonthKey(item) === monthKey)) return;
+  communityAgendaState.selectedMonth = monthKey;
+  communityAgendaState.visibleCount = COMMUNITY_AGENDA_BATCH;
+  renderCommunityAgendaView();
+}
+
+function showMoreCommunityAgenda() {
+  communityAgendaState.visibleCount += COMMUNITY_AGENDA_BATCH;
+  renderCommunityAgendaView();
+}
+
+function closeCommunityEventDetails() {
+  const sheet = document.getElementById('community-event-sheet');
+  if (!sheet) return;
+  sheet.classList.add('hidden');
+  sheet.setAttribute('aria-hidden', 'true');
+  sheet.innerHTML = '';
+  document.body.classList.remove('agenda-sheet-open');
+}
+
+function openCommunityEventDetails(eventId) {
+  const event = communityAgendaState.events.find(item => String(item.id) === String(eventId));
+  const sheet = document.getElementById('community-event-sheet');
+  if (!event || !sheet) return;
+
+  const eventDomId = communityAgendaEventDomId(event.id);
+  const date = communityAgendaDayParts(event);
+  const time = communityAgendaTime(event.event_time);
+  const endTime = communityAgendaTime(event.end_time);
+  const attendees = communityAgendaState.attendancesByEvent[event.id] || [];
+  const hasConfirmed = communityAgendaHasConfirmed(event.id);
+  const mapsUrl = safeExternalUrl(event.maps_url);
+  const eventLink = safeExternalUrl(event.link);
+  const timeLabel = time
+    ? (endTime && endTime !== time ? time + ' – ' + endTime : time)
+    : 'Horário a confirmar';
+
+  sheet.innerHTML = `
+    <button type="button" class="agenda-v2-sheet__backdrop" onclick="closeCommunityEventDetails()" aria-label="Fechar detalhes"></button>
+    <section class="agenda-v2-sheet__panel" role="dialog" aria-modal="true" aria-labelledby="agenda-sheet-title">
+      <div class="agenda-v2-sheet__handle" aria-hidden="true"></div>
+      <div class="agenda-v2-sheet__header">
+        <span class="agenda-v2-sheet__date">
+          <strong>${escapeHtml(date.day)}</strong>
+          <small>${escapeHtml(date.month)}</small>
+        </span>
+        <div>
+          <p class="agenda-v2-kicker">Agenda ADPEL</p>
+          <h3 id="agenda-sheet-title">${escapeHtml(event.title || 'Evento')}</h3>
+          <p>${escapeHtml(date.longDate)}</p>
+        </div>
+        <button type="button" class="agenda-v2-sheet__close" onclick="closeCommunityEventDetails()" aria-label="Fechar"><i class="fas fa-xmark"></i></button>
+      </div>
+
+      <div class="agenda-v2-sheet__info">
+        <div><i class="fas fa-clock"></i><span><small>Horário</small><strong>${escapeHtml(timeLabel)}</strong></span></div>
+        ${event.location ? `<div><i class="fas fa-location-dot"></i><span><small>Local</small><strong>${escapeHtml(event.location)}</strong></span></div>` : ''}
+      </div>
+
+      ${event.description ? `<div class="agenda-v2-sheet__description"><p>${escapeHtml(event.description)}</p></div>` : ''}
+
+      ${mapsUrl || eventLink ? `
+        <div class="agenda-v2-sheet__links">
+          ${mapsUrl ? `<a href="${escapeHtml(mapsUrl)}" target="_blank" rel="noopener noreferrer"><i class="fas fa-location-arrow"></i> Abrir localização</a>` : ''}
+          ${eventLink ? `<a href="${escapeHtml(eventLink)}" target="_blank" rel="noopener noreferrer"><i class="fas fa-arrow-up-right-from-square"></i> Abrir link</a>` : ''}
+        </div>
+      ` : ''}
+
+      <div class="agenda-v2-attendance">
+        <div class="agenda-v2-attendance__heading">
+          <div><span class="agenda-v2-attendance__icon"><i class="fas fa-users"></i></span><span><small>Comunidade</small><strong>${attendees.length ? attendees.length + (attendees.length === 1 ? ' pessoa confirmou' : ' pessoas confirmaram') : 'Seja o primeiro a confirmar'}</strong></span></div>
+        </div>
+        <button id="attendance-btn-${eventDomId}" type="button" onclick="confirmAttendance('${eventDomId}')" class="agenda-attendance-button${hasConfirmed ? ' is-confirmed' : ''}">
+          ${hasConfirmed ? '<i class="fas fa-check"></i> Presença confirmada' : '<i class="fas fa-hand-point-up"></i> Marcar presença'}
+        </button>
+        <div id="attendees-${eventDomId}" class="agenda-v2-attendees"></div>
+      </div>
+    </section>`;
+
+  sheet.classList.remove('hidden');
+  sheet.setAttribute('aria-hidden', 'false');
+  document.body.classList.add('agenda-sheet-open');
+  window.setTimeout(() => renderEventAttendees(eventDomId), 0);
+}
+
+function renderCommunityAgendaView() {
+  const container = document.getElementById('community-agenda-container');
+  if (!container) return;
+
+  const events = communityAgendaState.events;
+  const announcements = communityAgendaState.announcements;
+  const months = [...new Set(events.map(communityAgendaMonthKey).filter(Boolean))];
+  const nextEvent = events[0] || null;
+
+  const announcementsHtml = announcements.length ? `
+    <section class="agenda-v2-alerts" aria-label="Avisos importantes">
+      <div class="agenda-v2-section-heading">
+        <div><span class="agenda-v2-kicker">Fique por dentro</span><h3>Avisos importantes</h3></div>
+        <span class="agenda-v2-counter">${announcements.length}</span>
+      </div>
+      <div class="agenda-v2-alert-strip">
+        ${announcements.map(item => `
+          <article class="agenda-v2-alert ${item.category === 'aviso_urgente' ? 'is-urgent' : ''}">
+            <span class="agenda-v2-alert__icon"><i class="fas fa-bullhorn"></i></span>
+            <div>
+              <strong>${escapeHtml(item.title || 'Aviso')}</strong>
+              ${item.description ? `<p>${escapeHtml(item.description)}</p>` : ''}
+              ${safeExternalUrl(item.link) ? `<a href="${escapeHtml(safeExternalUrl(item.link))}" target="_blank" rel="noopener noreferrer">Abrir aviso <i class="fas fa-arrow-up-right-from-square"></i></a>` : ''}
+            </div>
+          </article>
+        `).join('')}
+      </div>
+    </section>` : '';
+
+  if (!events.length) {
+    container.innerHTML = `
+      <div class="agenda-v2-shell">
+        ${announcementsHtml}
+        <div class="agenda-v2-empty">
+          <span><i class="fas fa-calendar-check"></i></span>
+          <h3>Nenhum evento programado</h3>
+          <p>Quando houver novos acontecimentos, eles aparecerão aqui.</p>
+        </div>
+      </div>`;
+    return;
+  }
+
+  if (!months.includes(communityAgendaState.selectedMonth)) {
+    communityAgendaState.selectedMonth = months[0] || '';
+  }
+
+  const selectedMonth = communityAgendaState.selectedMonth;
+  const nextEventMonth = nextEvent ? communityAgendaMonthKey(nextEvent) : '';
+  const selectedEvents = events.filter(item => {
+    if (communityAgendaMonthKey(item) !== selectedMonth) return false;
+    return !(nextEvent && selectedMonth === nextEventMonth && String(item.id) === String(nextEvent.id));
+  });
+  const visibleEvents = selectedEvents.slice(0, communityAgendaState.visibleCount);
+  const remaining = Math.max(0, selectedEvents.length - visibleEvents.length);
+  const nextDate = nextEvent ? communityAgendaDayParts(nextEvent) : null;
+  const nextTime = nextEvent ? communityAgendaTime(nextEvent.event_time) : '';
+
+  container.innerHTML = `
+    <div class="agenda-v2-shell">
+      ${announcementsHtml}
+
+      <section class="agenda-v2-next">
+        <div class="agenda-v2-next__date" aria-hidden="true">
+          <strong>${escapeHtml(nextDate.day)}</strong>
+          <small>${escapeHtml(nextDate.month)}</small>
+        </div>
+        <div class="agenda-v2-next__content">
+          <span class="agenda-v2-kicker"><i class="fas fa-star"></i> Próximo evento</span>
+          <h3>${escapeHtml(nextEvent.title || 'Evento')}</h3>
+          <div class="agenda-v2-next__meta">
+            ${nextTime ? `<span><i class="fas fa-clock"></i> ${escapeHtml(nextTime)}</span>` : ''}
+            ${nextEvent.location ? `<span><i class="fas fa-location-dot"></i> ${escapeHtml(nextEvent.location)}</span>` : ''}
+          </div>
+        </div>
+        <button type="button" onclick="openCommunityEventDetails('${communityAgendaEventDomId(nextEvent.id)}')" class="agenda-v2-next__action">Ver detalhes <i class="fas fa-arrow-right"></i></button>
+      </section>
+
+      <section class="agenda-v2-calendar">
+        <div class="agenda-v2-section-heading">
+          <div><span class="agenda-v2-kicker">Programação</span><h3>Agenda da igreja</h3></div>
+          <span class="agenda-v2-counter">${events.length}</span>
+        </div>
+
+        <div class="agenda-v2-months" role="tablist" aria-label="Meses da agenda">
+          ${months.map(month => `
+            <button type="button" role="tab" aria-selected="${month === selectedMonth ? 'true' : 'false'}" class="${month === selectedMonth ? 'is-active' : ''}" onclick="setCommunityAgendaMonth('${month}')">
+              ${escapeHtml(communityAgendaMonthLabel(month))}
+            </button>
+          `).join('')}
+        </div>
+
+        <div class="agenda-v2-list">
+          ${visibleEvents.map(item => {
+            const date = communityAgendaDayParts(item);
+            const time = communityAgendaTime(item.event_time);
+            const confirmedCount = (communityAgendaState.attendancesByEvent[item.id] || []).length;
+            return `
+              <button type="button" class="agenda-v2-row" onclick="openCommunityEventDetails('${communityAgendaEventDomId(item.id)}')">
+                <span class="agenda-v2-row__date"><strong>${escapeHtml(date.day)}</strong><small>${escapeHtml(date.month)}</small></span>
+                <span class="agenda-v2-row__main">
+                  <strong>${escapeHtml(item.title || 'Evento')}</strong>
+                  <span>
+                    ${time ? `<em><i class="fas fa-clock"></i> ${escapeHtml(time)}</em>` : ''}
+                    ${item.location ? `<em><i class="fas fa-location-dot"></i> ${escapeHtml(item.location)}</em>` : ''}
+                  </span>
+                </span>
+                ${confirmedCount ? `<span class="agenda-v2-row__confirmed"><i class="fas fa-user-check"></i> ${confirmedCount}</span>` : ''}
+                <span class="agenda-v2-row__chevron"><i class="fas fa-chevron-right"></i></span>
+              </button>`;
+          }).join('')}
+          ${selectedEvents.length === 0 ? `<div class="agenda-v2-month-note"><i class="fas fa-circle-check"></i><span>O próximo evento acima é o único compromisso em ${escapeHtml(communityAgendaMonthLabel(selectedMonth))}.</span></div>` : ''}
+        </div>
+
+        ${remaining > 0 ? `
+          <button type="button" class="agenda-v2-more" onclick="showMoreCommunityAgenda()">
+            Ver mais ${remaining} ${remaining === 1 ? 'evento' : 'eventos'} <i class="fas fa-chevron-down"></i>
+          </button>` : ''}
+      </section>
+    </div>
+    <div id="community-event-sheet" class="agenda-v2-sheet hidden" aria-hidden="true"></div>`;
 }
 
 function renderCommunityAgenda(events, attendancesByEvent = {}) {
   const container = document.getElementById('community-agenda-container');
   if (!container) return;
-  if (!events || events.length === 0) {
-    container.innerHTML = '<div class="app-context-card"><h3>Nenhum evento programado no momento.</h3><p>Quando houver novidades na agenda, elas aparecerão aqui.</p></div>';
-    return;
+
+  const items = Array.isArray(events) ? events : [];
+  communityAgendaState.events = items.filter(item => item && item.agenda_type !== 'announcement');
+  communityAgendaState.announcements = items.filter(item => item && item.agenda_type === 'announcement');
+  communityAgendaState.attendancesByEvent = attendancesByEvent || {};
+  communityAgendaState.visibleCount = COMMUNITY_AGENDA_BATCH;
+
+  const months = [...new Set(communityAgendaState.events.map(communityAgendaMonthKey).filter(Boolean))];
+  if (!months.includes(communityAgendaState.selectedMonth)) {
+    communityAgendaState.selectedMonth = months[0] || '';
   }
 
-  const isLoggedIn = getCurrentUserInfo().isLoggedIn;
-  container.innerHTML = events.map(e => {
-    const isAnnouncement = e.agenda_type === 'announcement';
-    const eventDomId = String(e.id || '').replace(/[^a-zA-Z0-9_-]/g, '');
-    const dateStr = e.event_date && e.event_date !== 'null' && e.event_date !== 'undefined' ? String(e.event_date) : '';
-    const dateParts = dateStr ? dateStr.split('-') : [];
-    const day = dateParts[2] || '--';
-    const month = dateParts[1] || '';
-    const attendees = isAnnouncement ? [] : (attendancesByEvent[e.id] || []);
-    const hasConfirmed = isLoggedIn && attendees.some(a => a.user_id === getCurrentUserInfo().user?.id);
-
-    return `
-    <article class="app-context-card">
-      <div class="flex items-center gap-3">
-        <div class="text-center min-w-[50px]">
-          <span class="text-2xl font-bold text-gray-100">${escapeHtml(day)}</span>
-          <span class="block text-xs text-slate-400 uppercase">${escapeHtml(month ? getMonthName(month) : '')}</span>
-        </div>
-        <div class="flex-1 min-w-0">
-          <h4 class="font-semibold text-gray-100 truncate">${escapeHtml(e.title || 'Evento')}</h4>
-          <p class="text-sm text-slate-400 flex items-center gap-1 mt-1 flex-wrap">
-            <i class="fas fa-clock text-xs"></i> ${escapeHtml(e.event_time || '')}
-            ${e.location ? `<span class="flex items-center gap-1"><i class="fas fa-map-marker-alt text-xs ml-2"></i> ${safeExternalUrl(e.maps_url) ? `<a href="${escapeHtml(safeExternalUrl(e.maps_url))}" target="_blank" rel="noopener noreferrer" class="hover:text-blue-300 hover:underline">${escapeHtml(e.location)}</a>` : escapeHtml(e.location)}</span>` : ''}
-          </p>
-        </div>
-      </div>
-      ${e.description ? `<p class="text-xs text-slate-400 mt-2 line-clamp-2">${escapeHtml(e.description)}</p>` : ''}
-      ${safeExternalUrl(e.link) ? `<a href="${escapeHtml(safeExternalUrl(e.link))}" target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-1 mt-3 text-xs font-bold text-blue-300 hover:text-blue-200 hover:underline"><i class="fas fa-arrow-up-right-from-square"></i> Abrir link</a>` : ''}
-      <div class="${isAnnouncement ? 'hidden' : ''} mt-3 pt-3 border-t border-slate-700/70">
-        <button id="attendance-btn-${eventDomId}" onclick="confirmAttendance('${eventDomId}')" class="w-full py-1.5 px-3 rounded-lg text-xs font-bold transition ${hasConfirmed ? 'bg-green-100 text-green-700 border border-green-200' : 'bg-purple-600 text-white hover:bg-purple-700 active:bg-purple-800'}">
-          ${hasConfirmed ? '<i class="fas fa-check mr-1"></i> Presença Confirmada' : '<i class="fas fa-hand-point-up mr-1"></i> Marcar Presença'}
-        </button>
-        <div id="attendees-${eventDomId}" class="mt-2 flex flex-wrap gap-1 items-center"></div>
-      </div>
-    </article>
-  `}).join('');
+  renderCommunityAgendaView();
 }
+
+document.addEventListener('keydown', function (event) {
+  if (event.key === 'Escape') closeCommunityEventDetails();
+});
