@@ -61,6 +61,9 @@ function adminNavigateTo(view) {
   if (view === 'community' && typeof loadAdminCommunity === 'function') {
     loadAdminCommunity();
   }
+  if (view === 'home' && typeof renderAdminDashboardV2 === 'function') {
+    renderAdminDashboardV2();
+  }
 
   // Close mobile sidebar
   if (window.innerWidth < 768) {
@@ -187,9 +190,14 @@ async function loadAllData() {
       await loadChurchManagementData();
     }
 
-    // Update recent activity
-    updateAdminDashboardStats();
-    updateRecentActivity();
+    // Dashboard V2 reuses the data loaded above and fetches only lightweight
+    // operational context (audit/import/calendar status).
+    if (typeof loadAdminDashboardData === 'function') {
+      await loadAdminDashboardData();
+    } else {
+      updateAdminDashboardStats();
+      updateRecentActivity();
+    }
 
   } catch (error) {
     console.error('❌ Erro ao carregar dados:', error);
