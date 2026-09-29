@@ -11,6 +11,7 @@ const shellCss = read('app-shell.css');
 const navigation = read('js/navigation.js');
 const home = read('js/home.js');
 const agenda = read('js/agenda.js');
+const polish = read('release-polish.css');
 const auth = read('auth.js');
 const bootstrap = read('script.js');
 
@@ -46,7 +47,18 @@ assert.match(home, /loadDeterministicBibleVerse/);
 assert.match(home, /adpel_bible_preferences_v2/);
 assert.doesNotMatch(home, /profile\.full_name \|\| user\.email/);
 assert.match(agenda, /replace\(\/\[\^a-zA-Z0-9_-\]\/g, ''\)/);
-assert.match(agenda, /Nenhum evento programado no momento/);
+assert.match(agenda, /COMMUNITY_AGENDA_BATCH = 5/);
+assert.match(agenda, /home-next-event-card/);
+assert.match(agenda, /setCommunityAgendaMonth/);
+assert.match(agenda, /showMoreCommunityAgenda/);
+assert.match(agenda, /openCommunityEventDetails/);
+assert.match(agenda, /agenda-v2-sheet/);
+assert.match(agenda, /communityAgendaState\.announcements/);
+assert.match(polish, /\.agenda-v2-shell/);
+assert.match(polish, /\.agenda-v2-months/);
+assert.match(polish, /\.agenda-v2-sheet/);
+assert.match(polish, /\.home-next-event-card/);
+assert.match(agenda, /Nenhum evento programado/);
 
 assert.match(shellCss, /env\(safe-area-inset-bottom/);
 assert.match(shellCss, /min-height: 3\.65rem/);
