@@ -117,6 +117,9 @@ async function loadAllData() {
     var statCourses = document.getElementById('stat-courses');
     if (statCourses) { statCourses.textContent = coursesData.length; }
     if (typeof renderAdminCourses === 'function') renderAdminCourses();
+    if (typeof loadCourseAccessRequests === 'function') {
+      await loadCourseAccessRequests();
+    }
 
     // Library
     var lResult = await window.supabaseClient
