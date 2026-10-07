@@ -41,7 +41,9 @@
     "expected_chapters": 1189,
     "expected_references": 31102,
     "classification": "B",
-    "production_ready": false
+    "production_ready": false,
+    "authorization_basis": "User requested activation 2026-10-07; source work-in-progress notice preserved.",
+    "activation_override": "Ativada por solicitação explícita do responsável da ADPEL em 07/10/2026. Aviso da fonte de trabalho em andamento preservado."
   },
   "almeida1911": {
     "code": "almeida1911",
@@ -50,7 +52,7 @@
     "language": "pt-PT",
     "provider": "Project Gutenberg / João Ferreira de Almeida",
     "source_type": "local",
-    "license_type": "Domínio público nos EUA declarado pela fonte; revisão de uso no Brasil pendente",
+    "license_type": "authorized",
     "copyright_notice": "A Biblia Sagrada, Contendo o Velho e o Novo Testamento. João Ferreira d’Almeida. Edição revista e corrigida, Lisboa, 1911. Project Gutenberg eBook #62383. O catálogo declara domínio público nos EUA; essa declaração não constitui autorização mundial.",
     "attribution": "Digitalização: Júlio Reis, abi278, Sergio Queiroz e Online Distributed Proofreading Team (www.pgdp.net); imagens de Faithofgod.net. Fonte: Project Gutenberg #62383, atualização de 18/10/2024. ADPEL preserva palavras, ortografia e referências da edição digital; remove apenas chamadas de notas, números de página e marcação de apresentação. As notas e alternativas editoriais permanecem na fonte original e não entram na coluna de texto canônico. Nenhuma modernização ou reconstrução por IA.",
     "source_url": "https://www.gutenberg.org/ebooks/62383",
@@ -62,7 +64,219 @@
     "expected_books": 66,
     "expected_chapters": 1189,
     "expected_references": 31104,
-    "classification": "C",
-    "production_ready": false
+    "classification": "A",
+    "production_ready": true,
+    "authorization_basis": "User authorization affirmed 2026-10-07; activated in ADPEL."
+  },
+  "ara": {
+    "code": "ara",
+    "name": "Almeida Revista e Atualizada",
+    "short_name": "ARA",
+    "language": "pt-BR",
+    "provider": "Sociedade Bíblica do Brasil",
+    "source_type": "local",
+    "license_type": "authorized",
+    "copyright_notice": "Almeida Revista e Atualizada. Direitos do texto pertencem a Sociedade Bíblica do Brasil. Uso no aplicativo mediante autorização informada pelo responsável da ADPEL em 07/10/2026. A autorização não transfere direitos a terceiros.",
+    "attribution": "Fonte técnica: https://github.com/damarals/biblias/tree/4c38248e5c7a1b50aa5d154b934fc20c3910fc4e/data/canonical/ARA. Conversão estrutural com referências explícitas; palavras preservadas, apenas marcação de notas, formatação HTML e espaços normalizados. Autorização informada pelo responsável da ADPEL em 07/10/2026.",
+    "source_url": "https://github.com/damarals/biblias/tree/4c38248e5c7a1b50aa5d154b934fc20c3910fc4e/data/canonical/ARA",
+    "source_version": "Git snapshot 4c38248e5c7a1b50aa5d154b934fc20c3910fc4e",
+    "obtained_at": "2026-10-07",
+    "sha256": "33e8f9bfe83aae177add4db0a1193f36591a2dfd15a99928c0c593d72371dfa0",
+    "format": "canonical-books",
+    "expected_books": 66,
+    "expected_chapters": 1189,
+    "expected_references": 31104,
+    "classification": "A",
+    "production_ready": true,
+    "authorization_basis": "User authorization affirmed 2026-10-07; permission to make these versions readable in ADPEL."
+  },
+  "arc": {
+    "code": "arc",
+    "name": "Almeida Revista e Corrigida",
+    "short_name": "ARC",
+    "language": "pt-BR",
+    "provider": "Sociedade Bíblica do Brasil",
+    "source_type": "local",
+    "license_type": "authorized",
+    "copyright_notice": "Almeida Revista e Corrigida. Direitos do texto pertencem a Sociedade Bíblica do Brasil. Uso no aplicativo mediante autorização informada pelo responsável da ADPEL em 07/10/2026. A autorização não transfere direitos a terceiros.",
+    "attribution": "Fonte técnica: https://github.com/damarals/biblias/tree/4c38248e5c7a1b50aa5d154b934fc20c3910fc4e/data/canonical/ARC. Conversão estrutural com referências explícitas; palavras preservadas, apenas marcação de notas, formatação HTML e espaços normalizados. Autorização informada pelo responsável da ADPEL em 07/10/2026.",
+    "source_url": "https://github.com/damarals/biblias/tree/4c38248e5c7a1b50aa5d154b934fc20c3910fc4e/data/canonical/ARC",
+    "source_version": "Git snapshot 4c38248e5c7a1b50aa5d154b934fc20c3910fc4e",
+    "obtained_at": "2026-10-07",
+    "sha256": "9eb1bf47992b7e8a806eb3a0072230ff5d4f0063a9bf6443f843544711a45e65",
+    "format": "canonical-books",
+    "expected_books": 66,
+    "expected_chapters": 1189,
+    "expected_references": 31105,
+    "classification": "A",
+    "production_ready": true,
+    "authorization_basis": "User authorization affirmed 2026-10-07; permission to make these versions readable in ADPEL."
+  },
+  "naa": {
+    "code": "naa",
+    "name": "Nova Almeida Atualizada",
+    "short_name": "NAA",
+    "language": "pt-BR",
+    "provider": "Sociedade Bíblica do Brasil",
+    "source_type": "local",
+    "license_type": "authorized",
+    "copyright_notice": "Nova Almeida Atualizada. Direitos do texto pertencem a Sociedade Bíblica do Brasil. Uso no aplicativo mediante autorização informada pelo responsável da ADPEL em 07/10/2026. A autorização não transfere direitos a terceiros.",
+    "attribution": "Fonte técnica: https://bolls.life/static/translations/NAA.json. Conversão estrutural com referências explícitas; palavras preservadas, apenas marcação de notas, formatação HTML e espaços normalizados. Autorização informada pelo responsável da ADPEL em 07/10/2026.",
+    "source_url": "https://bolls.life/static/translations/NAA.json",
+    "source_version": "Pacote obtido em 2026-10-07",
+    "obtained_at": "2026-10-07",
+    "sha256": "4a2dd2d83d2001fa76e25e444d871100496c4dfe25c8e738f9239bdab326a7c9",
+    "format": "bolls-rows",
+    "expected_books": 66,
+    "expected_chapters": 1189,
+    "expected_references": 31105,
+    "classification": "A",
+    "production_ready": true,
+    "authorization_basis": "User authorization affirmed 2026-10-07; permission to make these versions readable in ADPEL."
+  },
+  "nvi": {
+    "code": "nvi",
+    "name": "Nova Versão Internacional",
+    "short_name": "NVI",
+    "language": "pt-BR",
+    "provider": "Biblica",
+    "source_type": "local",
+    "license_type": "authorized",
+    "copyright_notice": "Nova Versão Internacional. Direitos do texto pertencem a Biblica. Uso no aplicativo mediante autorização informada pelo responsável da ADPEL em 07/10/2026. A autorização não transfere direitos a terceiros.",
+    "attribution": "Fonte técnica: https://bolls.life/static/translations/NVIPT.json. Conversão estrutural com referências explícitas; palavras preservadas, apenas marcação de notas, formatação HTML e espaços normalizados. Autorização informada pelo responsável da ADPEL em 07/10/2026.",
+    "source_url": "https://bolls.life/static/translations/NVIPT.json",
+    "source_version": "Pacote obtido em 2026-10-07",
+    "obtained_at": "2026-10-07",
+    "sha256": "3fcf7c3ba44788fffe5b5178662e157511505d60aae46a54ec197256b4802b7f",
+    "format": "bolls-rows",
+    "expected_books": 66,
+    "expected_chapters": 1189,
+    "expected_references": 31100,
+    "classification": "A",
+    "production_ready": true,
+    "authorization_basis": "User authorization affirmed 2026-10-07; permission to make these versions readable in ADPEL."
+  },
+  "nvt": {
+    "code": "nvt",
+    "name": "Nova Versão Transformadora",
+    "short_name": "NVT",
+    "language": "pt-BR",
+    "provider": "Mundo Cristão",
+    "source_type": "local",
+    "license_type": "authorized",
+    "copyright_notice": "Nova Versão Transformadora. Direitos do texto pertencem a Mundo Cristão. Uso no aplicativo mediante autorização informada pelo responsável da ADPEL em 07/10/2026. A autorização não transfere direitos a terceiros.",
+    "attribution": "Fonte técnica: https://bolls.life/static/translations/NVT.json. Conversão estrutural com referências explícitas; palavras preservadas, apenas marcação de notas, formatação HTML e espaços normalizados. Autorização informada pelo responsável da ADPEL em 07/10/2026.",
+    "source_url": "https://bolls.life/static/translations/NVT.json",
+    "source_version": "Pacote obtido em 2026-10-07",
+    "obtained_at": "2026-10-07",
+    "sha256": "1a41f0d185856858f99796f3a8a23951c24ef1d8dd1b1b4642bc3ab9de063ecc",
+    "format": "bolls-rows",
+    "expected_books": 66,
+    "expected_chapters": 1189,
+    "expected_references": 31102,
+    "classification": "A",
+    "production_ready": true,
+    "authorization_basis": "User authorization affirmed 2026-10-07; permission to make these versions readable in ADPEL."
+  },
+  "ntlh": {
+    "code": "ntlh",
+    "name": "Nova Tradução na Linguagem de Hoje",
+    "short_name": "NTLH",
+    "language": "pt-BR",
+    "provider": "Sociedade Bíblica do Brasil",
+    "source_type": "local",
+    "license_type": "authorized",
+    "copyright_notice": "Nova Tradução na Linguagem de Hoje. Direitos do texto pertencem a Sociedade Bíblica do Brasil. Uso no aplicativo mediante autorização informada pelo responsável da ADPEL em 07/10/2026. A autorização não transfere direitos a terceiros.",
+    "attribution": "Fonte técnica: https://bolls.life/static/translations/NTLH.json. Conversão estrutural com referências explícitas; palavras preservadas, apenas marcação de notas, formatação HTML e espaços normalizados. Autorização informada pelo responsável da ADPEL em 07/10/2026.",
+    "source_url": "https://bolls.life/static/translations/NTLH.json",
+    "source_version": "Pacote obtido em 2026-10-07",
+    "obtained_at": "2026-10-07",
+    "sha256": "5bac994545169044f6bf9a45b27539f276bed668e2d2a56cd734ce1fb0faf581",
+    "format": "bolls-rows",
+    "expected_books": 66,
+    "expected_chapters": 1189,
+    "expected_references": 30310,
+    "classification": "A",
+    "production_ready": true,
+    "authorization_basis": "User authorization affirmed 2026-10-07; permission to make these versions readable in ADPEL.",
+    "source_empty_references": [
+      {
+        "book": 13,
+        "chapter": 16,
+        "verse": 13
+      },
+      {
+        "book": 18,
+        "chapter": 3,
+        "verse": 2
+      },
+      {
+        "book": 19,
+        "chapter": 42,
+        "verse": 7
+      },
+      {
+        "book": 19,
+        "chapter": 73,
+        "verse": 3
+      },
+      {
+        "book": 19,
+        "chapter": 102,
+        "verse": 10
+      },
+      {
+        "book": 19,
+        "chapter": 105,
+        "verse": 6
+      },
+      {
+        "book": 22,
+        "chapter": 5,
+        "verse": 11
+      },
+      {
+        "book": 23,
+        "chapter": 29,
+        "verse": 6
+      },
+      {
+        "book": 23,
+        "chapter": 33,
+        "verse": 23
+      },
+      {
+        "book": 24,
+        "chapter": 2,
+        "verse": 2
+      },
+      {
+        "book": 42,
+        "chapter": 1,
+        "verse": 74
+      }
+    ]
+  },
+  "jfaal": {
+    "code": "jfaal",
+    "name": "João Ferreira de Almeida Atualizada Livre",
+    "short_name": "JFAAL",
+    "language": "pt-BR",
+    "provider": "Marcos Cristiano Alves Ferreira",
+    "source_type": "local",
+    "license_type": "CC BY 3.0 BR",
+    "copyright_notice": "As Escrituras em português são da JFAAL, Copyright © Marcos Cristiano Alves Ferreira. Setembro de 2024. Licença Creative Commons Atribuição 3.0 Brasil (https://creativecommons.org/licenses/by/3.0/br/). Reprodução permitida desde que devidamente mencionados a fonte e o autor.",
+    "attribution": "Fonte: repositório do autor BibliaJFAAL/JFAAL, edição setembro de 2024. Revisão apoiada por GPT-4 informada no README do autor. Conversão estrutural com palavras e referências preservadas; apenas espaços normalizados. Ativação solicitada pelo responsável da ADPEL em 07/10/2026.",
+    "source_url": "https://github.com/BibliaJFAAL/JFAAL/blob/main/atualizada/1911-JFAAtualizadaLivre.json",
+    "source_version": "Pacote obtido em 2026-10-07",
+    "obtained_at": "2026-10-07",
+    "sha256": "f98edaff2a3d81f87b05c3bca2b263eb90ae5268db1a9d7cdee8c54a398f25b7",
+    "format": "jfaal-books",
+    "expected_books": 66,
+    "expected_chapters": 1189,
+    "expected_references": 31102,
+    "classification": "A",
+    "production_ready": true,
+    "authorization_basis": "User authorization affirmed 2026-10-07; permission to make these versions readable in ADPEL."
   }
 }

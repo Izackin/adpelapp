@@ -86,7 +86,8 @@ Ajudar igrejas a discipular, informar, engajar e servir seus membros por meio de
 |   `-- profile.js                   # Perfil e relatorio de ofertas
 |-- bible.html                         # Pagina separada da Biblia
 |-- bible.css                          # Experiencia visual compartilhada da Biblia 2.0
-|-- scripts/convert-almeida1911.mjs     # HTML historico fixado -> JSON canonico; candidata inativa
+|-- scripts/convert-almeida1911.mjs     # HTML historico fixado -> JSON canonico
+|-- scripts/convert-bible-json.mjs      # JSON com referencias explicitas -> JSON canonico
 |-- tutor.css                          # Interface responsiva do Tutor Teologico
 |-- harpa.html                         # Pagina separada da Harpa Crista
 |-- app-shell.css                      # Hubs e bottom navigation responsiva
