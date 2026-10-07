@@ -64,6 +64,9 @@ function adminNavigateTo(view) {
   if (view === 'home' && typeof renderAdminDashboardV2 === 'function') {
     renderAdminDashboardV2();
   }
+  if (view === 'bible-study' && typeof loadAdminBibleStudy === 'function') {
+    loadAdminBibleStudy();
+  }
 
   // Close mobile sidebar
   if (window.innerWidth < 768) {

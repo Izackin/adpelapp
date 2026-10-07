@@ -6,3 +6,4 @@
 *.usfm
 *_usfm.zip
 .bible-import/
+supabase/.temp/

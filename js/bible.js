@@ -5,7 +5,7 @@
   const COLORS = ['yellow', 'green', 'blue', 'pink'];
   const state = {
     books: [], translations: [], book: null, chapter: 1, translation: null,
-    verses: [], selection: null, selectionAnchor: null, user: null,
+    verses: [], selection: null, selectionAnchor: null, user: null, chapterRequest: 0,
     highlights: [], notes: [], bookmarks: [], progress: new Map(),
     preferences: { translation_code: 'acf', font_size: 18, last_book: null, last_chapter: null, last_verse: null }
   };
@@ -172,6 +172,7 @@
         <div id="bible-highlight-colors" class="bible-color-row hidden">${COLORS.map((color) => `<button data-highlight-color="${color}" class="bible-color-${color}" aria-label="Destaque ${color}"></button>`).join('')}<button data-bible-action="remove-highlight">Remover</button></div>
         <button type="button" class="bible-tutor-action" data-bible-action="tutor"><i class="fas fa-book-open"></i><span>Perguntar ao Tutor</span><i class="fas fa-arrow-right"></i></button>
         <div class="bible-sheet-actions"><button data-bible-action="highlight"><i class="fas fa-highlighter"></i> Destacar</button><button data-bible-action="note"><i class="fas fa-note-sticky"></i> Nota</button><button data-bible-action="bookmark"><i class="far fa-bookmark"></i> Favoritar</button><button data-bible-action="share"><i class="fas fa-share-nodes"></i> Compartilhar</button></div>
+        <button type="button" class="bible-tutor-action" data-bible-action="study"><i class="fas fa-language"></i><span>Estudar nos idiomas originais</span><i class="fas fa-arrow-right"></i></button>
         <button class="bible-sheet-close" data-bible-action="clear-selection">Fechar</button>
       </div>
       <div id="bible-modal-backdrop" class="bible-modal-backdrop hidden"></div>
@@ -260,6 +261,7 @@
   async function loadChapter(bookRef = state.book?.id, chapter = state.chapter, verseToFocus = null) {
     const book = state.books.find((item) => item.id === bookRef || item.name_pt === bookRef);
     if (!book) return;
+    const request = ++state.chapterRequest;
     state.book = book;
     state.chapter = Math.min(Math.max(1, Number(chapter) || 1), book.chapter_count);
     clearSelection();
@@ -269,15 +271,18 @@
     try {
       const { data, error } = state.translation.source_type === 'local' ? await fetchLocalChapter() : await fetchExternalChapter();
       if (error) throw error;
+      if (request !== state.chapterRequest) return;
       state.verses = data || [];
       renderChapter();
       await loadPersonalChapterData();
+      if (request !== state.chapterRequest) return;
       await savePreferences({ translation_code: state.translation.code, last_book: book.id, last_chapter: state.chapter, last_verse: verseToFocus });
       if (verseToFocus) focusVerse(verseToFocus);
     } catch (error) {
+      if (request !== state.chapterRequest) return;
       console.error('Erro ao carregar capítulo:', error);
       if ($('bible-verses-content')) $('bible-verses-content').innerHTML = `<p class="bible-error-message">${escapeHtml(error.message || 'Erro ao carregar capítulo.')}</p>`;
-    } finally { $('bible-page-loading')?.classList.add('hidden'); }
+    } finally { if (request === state.chapterRequest) $('bible-page-loading')?.classList.add('hidden'); }
   }
 
   function renderChapter() {
@@ -294,6 +299,7 @@
     if (next) next.disabled = state.chapter >= state.book.chapter_count;
     renderChapterButtons();
     renderProgress();
+    document.dispatchEvent(new CustomEvent('adpel:bible-chapter', { detail: getContext() }));
   }
 
   async function loadPersonalData() {
@@ -597,6 +603,7 @@
         'library-notes': () => openLibrary('notes'), 'library-bookmarks': () => openLibrary('bookmarks'),
         rights: () => openModal('bible-rights-modal'), highlight: () => $('bible-highlight-colors')?.classList.toggle('hidden'),
         'remove-highlight': removeHighlight, note: () => openNote(), bookmark: toggleBookmark, share: shareSelection, tutor: openTutorForSelection,
+        study: () => { $('bible-selection-menu')?.classList.remove('visible'); window.ADPELBibleStudy?.openVerse(state.selection?.verse_start || 1); },
         'clear-selection': clearSelection, 'save-note': saveNote, 'delete-note': deleteNote,
         'close-modal': closeModals, 'close-auth': () => $('bible-auth-invite')?.classList.remove('visible')
       };
@@ -664,7 +671,10 @@
     buscarBiblia: searchBible, carregarCapitulo: loadChapter,
     mudarLivroBiblia: (book) => loadChapter(book, 1)
   });
-  window.ADPELBible = { getSelectionPayload: buildSelectionPayload, openReference: loadChapter, parseReference };
+  function getContext() { return { book: state.book ? { ...state.book } : null, chapter: state.chapter, translation: state.translation ? { ...state.translation } : null, verses: state.verses.map(v => ({ ...v })) }; }
+  window.ADPELBible = { getSelectionPayload: buildSelectionPayload, openReference: loadChapter, parseReference, getContext,
+    noteForVerse: (number) => { clearSelection(); selectVerse(Number(number)); return openNote(); }
+  };
   if (typeof module !== 'undefined' && module.exports) module.exports = { normalize, parseReference, makeReferenceLabel, clampFontSize, buildSelectionPayload, isTutorVerseCountAllowed };
   if (typeof document !== 'undefined') document.addEventListener('DOMContentLoaded', init);
 })();
