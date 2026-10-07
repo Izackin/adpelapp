@@ -61,4 +61,4 @@ Reexecuções da mesma revisão são idempotentes. Uma atualização para outra 
 - Editor em DOM com gravação simulada: edição de rascunho, publicação explícita, preservação de assistência por IA e escape de conteúdo.
 - Consultas reais sob papéis `anon` e `authenticated`: leitura pública, nenhuma escrita linguística e recusa de comentário por usuário sem master.
 - A suíte geral passou em 18 de 19 arquivos. O teste de cursos pagos falha em `status: 'active'` também no checkout anterior, sem relação com esta entrega.
-- A instalação do navegador de teste foi impedida pelo ambiente. O teste DOM verifica o fluxo, mas não substitui a inspeção visual no navegador/dispositivo. O CSS inclui layout flexível, alvos de toque, diálogo rolável e regras para telas pequenas; a inspeção visual permanece pendente.
+- A prévia publicada no Netlify foi conferida visualmente em Chrome: leitura, interlinear hebraico, léxico, morfologia e concordância carregaram com dados reais; o diálogo permaneceu legível e rolável. O CSS inclui layout flexível, alvos de toque e regras para telas pequenas. A conferência em aparelho móvel e a gravação editorial em uma sessão master não foram realizadas.
