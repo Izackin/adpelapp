@@ -73,6 +73,7 @@ Ajudar igrejas a discipular, informar, engajar e servir seus membros por meio de
 |   |-- agenda.js                    # Agenda/eventos publicos
 |   |-- app-updates.js               # Novidades e atualizacoes do app
 |   |-- bible.js                     # Biblia 2.0 compartilhada: leitura, busca e estudo pessoal
+|   |-- bible-study.js               # Originais, interlinear, Strong, morfologia e concordancia
 |   |-- tutor.js                     # Tutor Teologico: perguntas autenticadas, fontes e contexto biblico
 |   |-- bootstrap.js                 # Helpers globais iniciais
 |   |-- certificates.js              # Certificados publicos
@@ -195,6 +196,13 @@ Tabelas e views identificadas:
 - `home_sections`
 - `bible_verses`
 - `bible_books`
+- `bible_study_sources`
+- `bible_original_verses`
+- `bible_original_tokens`
+- `bible_lexicon_entries`
+- `bible_morphology_codes`
+- `bible_cross_references`
+- `bible_commentaries`
 - `bible_translations`
 - `bible_highlights`
 - `bible_notes`
@@ -282,6 +290,8 @@ O fluxo atual e:
 - Arquitetura biblica multiversao com livros canonicos, seletor e metadados de direitos.
 - Selecao de versiculo/intervalo, destaques, notas privadas, favoritos e compartilhamento.
 - Progresso explicito de leitura, continuacao e preferencia de tamanho de fonte por usuario.
+- Modo Estudo nas duas telas da Biblia, com idiomas originais clicaveis, Strong, interlinear, morfologia e concordancia paginada.
+- Comentarios publicados por referencia e editor de rascunhos exclusivo do master (`admin/crud-bible-study.js`).
 - Harpa Crista em `harpa.html`.
 - Busca de hinos por numero, titulo ou trecho.
 - Cache local da Harpa.
@@ -755,3 +765,11 @@ Nao altere sem necessidade e sem entender impacto:
 - Manter o projeto organizado.
 - Documentar qualquer funcionalidade nova criada.
 - Atualizar este `AGENTS.md` sempre que a arquitetura mudar.
+
+## Motor de estudo biblico
+
+`js/bible.js` emite `adpel:bible-chapter` e expoe `getContext()` e `noteForVerse()` na facade `ADPELBible`. `js/bible-study.js` carrega dados somente ao ativar Estudo, descarta respostas antigas, reutiliza notas privadas e usa dialog nativo para palavras. Os atributos de navegacao do estudo usam `data-study-*` para nao conflitar com os eventos da leitura.
+
+Fontes linguisticas sao globais e somente leitura no navegador. Comentarios locais usam `source_code = adpel-editorial`; somente `is_admin_master()` pode escrever e ler rascunhos. O projeto atual e de uma igreja: adicionar escopo de tenant aos comentarios e policies antes da oferta multi-igrejas. Nao liberar escrita global a pastores/lideres sem um modelo de autorizacao por igreja.
+
+Confira `docs/bible-study.md` para cobertura, licencas especificas, limitacoes de versificacao, importacao reproduzivel e verificacoes. Nao importar a coluna Meaning do TBESH. Nunca associar palavras portuguesas aos originais pela posicao. Pacotes e lotes SQL ficam fora do Git.
