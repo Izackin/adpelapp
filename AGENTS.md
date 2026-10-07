@@ -770,6 +770,8 @@ Nao altere sem necessidade e sem entender impacto:
 
 `js/bible.js` emite `adpel:bible-chapter` e expoe `getContext()` e `noteForVerse()` na facade `ADPELBible`. `js/bible-study.js` carrega dados somente ao ativar Estudo, descarta respostas antigas, reutiliza notas privadas e usa dialog nativo para palavras. Os atributos de navegacao do estudo usam `data-study-*` para nao conflitar com os eventos da leitura.
 
+O Estudo comeca na aba Passagem, com versiculos vizinhos reais do capitulo. Palavras exibe uma frase continua no idioma original; o dialog mostra a passagem antes dos sentidos e recolhe os detalhes tecnicos. Na classe `bible-study-enabled`, o seletor de capitulo substitui a grade e Opcoes de leitura revela os controles extras. `bible-study-active` oculta a duplicacao do capitulo somente enquanto o Estudo esta ativo. Conferir larguras de 320/390px e desktop, navegacao entre versiculos/palavras, retorno a Leitura e ausencia de overflow antes de publicar mudancas neste fluxo.
+
 Fontes linguisticas sao globais e somente leitura no navegador. Comentarios locais usam `source_code = adpel-editorial`; somente `is_admin_master()` pode escrever e ler rascunhos. O projeto atual e de uma igreja: adicionar escopo de tenant aos comentarios e policies antes da oferta multi-igrejas. Nao liberar escrita global a pastores/lideres sem um modelo de autorizacao por igreja.
 
 Confira `docs/bible-study.md` para cobertura, licencas especificas, limitacoes de versificacao, importacao reproduzivel e verificacoes. Nao importar a coluna Meaning do TBESH. Nunca associar palavras portuguesas aos originais pela posicao. Pacotes e lotes SQL ficam fora do Git.

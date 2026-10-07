@@ -1,6 +1,10 @@
 # Modo Estudo — Bíblia ADPEL
 
-Nas duas telas (`index.html` e `bible.html`), abra Bíblia → Estudo. Escolha o versículo e toque numa palavra original. O painel apresenta lema quando disponível, transliteração, Strong tradicional e identificador STEP, glossa, morfologia e ocorrências paginadas. A nota pessoal reutiliza a autenticação e o RLS de `bible_notes`. Leitura continua como modo inicial.
+Nas duas telas (`index.html` e `bible.html`), abra Bíblia → Estudo. A aba inicial **Passagem** mostra o versículo em destaque com até dois versículos anteriores e dois seguintes, conforme o capítulo carregado. Toque em um vizinho ou use as setas para mudar o foco. **Palavras** apresenta o original como uma frase contínua, com palavras tocáveis. No painel da palavra, a passagem portuguesa aparece antes dos sentidos possíveis; gramática, Strong e definições extensas ficam em detalhes expansíveis. A pronúncia aproximada e a navegação entre palavras não associam artificialmente palavras portuguesas aos originais.
+
+O estudo usa um seletor compacto de capítulo e mantém busca, tradução, tamanho da fonte e recursos pessoais em **Opções de leitura**. Ao retornar à Leitura, todos os controles e o capítulo reaparecem. Comentários e referências permanecem acessíveis. A nota pessoal reutiliza a autenticação e o RLS de `bible_notes`. Leitura continua como modo inicial.
+
+O hebraico e o aramaico usam Noto Serif Hebrew, embutida no CSS da aplicação, para preservar vogais e acentos mesmo em aparelhos sem uma fonte bíblica compatível. A licença SIL OFL está em `assets/fonts/OFL-noto-serif-hebrew.txt`.
 
 ## Acervo carregado em 7 de outubro de 2026
 
@@ -15,7 +19,7 @@ Nas duas telas (`index.html` e `bible.html`), abra Bíblia → Estudo. Escolha o
 | Referências temáticas editoriais | 16 |
 | Comentários introdutórios em rascunho | 4 |
 
-O relatório por livro está em `bible-study-import-report.json`. As 31.177 referências seguem a fonte, incluindo títulos de salmos numerados como 0 e numeração que difere das traduções. Essa contagem não equivale à contagem canônica de versículos da ACF. As ocorrências contam usos individuais, podendo repetir um versículo; agrupam sentidos do Strong tradicional, com paginação de 25 resultados.
+O relatório por livro está em `bible-study-import-report.json`. As 31.177 referências seguem a fonte, incluindo títulos de salmos numerados como 0 e numeração que difere das traduções. Essa contagem não equivale à contagem canônica de versículos da ACF. As ocorrências contam usos individuais, podendo repetir um versículo; agrupam sentidos do Strong tradicional, com paginação de 10 resultados. Quando a tradução selecionada é local, os resultados incluem trechos portugueses da mesma referência, sem alinhamento lexical nem inferência de equivalência entre numerações. A ausência de um trecho não impede a navegação.
 
 ## Fontes e tratamento do texto
 
@@ -56,6 +60,7 @@ Reexecuções da mesma revisão são idempotentes. Uma atualização para outra 
 
 ## Verificação da entrega
 
+- Revisão mobile: Chromium em larguras de 320, 390, 768 e 1280px, com eventos de toque nas duas menores. Verificados contexto inicial, mudança de foco, hebraico/grego, passagem acima do significado, detalhes recolhidos, alvos de toque de 44px, paginação das ocorrências, opções de leitura e retorno ao capítulo sem overflow horizontal. O teste opcional `tests/browser/bible-study-mobile.mjs` usa SDK real com respostas determinísticas de dados públicos capturados em 7/10/2026; `ADPEL_TEST_LIVE=1` usa a conexão real. Isso não substitui teste em aparelho físico.
 - Testes do importador: seleção sem variantes misturadas, Strong normalizado, raiz/prefixos, idioma aramaico, títulos de salmos, referências concatenadas, exclusão da definição restrita, preservação de glossas com sinais editoriais e morfologia.
 - Fluxo DOM com SDK real e chave pública: leitura, interlinear hebraico/grego, transição hebraico/aramaico, título de salmo, referência exclusiva da fonte, léxico, morfologia, concordância com próxima página, privacidade de rascunhos, referências e retorno à leitura.
 - Editor em DOM com gravação simulada: edição de rascunho, publicação explícita, preservação de assistência por IA e escape de conteúdo.

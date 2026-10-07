@@ -131,6 +131,7 @@
   function applyFontSize() {
     const content = $('bible-verses-content');
     if (content) content.style.setProperty('--bible-font-size', `${clampFontSize(state.preferences.font_size)}px`);
+    $('bible-reader')?.style.setProperty('--bible-font-size', `${clampFontSize(state.preferences.font_size)}px`);
     const label = $('bible-font-size-label');
     if (label) label.textContent = `${clampFontSize(state.preferences.font_size)}px`;
   }
