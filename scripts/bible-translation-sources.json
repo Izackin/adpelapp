@@ -42,5 +42,27 @@
     "expected_references": 31102,
     "classification": "B",
     "production_ready": false
+  },
+  "almeida1911": {
+    "code": "almeida1911",
+    "name": "Almeida Revista e Corrigida — edição histórica de 1911",
+    "short_name": "ALM1911",
+    "language": "pt-PT",
+    "provider": "Project Gutenberg / João Ferreira de Almeida",
+    "source_type": "local",
+    "license_type": "Domínio público nos EUA declarado pela fonte; revisão de uso no Brasil pendente",
+    "copyright_notice": "A Biblia Sagrada, Contendo o Velho e o Novo Testamento. João Ferreira d’Almeida. Edição revista e corrigida, Lisboa, 1911. Project Gutenberg eBook #62383. O catálogo declara domínio público nos EUA; essa declaração não constitui autorização mundial.",
+    "attribution": "Digitalização: Júlio Reis, abi278, Sergio Queiroz e Online Distributed Proofreading Team (www.pgdp.net); imagens de Faithofgod.net. Fonte: Project Gutenberg #62383, atualização de 18/10/2024. ADPEL preserva palavras, ortografia e referências da edição digital; remove apenas chamadas de notas, números de página e marcação de apresentação. As notas e alternativas editoriais permanecem na fonte original e não entram na coluna de texto canônico. Nenhuma modernização ou reconstrução por IA.",
+    "source_url": "https://www.gutenberg.org/ebooks/62383",
+    "download_url": "https://www.gutenberg.org/cache/epub/62383/pg62383-images.html",
+    "source_version": "Lisboa 1911; Gutenberg #62383, atualizado em 2024-10-18",
+    "obtained_at": "2026-10-07",
+    "sha256": "f64749fa0f198d13a3eeeed6ee41234b890bc1db1ae141bff8a46588a5e032c8",
+    "format": "gutenberg-html",
+    "expected_books": 66,
+    "expected_chapters": 1189,
+    "expected_references": 31104,
+    "classification": "C",
+    "production_ready": false
   }
 }

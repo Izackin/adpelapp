@@ -32,6 +32,8 @@ Downloads ou textos encontrados na internet nunca devem ser ativados só pelo no
 
 O importador lê JSON canônico legado ou diretórios USFM. Remove notas, referências cruzadas e headings editoriais; preserva texto de parágrafos, poesia, listas e marcadores de ênfase. Ele interrompe diante de marcador desconhecido ou versificação composta não suportada, em vez de perder palavras silenciosamente. Valida metadados, UTF-8, catálogo, ordem lógica, capítulos, referências, duplicatas, vazios, encoding, HTML/USFM residual, checksum e dez capítulos-amostra. A carga é reexecutável e para em conflito textual inesperado.
 
+Para a candidata Almeida 1911, `scripts/convert-almeida1911.mjs` converte o HTML histórico fixado no manifesto para esse JSON canônico. A fonte tem 66 livros, 1.189 capítulos e 31.104 referências; permanece classe C/inativa até revisão editorial e de uso no Brasil. Particularidades e comandos estão em `docs/bible-translations.md`. O conversor e sua preparação não modificam o banco nem o leitor.
+
 ## Dados pessoais e progresso
 
 `bible_highlights`, `bible_notes`, `bible_bookmarks`, `bible_reading_progress`, `bible_completed_books` e `user_bible_preferences` usam RLS por `auth.uid() = user_id`. Não existe bypass para master. Visitantes só leem conteúdo bíblico ativo e guardam tamanho de fonte/última posição localmente.

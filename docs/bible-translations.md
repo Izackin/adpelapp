@@ -10,7 +10,7 @@ Pesquisa e validação concluídas em 2026-09-24. A classificação mede licenç
 | — | Bíblia Portuguesa Mundial | B / não importada | eBible `porbrbsl`; domínio público | Completa, mas pacote muda durante 2026 | não fixado | Não | A fonte a declara explicitamente rascunho ainda em revisão; não é candidata a produção nesta etapa. |
 | — | Tradução para Tradutores (TfTP) | D / incompleta | eBible `portft`; CC BY-SA 4.0 | 27 livros; 260 capítulos; 7.899 referências | `21e846c62f53ce501f7adaa4571023a8d2bb8828915081dcc7451e323be2bf2a` | Não | Pacote contém somente o Novo Testamento; não atende ao catálogo completo solicitado. |
 | — | Bíblia Livre Para Todos | D / incompleta | eBible `porblt`; CC BY-SA 4.0 | Novo Testamento | não baixado | Não | Fonte legal, porém incompleta para o catálogo protestante de 66 livros. |
-| — | Almeida 1911 | C / pendente | Project Gutenberg #62383; declarado domínio público nos EUA | HTML/texto de edição histórica | não fixado | Não | O Gutenberg limita sua declaração jurídica aos EUA; faltam fechamento de jurisdição aplicável e conversor determinístico auditado que preserve ortografia, notas e numeração. |
+| `almeida1911` | Almeida 1911 | C / preparada para revisão | Project Gutenberg #62383; declarado domínio público nos EUA | HTML histórico convertido e validado em 2026-10-07: 66 livros; 1.189 capítulos; 31.104 referências | `f64749fa0f198d13a3eeeed6ee41234b890bc1db1ae141bff8a46588a5e032c8` | Não | Conversor determinístico implementado; fonte, ortografia e numeração preservadas. Revisão editorial e de uso no Brasil pendentes. Não importada/ativada por esta alteração. |
 | — | Tradução Brasileira | C / pendente | Não localizada fonte primária redistribuível com licença inequívoca | não validado | — | Não | Sem proveniência e licença primárias suficientes para importação. |
 | — | JFAAL | C / pendente | Repositório do autor | JSON; revisão apoiada por GPT-4 | não fixado | Não | README atribui CC BY 3.0 BR ao texto, enquanto `LICENSE` aplica MIT ao repositório; escopo jurídico e revisão editorial precisam ser esclarecidos. |
 | — | NAA, NVI, ARA/ARC modernas, NTLH, NVT, NBV comercial, KJA e similares | D / protegidas | Editoras e licenciantes respectivos | não obtido | — | Não | Nenhuma autorização específica de redistribuição foi apresentada. |
@@ -38,3 +38,26 @@ Os hashes acima identificam exatamente os pacotes obtidos. `scripts/bible-transl
 5. Rode validator, checksum, dez capítulos-amostra e geração de lotes.
 6. Importe inativa e verifique contagens, conflitos, RLS, seletor, busca, preferência e recursos pessoais.
 7. Ative somente após classe A e aprovação editorial. NAA, NVI, NVT, ARA e outras versões protegidas exigem autorização específica antes desse processo.
+
+## Almeida 1911: preparação de 2026-10-07
+
+O adapter `scripts/convert-almeida1911.mjs` aceita somente o HTML fixado pelo hash no manifesto. Usa IDs do Gutenberg para as referências e o catálogo existente para os nomes dos livros. Preserva palavras, pontuação e ortografia histórica; normaliza espaços e remove apresentação, chamadas de notas e números de página. As notas completas e alternativas continuam disponíveis no HTML original. Não é um conversor genérico de HTML.
+
+Particularidades verificadas na fonte:
+
+- O primeiro número destacado de cada capítulo é o número do capítulo, não o do versículo.
+- As letras do acróstico em Lamentações são cabeçalhos editoriais antes da numeração; não entram no texto canônico.
+- `Mar4-34` imprime o número 31. O conversor usa a referência do próprio HTML (Marcos 4:34), preserva todas as palavras e registra a divergência no relatório.
+- Oseias 11 possui uma lacuna de numeração na fonte. Ela permanece sem preenchimento ou empréstimo de outra tradução.
+- Dez capítulos de amostra possuem hashes de texto no relatório. Isso verifica integridade estrutural e reprodutibilidade; não substitui revisão editorial completa.
+
+Com o HTML baixado da `download_url` do manifesto, fora do Git:
+
+```bash
+node scripts/convert-almeida1911.mjs /caminho/pg62383-images.html /caminho/almeida1911.json
+node scripts/import-bible-translation.mjs --source /caminho/almeida1911.json --archive /caminho/pg62383-images.html --validate-only
+node scripts/import-bible-translation.mjs --source /caminho/almeida1911.json --archive /caminho/pg62383-images.html --sql-dir /caminho/almeida1911-sql
+node tests/almeida1911.test.mjs
+```
+
+O conversor recusa fonte de hash diferente e saída já existente. Os lotes registram a tradução inativa; não há `999-activate.sql`, pois a candidata permanece classe C. Eles usam a estrutura multiversão existente, sem DDL ou alteração da ACF. A execução e a verificação no banco ainda precisam ser feitas pelo operador com acesso administrativo.
