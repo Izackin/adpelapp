@@ -57,25 +57,52 @@
       .hymn-title { font-size: calc(1.3rem * var(--font-scale)); }
       .hymn-sheet { padding: 1.5rem 1.25rem; }
     }
+
+    /* Leitura contínua e favoritos da Harpa */
+    .hymn-index-item { display: flex; align-items: stretch; gap: .5rem; min-width: 0; }
+    .hymn-index-row { flex: 1; min-width: 0; -webkit-touch-callout: none; user-select: none; -webkit-user-select: none; }
+    .harpa-star-button { display: inline-flex; align-items: center; justify-content: center; width: 2.85rem; min-width: 2.85rem; min-height: 2.85rem; border-radius: .65rem; color: #94a3b8; border: 1px solid rgba(148,163,184,.24); background: rgba(15,23,42,.75); transition: color .15s, border-color .15s, background .15s; cursor: pointer; }
+    .harpa-star-button:hover, .harpa-star-button.is-favorite { color: #fbbf24; border-color: rgba(251,191,36,.48); background: rgba(217,119,6,.12); }
+    .harpa-star-button:focus-visible, .hymn-index-row:focus-visible, .harpa-hymn-nav button:focus-visible { outline: 2px solid #fbbf24; outline-offset: 3px; }
+    .harpa-filter-button { padding: .55rem .9rem; border-radius: .65rem; color: #94a3b8; background: rgba(30,41,59,.6); border: 1px solid rgba(148,163,184,.14); font-size: .85rem; font-weight: 600; cursor: pointer; }
+    .harpa-filter-button.is-active { color: #fef3c7; border-color: rgba(251,191,36,.5); background: rgba(217,119,6,.18); }
+    .harpa-hymn-nav { display: flex; align-items: center; justify-content: space-between; gap: .65rem; margin: 1rem 0 1.8rem; }
+    .harpa-hymn-nav button { display: inline-flex; align-items: center; justify-content: center; gap: .45rem; min-height: 2.85rem; padding: .65rem .85rem; border-radius: .7rem; border: 1px solid rgba(251,191,36,.35); background: rgba(217,119,6,.12); color: #fcd34d; font-size: .85rem; font-weight: 650; cursor: pointer; }
+    .harpa-hymn-nav button:hover:not(:disabled) { background: rgba(217,119,6,.22); }
+    .harpa-hymn-nav button:disabled { opacity: .35; cursor: not-allowed; }
+    .harpa-hymn-position { color: #94a3b8; font-size: .8rem; text-align: center; }
+    @media (max-width: 380px) {
+      .harpa-hymn-nav button { padding: .6rem; font-size: .76rem; }
+      .harpa-hymn-position { font-size: .72rem; }
+    }
   </style>
 </head>
 <body class="antialiased min-h-screen flex flex-col" data-app-context="word">
 
   <header class="bg-[#0f172a]/90 backdrop-blur border-b border-gray-800 sticky top-0 z-40 px-4 py-3 flex items-center justify-between">
     <div class="flex items-center gap-3">
-      <a href="index.html" class="text-gray-400 hover:text-white transition"><i class="fas fa-arrow-left"></i></a>
+      <button type="button" onclick="harpaPageBack()" class="text-gray-400 hover:text-white transition p-2 -ml-2" aria-label="Voltar à lista da Harpa ou à Palavra"><i class="fas fa-arrow-left" aria-hidden="true"></i></button>
       <h1 class="font-bold text-lg text-white tracking-wide">ADPEL <span class="text-yellow-500 font-serif">Harpa Cristã</span></h1>
     </div>
   </header>
 
   <main class="flex-1 p-4 md:p-8 max-w-6xl mx-auto w-full flex flex-col gap-6">
-    <div class="flex flex-col md:flex-row md:items-center justify-between gap-3 bg-[#0f172a]/60 p-5 rounded-xl border border-white/10 backdrop-blur-sm">
+    <div id="harpa-search-panel" class="flex flex-col md:flex-row md:items-center justify-between gap-3 bg-[#0f172a]/60 p-5 rounded-xl border border-white/10 backdrop-blur-sm">
       <div class="relative flex-1">
         <i class="fas fa-search absolute left-3 top-2.5 text-gray-500 text-xs"></i>
         <input type="text" id="harpa-search" placeholder="Buscar por número, título ou trecho..." class="pl-8 pr-3 py-2 bg-[#0f172a] border border-gray-700 rounded-lg text-sm text-white placeholder-gray-500 focus:ring-2 focus:ring-yellow-500 outline-none w-full" onkeydown="if(event.key==='Enter')searchHymns()">
       </div>
       <button onclick="searchHymns()" class="px-3 py-2 bg-yellow-600 hover:bg-yellow-700 text-white rounded-lg text-sm transition"><i class="fas fa-search"></i></button>
     </div>
+
+    <div id="harpa-list-controls" class="flex flex-wrap items-center justify-between gap-3">
+      <div class="flex gap-2" role="group" aria-label="Filtrar hinos">
+        <button type="button" id="harpa-filter-all" class="harpa-filter-button is-active" aria-pressed="true" onclick="setHarpFilter('all')"><i class="fas fa-list mr-1" aria-hidden="true"></i> Todos</button>
+        <button type="button" id="harpa-filter-favorites" class="harpa-filter-button" aria-pressed="false" onclick="setHarpFilter('favorites')"><i class="fas fa-star mr-1" aria-hidden="true"></i> Favoritos <span id="harpa-favorites-count">(0)</span></button>
+      </div>
+      <span class="text-xs text-gray-400">Segure um hino para favoritar.</span>
+    </div>
+    <div id="harpa-favorite-feedback" role="status" aria-live="polite" class="text-xs text-yellow-400 min-h-0"></div>
 
     <div id="harpa-loading" class="hidden flex flex-col items-center justify-center py-12">
       <div class="w-10 h-10 border-4 border-yellow-700 border-t-transparent rounded-full animate-spin mb-3"></div>
@@ -87,7 +114,7 @@
         <i class="fas fa-music text-2xl text-gray-500"></i>
       </div>
       <p class="text-gray-400 font-medium mb-1">Nenhum hino encontrado</p>
-      <p class="text-sm text-gray-500">Tente buscar por número, título ou trecho do hino.</p>
+      <p id="harpa-empty-desc" class="text-sm text-gray-500">Tente buscar por número, título ou trecho do hino.</p>
     </div>
 
     <div id="harpa-list-view" class="flex-1 flex flex-col gap-2">
@@ -101,6 +128,7 @@
             <i class="fas fa-arrow-left"></i> Voltar à lista
           </button>
           <div class="flex items-center gap-2">
+            <button id="harpa-detail-favorite" type="button" onclick="toggleCurrentHymnFavorite()" class="harpa-star-button" aria-label="Adicionar hino aos favoritos" aria-pressed="false" title="Favoritar hino"><i class="far fa-star" aria-hidden="true"></i></button>
             <button onclick="ajustarFonte(-0.1)" class="w-9 h-9 rounded-lg bg-gray-800 hover:bg-gray-700 text-yellow-500 border border-gray-700 flex items-center justify-center transition text-xs font-bold" title="Diminuir fonte">A-</button>
             <button onclick="ajustarFonte(0.1)" class="w-9 h-9 rounded-lg bg-gray-800 hover:bg-gray-700 text-yellow-500 border border-gray-700 flex items-center justify-center transition text-lg font-bold leading-none" title="Aumentar fonte">A+</button>
           </div>
@@ -111,9 +139,19 @@
           <h2 class="hymn-title" id="harpa-detail-title"></h2>
         </div>
 
+        <nav class="harpa-hymn-nav" aria-label="Navegação entre hinos">
+          <button type="button" id="harpa-prev-top" onclick="changeHymn(-1)" aria-label="Hino anterior"><i class="fas fa-chevron-left" aria-hidden="true"></i> Anterior</button>
+          <span id="harpa-hymn-position" class="harpa-hymn-position"></span>
+          <button type="button" id="harpa-next-top" onclick="changeHymn(1)" aria-label="Próximo hino">Próximo <i class="fas fa-chevron-right" aria-hidden="true"></i></button>
+        </nav>
+
         <div id="harpa-detail-coro" class="coro-box p-4 md:p-5 mb-6 hidden"></div>
 
         <div id="harpa-detail-verses"></div>
+        <nav class="harpa-hymn-nav" aria-label="Navegação entre hinos no fim da leitura">
+          <button type="button" id="harpa-prev-bottom" onclick="changeHymn(-1)" aria-label="Hino anterior"><i class="fas fa-chevron-left" aria-hidden="true"></i> Anterior</button>
+          <button type="button" id="harpa-next-bottom" onclick="changeHymn(1)" aria-label="Próximo hino">Próximo <i class="fas fa-chevron-right" aria-hidden="true"></i></button>
+        </nav>
       </div>
     </div>
   </main>
@@ -128,6 +166,16 @@
 
     let allHymns = [];
     let escalaFonteHino = 1;
+    const HARPA_FAVORITES_KEY = 'adpelHarpaFavorites_v1';
+    let harpFavorites = new Set();
+    let harpFilter = 'all';
+    let currentHymnId = null;
+    let harpListScrollY = 0;
+    let hasListHistoryEntry = false;
+    let pressTimer = null;
+    let pressData = null;
+    let suppressClickId = null;
+    let suppressClickUntil = 0;
 
     function ajustarFonte(delta) {
       escalaFonteHino = Math.max(0.8, Math.min(1.5, escalaFonteHino + delta));
@@ -309,33 +357,150 @@
       return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
     }
 
+
+    function loadHarpFavorites() {
+      try {
+        const values = JSON.parse(localStorage.getItem(HARPA_FAVORITES_KEY) || '[]');
+        harpFavorites = new Set(Array.isArray(values) ? values.map(String) : []);
+      } catch (error) {
+        console.warn('[Harpa] Não foi possível ler os favoritos:', error);
+        harpFavorites = new Set();
+      }
+    }
+
+    function persistHarpFavorites() {
+      try {
+        localStorage.setItem(HARPA_FAVORITES_KEY, JSON.stringify([...harpFavorites]));
+      } catch (error) {
+        console.warn('[Harpa] Não foi possível salvar os favoritos:', error);
+      }
+    }
+
+    function isHarpFavorite(id) {
+      return harpFavorites.has(String(id));
+    }
+
+    function updateHarpFilterButtons() {
+      for (const mode of ['all', 'favorites']) {
+        const button = document.getElementById('harpa-filter-' + mode);
+        if (!button) continue;
+        const active = harpFilter === mode;
+        button.classList.toggle('is-active', active);
+        button.setAttribute('aria-pressed', String(active));
+      }
+      const count = document.getElementById('harpa-favorites-count');
+      if (count) count.textContent = '(' + allHymns.filter(h => isHarpFavorite(h.id)).length + ')';
+    }
+
     function renderHymnList(list, highlightTerm) {
       const container = document.getElementById('harpa-results');
       if (!container) return;
-
-      if (!list || !list.length) {
+      updateHarpFilterButtons();
+      const visible = harpFilter === 'favorites'
+        ? (list || []).filter(h => isHarpFavorite(h.id))
+        : (list || []);
+      if (!visible.length) {
         container.innerHTML = '';
+        const empty = document.getElementById('harpa-empty-desc');
+        if (empty) empty.textContent = harpFilter === 'favorites'
+          ? 'Nenhum favorito encontrado. Segure um hino na lista Todos ou toque na estrela para favoritar.'
+          : 'Tente buscar por número, título ou trecho do hino.';
         showEmpty(true);
         return;
       }
 
       showEmpty(false);
-
-      container.innerHTML = list.map(h => {
+      container.innerHTML = visible.map(h => {
         const titulo = sanitizeHymnText(h.hino || 'Hino sem título').trim();
-        const coroPreview = sanitizeHymnText(h.coro || '').trim();
         let titleHtml = escapeHtml(titulo);
         if (highlightTerm) {
           const re = new RegExp('(' + escapeRegExp(highlightTerm) + ')', 'gi');
           titleHtml = titleHtml.replace(re, '<mark>$1</mark>');
         }
-        return '<button onclick="openHymn(\'' + escapeHtml(h.id) + '\')" class="hymn-index-row" type="button">' +
-          '<span class="hymn-index-num">' + escapeHtml(h.id) + '</span>' +
-          '<span class="hymn-index-title">' + titleHtml + '</span>' +
-          '<i class="fas fa-chevron-right text-gray-500 text-xs ml-2"></i>' +
-          '</button>';
+        const id = escapeHtml(h.id);
+        const favorite = isHarpFavorite(h.id);
+        const favoriteLabel = (favorite ? 'Remover hino ' : 'Favoritar hino ') + id;
+        return '<div class="hymn-index-item">' +
+          '<button type="button" class="hymn-index-row" data-hymn-id="' + id + '" aria-label="Abrir hino ' + id + ': ' + escapeHtml(titulo) + '">' +
+            '<span class="hymn-index-num">' + id + '</span>' +
+            '<span class="hymn-index-title">' + titleHtml + '</span>' +
+            '<i class="fas fa-chevron-right text-gray-500 text-xs ml-2" aria-hidden="true"></i>' +
+          '</button>' +
+          '<button type="button" class="harpa-star-button' + (favorite ? ' is-favorite' : '') +
+            '" data-favorite-id="' + id + '" aria-pressed="' + String(favorite) + '" aria-label="' + favoriteLabel + '" title="' + favoriteLabel + '">' +
+            '<i class="' + (favorite ? 'fas' : 'far') + ' fa-star" aria-hidden="true"></i>' +
+          '</button></div>';
       }).join('');
     }
+
+    function refreshHarpList() {
+      const input = document.getElementById('harpa-search');
+      const term = input ? input.value.trim() : '';
+      renderHymnList(buscarHinos(allHymns, term), term);
+    }
+
+    function setHarpFilter(mode) {
+      if (mode !== 'all' && mode !== 'favorites') return;
+      harpFilter = mode;
+      refreshHarpList();
+      window.scrollTo({ top: 0, behavior: 'auto' });
+    }
+
+    function updateDetailFavorite() {
+      const button = document.getElementById('harpa-detail-favorite');
+      if (!button || !currentHymnId) return;
+      const favorite = isHarpFavorite(currentHymnId);
+      const label = (favorite ? 'Remover hino ' : 'Favoritar hino ') + currentHymnId;
+      button.classList.toggle('is-favorite', favorite);
+      button.setAttribute('aria-pressed', String(favorite));
+      button.setAttribute('aria-label', label);
+      button.title = label;
+      button.innerHTML = '<i class="' + (favorite ? 'fas' : 'far') + ' fa-star" aria-hidden="true"></i>';
+    }
+
+    function toggleHarpFavorite(id) {
+      id = String(id);
+      if (!allHymns.some(h => h.id === id)) return;
+      if (harpFavorites.has(id)) harpFavorites.delete(id);
+      else harpFavorites.add(id);
+      persistHarpFavorites();
+      refreshHarpList();
+      updateDetailFavorite();
+      const feedback = document.getElementById('harpa-favorite-feedback');
+      if (feedback) feedback.textContent = 'Hino ' + id + (harpFavorites.has(id) ? ' adicionado aos favoritos.' : ' removido dos favoritos.');
+    }
+
+    function toggleCurrentHymnFavorite() {
+      if (currentHymnId) toggleHarpFavorite(currentHymnId);
+    }
+
+    function updateHarpNavigation() {
+      if (!currentHymnId) return;
+      const index = allHymns.findIndex(h => h.id === currentHymnId);
+      const prevDisabled = index <= 0;
+      const nextDisabled = index < 0 || index >= allHymns.length - 1;
+      ['harpa-prev-top', 'harpa-prev-bottom'].forEach(id => {
+        const button = document.getElementById(id);
+        if (button) button.disabled = prevDisabled;
+      });
+      ['harpa-next-top', 'harpa-next-bottom'].forEach(id => {
+        const button = document.getElementById(id);
+        if (button) button.disabled = nextDisabled;
+      });
+      const position = document.getElementById('harpa-hymn-position');
+      if (position) position.textContent = 'Hino ' + currentHymnId;
+      updateDetailFavorite();
+    }
+
+    function changeHymn(direction) {
+      if (!currentHymnId) return;
+      const index = allHymns.findIndex(h => h.id === currentHymnId);
+      const next = allHymns[index + (direction < 0 ? -1 : 1)];
+      if (index < 0 || !next) return;
+      // A troca pelas setas não empilha entradas: Voltar retorna à lista.
+      openHymn(next.id, { historyMode: 'replace' });
+    }
+
 
     function buscarHinos(hinos, busca) {
       busca = busca.toLowerCase().trim();
@@ -351,23 +516,20 @@
       });
     }
 
+
     function searchHymns() {
       const input = document.getElementById('harpa-search');
       const term = input ? input.value.trim() : '';
-      if (!term) {
-        renderHymnList(allHymns);
-        return;
-      }
-
       const results = buscarHinos(allHymns, term);
       renderHymnList(results, term);
-
-      if (/^\d+$/.test(term) && results.length === 1) {
-        openHymn(results[0].id);
-      }
+      const visible = harpFilter === 'favorites' ? results.filter(h => isHarpFavorite(h.id)) : results;
+      if (/^\d+$/.test(term) && visible.length === 1) openHymn(visible[0].id);
     }
 
-    function openHymn(id) {
+
+    function openHymn(id, options) {
+      id = String(id);
+      const historyMode = options && options.historyMode ? options.historyMode : 'push';
       const hymn = allHymns.find(h => h.id === id);
       if (!hymn) {
         console.warn('Hino não encontrado para id:', id);
@@ -380,11 +542,28 @@
         return;
       }
 
+      if (!currentHymnId) harpListScrollY = window.scrollY;
+      currentHymnId = id;
+
+      if (historyMode === 'push') {
+        history.pushState({ harpaView: 'detail', id: id }, '', '#hino=' + encodeURIComponent(id));
+        hasListHistoryEntry = true;
+      } else if (historyMode === 'replace') {
+        history.replaceState({ harpaView: 'detail', id: id }, '', '#hino=' + encodeURIComponent(id));
+      }
+
       const listView = document.getElementById('harpa-list-view');
       const detailView = document.getElementById('harpa-detail-view');
+      const searchPanel = document.getElementById('harpa-search-panel');
+      const controls = document.getElementById('harpa-list-controls');
+      const feedback = document.getElementById('harpa-favorite-feedback');
       if (listView) listView.classList.add('hidden');
+      if (searchPanel) searchPanel.classList.add('hidden');
+      if (controls) controls.classList.add('hidden');
+      if (feedback) feedback.classList.add('hidden');
       if (detailView) detailView.classList.remove('hidden');
-      window.scrollTo({ top: 0, behavior: 'smooth' });
+      updateHarpNavigation();
+      window.scrollTo({ top: 0, behavior: 'auto' });
 
       const numEl = document.getElementById('harpa-detail-number');
       const titleEl = document.getElementById('harpa-detail-title');
@@ -431,20 +610,134 @@
       }
     }
 
-    function backToList() {
+
+    function showHarpList() {
+      currentHymnId = null;
       const listView = document.getElementById('harpa-list-view');
       const detailView = document.getElementById('harpa-detail-view');
+      const searchPanel = document.getElementById('harpa-search-panel');
+      const controls = document.getElementById('harpa-list-controls');
+      const feedback = document.getElementById('harpa-favorite-feedback');
       if (listView) listView.classList.remove('hidden');
       if (detailView) detailView.classList.add('hidden');
-      window.scrollTo({ top: 0, behavior: 'smooth' });
+      if (searchPanel) searchPanel.classList.remove('hidden');
+      if (controls) controls.classList.remove('hidden');
+      if (feedback) feedback.classList.remove('hidden');
+      // Mantém a pesquisa e devolve o leitor ao ponto anterior na lista.
+      requestAnimationFrame(() => {
+        window.scrollTo({ top: harpListScrollY, behavior: 'auto' });
+      });
+    }
+
+    function backToList() {
+      if (!currentHymnId) return;
+      if (hasListHistoryEntry) {
+        hasListHistoryEntry = false;
+        history.back();
+      } else {
+        history.replaceState({ harpaView: 'list' }, '', location.pathname + location.search);
+        showHarpList();
+      }
+    }
+
+    function harpaPageBack() {
+      if (currentHymnId) {
+        backToList();
+      } else {
+        window.location.assign('index.html#word');
+      }
+    }
+
+    function handleHarpPopstate() {
+      const match = location.hash.match(/^#hino=([^&]+)/);
+      let id = null;
+      if (match) {
+        try { id = decodeURIComponent(match[1]); } catch (error) { id = null; }
+      }
+      if (id && allHymns.some(h => h.id === id)) {
+        openHymn(id, { historyMode: 'none' });
+      } else {
+        hasListHistoryEntry = false;
+        showHarpList();
+      }
+    }
+
+    function initHarpListInteractions() {
+      const results = document.getElementById('harpa-results');
+      if (!results) return;
+      const cancelLongPress = () => {
+        if (pressTimer) clearTimeout(pressTimer);
+        pressTimer = null;
+        pressData = null;
+      };
+
+      results.addEventListener('click', event => {
+        const star = event.target.closest('[data-favorite-id]');
+        if (star) {
+          toggleHarpFavorite(star.dataset.favoriteId);
+          return;
+        }
+        const row = event.target.closest('[data-hymn-id]');
+        if (!row) return;
+        const id = row.dataset.hymnId;
+        if (suppressClickId === id && Date.now() < suppressClickUntil) {
+          suppressClickId = null;
+          event.preventDefault();
+          return;
+        }
+        suppressClickId = null;
+        openHymn(id);
+      });
+
+      results.addEventListener('pointerdown', event => {
+        const row = event.target.closest('[data-hymn-id]');
+        if (!row || event.button !== 0) return;
+        cancelLongPress();
+        pressData = { id: row.dataset.hymnId, pointerId: event.pointerId, x: event.clientX, y: event.clientY };
+        pressTimer = setTimeout(() => {
+          if (!pressData) return;
+          const id = pressData.id;
+          suppressClickId = id;
+          suppressClickUntil = Date.now() + 900;
+          cancelLongPress();
+          toggleHarpFavorite(id);
+        }, 550);
+      });
+
+      results.addEventListener('pointermove', event => {
+        if (!pressData || event.pointerId !== pressData.pointerId) return;
+        if (Math.hypot(event.clientX - pressData.x, event.clientY - pressData.y) > 12) cancelLongPress();
+      });
+
+      ['pointerup', 'pointercancel', 'pointerleave'].forEach(type => {
+        results.addEventListener(type, cancelLongPress);
+      });
+      results.addEventListener('contextmenu', event => {
+        if (event.target.closest('[data-hymn-id]')) event.preventDefault();
+      });
+
+      document.addEventListener('keydown', event => {
+        if (!currentHymnId || event.altKey || event.ctrlKey || event.metaKey) return;
+        if (event.target && event.target.closest('input, textarea, [contenteditable="true"]')) return;
+        if (event.key === 'ArrowLeft') changeHymn(-1);
+        if (event.key === 'ArrowRight') changeHymn(1);
+      });
     }
 
     document.addEventListener('DOMContentLoaded', async function() {
+      loadHarpFavorites();
+      initHarpListInteractions();
+      window.addEventListener('popstate', handleHarpPopstate);
       showLoading(true);
-      allHymns = await carregarHarpa();
+      allHymns = (await carregarHarpa()).sort((a, b) =>
+        String(a.id).localeCompare(String(b.id), 'pt-BR', { numeric: true })
+      );
       showLoading(false);
-      renderHymnList(allHymns);
+      refreshHarpList();
+      if (location.hash.startsWith('#hino=')) handleHarpPopstate();
     });
+
+
   </script>
 </body>
 </html>
