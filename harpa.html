@@ -216,7 +216,8 @@
 
     function showEmpty(show) {
       const el = document.getElementById('harpa-empty');
-      if (el) el.classList.toggle('hidden', !show);
+      // O aviso de lista vazia não deve aparecer sobre a leitura de um hino.
+      if (el) el.classList.toggle('hidden', !show || Boolean(currentHymnId));
       const results = document.getElementById('harpa-results');
       if (results) results.classList.toggle('hidden', show);
     }
@@ -623,6 +624,7 @@
       if (searchPanel) searchPanel.classList.remove('hidden');
       if (controls) controls.classList.remove('hidden');
       if (feedback) feedback.classList.remove('hidden');
+      refreshHarpList();
       // Mantém a pesquisa e devolve o leitor ao ponto anterior na lista.
       requestAnimationFrame(() => {
         window.scrollTo({ top: harpListScrollY, behavior: 'auto' });
