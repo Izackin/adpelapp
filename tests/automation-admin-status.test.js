@@ -1,0 +1,31 @@
+const assert = require('node:assert/strict');
+const fs = require('node:fs');
+const path = require('node:path');
+const vm = require('node:vm');
+const source = fs.readFileSync(path.resolve(__dirname,'../admin-notifications.js'),'utf8');
+function node(){return {children:[],textContent:'',disabled:false,appendChild(n){this.children.push(n)},replaceChildren(){this.children=[]}}}
+const cards=node(),message=node(),button=node();
+const document={addEventListener(){},createElement:node,getElementById(id){return {'automation-status-cards':cards,'automation-status-message':message,'automation-refresh':button}[id]||null;}};
+const rows=[{automation_key:'events',scheduler_exists:true,active:false,opted_in:4,eligible_now:2,generated_total:0},{automation_key:'birthdays',scheduler_exists:true,active:true,opted_in:1,eligible_now:0,generated_total:3,last_run_at:'2026-11-25T12:00:00Z',last_run_status:'succeeded'}];
+let mode='ok',pending=[];
+const context={document,window:{supabaseClient:{rpc(name){assert.equal(name,'get_admin_automation_status');if(mode==='pending')return new Promise(resolve=>pending.push(resolve));return Promise.resolve(mode==='error'?{error:{message:'forbidden'}}:{data:rows});}}},console};
+vm.createContext(context);vm.runInContext(source,context);
+(async()=>{
+  await context.loadAdminAutomationStatus();
+  assert.equal(cards.children.length,2);
+  assert.equal(cards.children[0].children[1].textContent,'Pausada');
+  assert.equal(cards.children[1].children[1].textContent,'Ativa');
+  assert.ok(cards.children[0].children[2].textContent.includes('4'));
+  assert.ok(cards.children[1].children[5].textContent.includes('Concluída'));
+  assert.equal(button.disabled,false);
+  mode='pending';const old=context.loadAdminAutomationStatus();
+  mode='error';await context.loadAdminAutomationStatus();
+  assert.equal(cards.children.length,0);
+  assert.ok(message.textContent.includes('Não foi possível'));
+  pending[0]({data:rows});await old;
+  assert.equal(cards.children.length,0);
+  assert.equal(button.disabled,false);
+  mode='ok';await context.loadAdminAutomationStatus();
+  assert.equal(cards.children.length,2);
+  console.log('automation admin status: PASS');
+})().catch(e=>{console.error(e);process.exitCode=1;});

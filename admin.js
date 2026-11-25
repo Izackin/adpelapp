@@ -58,6 +58,9 @@ function adminNavigateTo(view) {
   if (target) {
     target.classList.remove('hidden');
   }
+  if (view === 'notifications' && typeof loadAdminAutomationStatus === 'function') {
+    loadAdminAutomationStatus();
+  }
   if (view === 'community' && typeof loadAdminCommunity === 'function') {
     loadAdminCommunity();
   }

@@ -1097,6 +1097,19 @@
           </div>
         </div>
 
+        <section class="bg-white rounded-xl shadow-sm border border-gray-200 p-4 md:p-6" aria-labelledby="automation-status-title">
+          <div class="flex flex-wrap items-center justify-between gap-3 mb-3">
+            <div>
+              <h3 id="automation-status-title" class="font-bold text-gray-800">Central de Automações</h3>
+              <p class="text-xs text-gray-500">Acompanhe agendamentos, adesão e notificações geradas. Somente consulta.</p>
+            </div>
+            <button type="button" id="automation-refresh" onclick="loadAdminAutomationStatus()" class="px-4 py-2 rounded-lg border border-gray-300 text-sm text-gray-700 min-h-[44px]"><i class="fas fa-sync-alt mr-1"></i> Atualizar</button>
+          </div>
+          <p id="automation-status-message" role="status" class="text-sm text-gray-500 mb-3">Abra esta seção para consultar.</p>
+          <div id="automation-status-cards" class="grid grid-cols-1 lg:grid-cols-2 gap-3"></div>
+          <p class="text-xs text-gray-500 mt-4">Geradas indica notificações internas, não confirmação de entrega push. Elegíveis nesta execução considera horário, limites e consentimento.</p>
+        </section>
+
         <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-4 md:p-6">
           <h3 class="font-bold text-gray-800 mb-4">Enviar Notificação</h3>
           <form id="notification-form" class="space-y-4">
