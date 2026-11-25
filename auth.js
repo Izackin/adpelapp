@@ -102,7 +102,11 @@ async function initAuth() {
   // Escutar mudanças de autenticação
   ADPEL.auth.onAuthStateChange(async (event, session) => {
     if (event === 'SIGNED_IN' && session) {
+      const previousUserId = currentUser && currentUser.id;
       currentUser = session.user;
+      if (previousUserId !== currentUser.id && typeof resetAppNotificationSession === 'function') {
+        resetAppNotificationSession(currentUser.id);
+      }
       try {
         currentProfile = await ADPEL.profile.getProfile();
         _profileCache = currentProfile;
