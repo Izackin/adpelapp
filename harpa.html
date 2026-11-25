@@ -295,57 +295,52 @@
       return hino;
     }
 
-    async function carregarHarpa() {
+    function readHarpaCache() {
       try {
-        let hinos = [];
-        const cache = localStorage.getItem(CACHE_KEY);
-        const cacheTime = localStorage.getItem(CACHE_TIME_KEY);
-        const agora = Date.now();
-
-        if (cache && cacheTime && (agora - Number(cacheTime) < CACHE_TTL)) {
-          console.log('[Harpa] Usando cache local');
-          hinos = JSON.parse(cache);
-        } else {
-          console.log('[Harpa] Baixando do Storage...');
-          const response = await fetch(HARPA_URL);
-          if (!response.ok) throw new Error('HTTP ' + response.status);
-          const data = await response.json();
-
-          console.log('[Harpa] Tipo do JSON:', Array.isArray(data) ? 'array' : typeof data);
-          if (!Array.isArray(data) && typeof data === 'object') {
-            console.log('[Harpa] Primeiras chaves:', Object.keys(data).slice(0, 10));
-          }
-
-          let entries = [];
-          if (Array.isArray(data)) {
-            entries = data.map((item, idx) => [String(idx + 1), item]);
-          } else if (data && typeof data === 'object') {
-            entries = Object.entries(data).filter(([key]) => key !== '-1' && key !== 'meta');
-          }
-
-          hinos = entries.map(([id, raw]) => normalizarHino(raw, id)).filter(h => {
-            const temTitulo = (h.hino || '').trim().length > 0;
-            const temVersos = Object.keys(h.verses).length > 0;
-            return temTitulo || temVersos;
-          });
-
-          console.log('[Harpa] Hinos carregados:', hinos.length);
-          if (hinos.length > 0) {
-            console.log('[Harpa] Exemplo do primeiro hino:', hinos[0]);
-          }
-
-          try {
-            localStorage.setItem(CACHE_KEY, JSON.stringify(hinos));
-            localStorage.setItem(CACHE_TIME_KEY, String(agora));
-          } catch (e) {
-            console.warn('[Harpa] Cache localStorage falhou:', e);
-          }
-        }
-
-        return hinos;
+        const raw = localStorage.getItem(CACHE_KEY);
+        const time = Number(localStorage.getItem(CACHE_TIME_KEY));
+        const hymns = raw ? JSON.parse(raw) : null;
+        if (!Array.isArray(hymns) || !hymns.length || !hymns.every(h =>
+          h && typeof h.id === 'string' && typeof h.hino === 'string' &&
+          h.verses && typeof h.verses === 'object' && !Array.isArray(h.verses))) return null;
+        const age = Date.now() - time;
+        return { hymns, fresh: Number.isFinite(time) && time > 0 && age >= 0 && age < CACHE_TTL };
       } catch (error) {
-        console.error('[Harpa] Erro ao carregar:', error);
-        return [];
+        console.warn('[Harpa] Cache indisponível:', error);
+        return null;
+      }
+    }
+
+    async function carregarHarpa() {
+      const cached = readHarpaCache();
+      if (cached?.fresh) return cached.hymns;
+      try {
+        const response = await fetch(HARPA_URL);
+        if (!response.ok) throw new Error('HTTP ' + response.status);
+        const data = await response.json();
+        let entries = [];
+        if (Array.isArray(data)) {
+          entries = data.map((item, idx) => [String(idx + 1), item]);
+        } else if (data && typeof data === 'object') {
+          entries = Object.entries(data).filter(([key]) => key !== '-1' && key !== 'meta');
+        }
+        const hymns = entries.map(([id, raw]) => normalizarHino(raw, id)).filter(h => {
+          const temTitulo = (h.hino || '').trim().length > 0;
+          const temVersos = Object.keys(h.verses).length > 0;
+          return temTitulo || temVersos;
+        });
+        if (!hymns.length) throw new Error('Catálogo de hinos vazio.');
+        try {
+          localStorage.setItem(CACHE_KEY, JSON.stringify(hymns));
+          localStorage.setItem(CACHE_TIME_KEY, String(Date.now()));
+        } catch (error) {
+          console.warn('[Harpa] Cache localStorage falhou:', error);
+        }
+        return hymns;
+      } catch (error) {
+        console.warn('[Harpa] Atualização indisponível:', error);
+        // Preserve a usable public catalog without extending its freshness.
+        return cached ? cached.hymns : [];
       }
     }
 
