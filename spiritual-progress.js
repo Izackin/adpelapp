@@ -348,68 +348,19 @@
   }
 
   async function getRanking() {
-    if (!window.supabaseClient || progressTableUnavailable) return [];
+    if (!window.supabaseClient) return [];
     try {
       var result = await window.supabaseClient
-        .from('spiritual_progress')
-        .select('*')
+        .from('public_spiritual_ranking')
+        .select('user_id, user_name, avatar_url, xp, total_points, streak_days')
         .order('total_points', { ascending: false })
+        .order('user_id', { ascending: true })
         .limit(50);
       if (result.error) throw result.error;
-      var rows = (result.data || []).map(normalizeProgress);
-      var userIds = rows.map(function (item) { return item.user_id; }).filter(Boolean);
-      var profileMap = {};
-
-      if (userIds.length) {
-        try {
-          var profilesResult = await window.supabaseClient
-            .from('public_profiles')
-            .select('id, full_name, public_name, avatar_url, bio, ministry, show_public_profile, show_in_ranking')
-            .in('id', userIds);
-          if (profilesResult.error) throw profilesResult.error;
-          (profilesResult.data || []).forEach(function (profile) {
-            profileMap[profile.id] = profile;
-          });
-        } catch (profileError) {
-          var text = String(profileError && (profileError.message || profileError.details || profileError.code) || '').toLowerCase();
-          var missingProfileColumns = text.indexOf('public_name') !== -1 || text.indexOf('avatar_url') !== -1 || text.indexOf('bio') !== -1 || text.indexOf('ministry') !== -1 || text.indexOf('show_public_profile') !== -1 || text.indexOf('show_in_ranking') !== -1 || text.indexOf('42703') !== -1 || text.indexOf('pgrst204') !== -1;
-          if (missingProfileColumns) {
-            try {
-              var fallbackProfiles = await window.supabaseClient
-                .from('public_profiles')
-                .select('id, full_name')
-                .in('id', userIds);
-              if (!fallbackProfiles.error) {
-                (fallbackProfiles.data || []).forEach(function (profile) {
-                  profileMap[profile.id] = profile;
-                });
-              }
-            } catch (fallbackError) {
-              console.warn('[Minha Caminhada] Perfis indisponiveis para ranking:', fallbackError);
-            }
-          } else {
-            console.warn('[Minha Caminhada] Nao foi possivel enriquecer ranking com perfis:', profileError);
-          }
-        }
-      }
-
-      rankingCache = rows.map(function (item) {
-        var profile = profileMap[item.user_id] || {};
-        return Object.assign({}, item, {
-          public_name: profile.public_name || '',
-          avatar_url: profile.avatar_url || item.avatar || '',
-          bio: profile.bio || '',
-          ministry: profile.ministry || '',
-          show_public_profile: profile.show_public_profile,
-          show_in_ranking: profile.show_in_ranking,
-          user_name: profile.public_name || profile.full_name || item.user_name || 'Membro'
-        });
-      }).filter(function (item) {
-        return item.show_in_ranking !== false;
-      });
+      rankingCache = result.data || [];
       return rankingCache;
     } catch (error) {
-      if (isMissingTableError(error)) progressTableUnavailable = true;
+      rankingCache = [];
       console.error('[Minha Caminhada] Erro ao carregar ranking:', error);
       return [];
     }
