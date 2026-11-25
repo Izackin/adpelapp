@@ -78,7 +78,7 @@ async function carregarVersiculoDoDia() {
     );
     const { data, error } = await window.supabaseClient
       .from('verse_of_day')
-      .select('*')
+      .select('text, reference')
       .order('id');
 
     const textEl = document.getElementById('verse-text');
@@ -150,20 +150,26 @@ async function loadHomeData() {
   carregarVersiculoDoDia();
 
   try {
+    const userInfo = getCurrentUserInfo();
+    const initialUserId = userInfo.isLoggedIn ? userInfo.user?.id : null;
     const results = await Promise.allSettled([
       ADPEL.fetch.courses(),
       ADPEL.fetch.events(),
-      ADPEL.fetch.announcements()
+      ADPEL.fetch.announcements(),
+      userInfo.isLoggedIn ? getAllLessonProgress() : Promise.resolve([])
     ]);
     const courses = results[0].status === 'fulfilled' ? results[0].value : [];
     const events = results[1].status === 'fulfilled' ? results[1].value : [];
     const announcements = results[2].status === 'fulfilled' ? results[2].value : [];
 
     // Cursos em andamento
-    const userInfo = getCurrentUserInfo();
+    const currentUserInfo = getCurrentUserInfo();
+    const currentUserId = currentUserInfo.isLoggedIn ? currentUserInfo.user?.id : null;
+    // Never apply a previous session's progress after an authentication change.
+    const allProgress = initialUserId === currentUserId && initialUserId &&
+      results[3].status === 'fulfilled' ? results[3].value : [];
     let progressMap = {};
-    if (userInfo.isLoggedIn) {
-      const allProgress = await getAllLessonProgress();
+    if (Array.isArray(allProgress)) {
       allProgress.forEach(p => {
         if (!progressMap[p.course_id]) progressMap[p.course_id] = new Set();
         progressMap[p.course_id].add(p.lesson_index);
