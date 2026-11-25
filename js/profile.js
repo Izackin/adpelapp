@@ -595,10 +595,10 @@ async function loadPublicProfile(userId) {
     if (profileResult.error) throw profileResult.error;
 
     const progressResult = await window.supabaseClient
-      .from('spiritual_progress')
-      .select('*')
+      .from('public_spiritual_ranking')
+      .select('user_id, user_name, avatar_url, xp, total_points, streak_days')
       .eq('user_id', userId)
-      .single();
+      .maybeSingle();
 
     renderPublicProfile(profileResult.data || {}, progressResult.error ? null : progressResult.data);
   } catch (error) {
@@ -631,7 +631,7 @@ function renderPublicProfile(profile, progress) {
   const name = profile.public_name || profile.full_name || safeProgress.user_name || 'Membro';
   const avatar = safeImageUrl(profile.avatar_url || profile.photo_url || safeProgress.avatar || '');
   const level = publicProfileLevelInfo(safeProgress.xp);
-  const medals = publicProfileMedals(safeProgress);
+  const hasPublicProgress = Boolean(progress);
   const initials = String(name).trim().charAt(0).toUpperCase();
   const instagram = normalizeInstagram(profile.instagram || '');
 
@@ -644,15 +644,15 @@ function renderPublicProfile(profile, progress) {
             avatar ? '<img src="' + escapeHtml(avatar) + '" alt="' + escapeHtml(name) + '" class="w-full h-full object-cover">' : escapeHtml(initials),
           '</div>',
           '<h3 class="text-2xl font-bold mt-4">' + escapeHtml(name) + '</h3>',
-          '<p class="text-blue-100 text-sm mt-1">Nível ' + level.level + ' - ' + escapeHtml(level.title) + '</p>',
+          hasPublicProgress ? '<p class="text-blue-100 text-sm mt-1">Nível ' + level.level + ' - ' + escapeHtml(level.title) + '</p>' : '',
         '</div>',
       '</div>',
       '<div class="p-6 space-y-4">',
-        '<div class="grid grid-cols-3 gap-3 text-center">',
-          publicStat('XP', safeProgress.xp || 0),
-          publicStat('Pontos', safeProgress.total_points || 0),
-          publicStat('Sequência', (safeProgress.streak_days || 0) + 'd'),
-        '</div>',
+        hasPublicProgress ? '<div class="grid grid-cols-3 gap-3 text-center">' +
+          publicStat('XP', safeProgress.xp || 0) +
+          publicStat('Pontos', safeProgress.total_points || 0) +
+          publicStat('Sequência', (safeProgress.streak_days || 0) + 'd') +
+        '</div>' : '',
         profile.bio ? '<div class="bg-gray-50 rounded-xl p-4"><p class="text-sm text-gray-700 leading-relaxed">' + escapeHtml(profile.bio) + '</p></div>' : '',
         profile.favorite_verse ? '<div class="bg-blue-50 border border-blue-100 rounded-xl p-4"><p class="text-xs font-bold text-blue-700 uppercase mb-1">Versiculo favorito</p><p class="font-semibold text-gray-800">' + escapeHtml(profile.favorite_verse) + '</p></div>' : '',
         '<div class="flex flex-wrap gap-2">',
@@ -660,7 +660,6 @@ function renderPublicProfile(profile, progress) {
           instagram ? '<span class="px-3 py-1 rounded-full bg-pink-50 text-pink-700 text-sm font-bold"><i class="fab fa-instagram mr-1"></i>' + escapeHtml(instagram) + '</span>' : '',
           profile.show_phone === true && profile.phone ? '<span class="px-3 py-1 rounded-full bg-gray-50 text-gray-700 text-sm font-bold"><i class="fas fa-phone mr-1"></i>' + escapeHtml(profile.phone) + '</span>' : '',
         '</div>',
-        medals.length ? '<div><h4 class="font-bold text-gray-800 mb-2">Medalhas</h4><div class="grid grid-cols-2 gap-2">' + medals.map(function(medal) { return '<div class="bg-yellow-50 border border-yellow-100 rounded-xl p-3 text-sm font-bold text-yellow-800"><i class="fas ' + escapeHtml(medal.icon) + ' mr-1"></i>' + escapeHtml(medal.title) + '</div>'; }).join('') + '</div></div>' : '',
       '</div>',
     '</div>'
   ].join('');

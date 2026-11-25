@@ -35,34 +35,42 @@ function isHomeEventVisible(event) {
   );
 }
 
+function attendanceSummary(rows) {
+  const summary = (Array.isArray(rows) ? rows : []).find(row => row && typeof row.confirmed_count !== 'undefined');
+  if (!summary) return { count: 0, confirmed: false };
+  const count = Number(summary.confirmed_count);
+  return { count: Number.isSafeInteger(count) && count >= 0 ? count : 0, confirmed: summary.has_confirmed === true };
+}
+
+function attendanceCountLabel(count) {
+  return count ? count + (count === 1 ? ' pessoa confirmou' : ' pessoas confirmaram') : 'Seja o primeiro a confirmar';
+}
+
 async function fetchAllAttendances() {
   try {
-    const { data, error } = await window.supabaseClient.from('event_attendances').select('*');
+    const { data, error } = await window.supabaseClient.from('public_event_attendance_summary')
+      .select('event_id, confirmed_count, has_confirmed');
     if (error) throw error;
     return data || [];
   } catch (e) {
-    console.error('Erro ao buscar presenças:', e);
+    console.error('Erro ao buscar resumo de presenças:', e);
     return [];
   }
 }
 
 async function fetchAttendancesForEvents(events) {
-  const eventIds = (events || [])
+  const eventIds = [...new Set((events || [])
     .filter(event => event && event.agenda_type !== 'announcement' && event.id)
-    .map(event => event.id);
-
+    .map(event => event.id))];
   if (!eventIds.length) return [];
-
   try {
-    const { data, error } = await window.supabaseClient
-      .from('event_attendances')
-      .select('*')
-      .in('event_id', eventIds);
+    const { data, error } = await window.supabaseClient.from('public_event_attendance_summary')
+      .select('event_id, confirmed_count, has_confirmed').in('event_id', eventIds);
     if (error) throw error;
     return data || [];
   } catch (e) {
-    console.warn('Nao foi possivel buscar presencas por evento. Usando fallback geral:', e);
-    return fetchAllAttendances();
+    console.warn('Não foi possível buscar o resumo de presenças:', e);
+    return [];
   }
 }
 
@@ -74,7 +82,7 @@ async function confirmAttendance(eventId) {
     return;
   }
   
-  const name = userInfo.profile?.full_name || userInfo.user?.email || 'Membro';
+  const name = userInfo.profile?.full_name || userInfo.profile?.public_name || 'Membro';
   
   try {
     // Verifica se já existe presença do usuário neste evento
@@ -114,20 +122,21 @@ async function confirmAttendance(eventId) {
 async function renderEventAttendees(eventId) {
   try {
     const { data, error } = await window.supabaseClient
-      .from('event_attendances')
-      .select('user_id, user_name')
-      .eq('event_id', eventId)
-      .order('created_at', { ascending: true });
+      .from('public_event_attendance_summary')
+      .select('event_id, confirmed_count, has_confirmed')
+      .eq('event_id', eventId);
       
     if (error) throw error;
     
     const container = document.getElementById(`attendees-${eventId}`);
     const btn = document.getElementById(`attendance-btn-${eventId}`);
+    const rows = data || [];
+    const summary = attendanceSummary(rows);
+    communityAgendaState.attendancesByEvent[eventId] = rows;
+    const hasConfirmed = getCurrentUserInfo().isLoggedIn && summary.confirmed;
+    const heading = document.getElementById(`attendance-count-${eventId}`);
+    if (heading) heading.textContent = attendanceCountLabel(summary.count);
     if (!container) return;
-    
-    const attendees = data || [];
-    const userInfo = getCurrentUserInfo();
-    const hasConfirmed = userInfo.isLoggedIn && attendees.some(a => a.user_id === userInfo.user?.id);
     
     // Atualiza botão
     if (btn) {
@@ -146,37 +155,8 @@ async function renderEventAttendees(eventId) {
       }
     }
     
-    if (attendees.length === 0) {
-      container.innerHTML = '';
-      return;
-    }
-    
-    const visible = attendees.slice(0, 3);
-    const hidden = attendees.slice(3);
-    const hiddenCount = hidden.length;
     const isAgendaSheet = container.classList && container.classList.contains('agenda-v2-attendees');
-    const attendeeClass = isAgendaSheet
-      ? 'agenda-v2-attendee-chip'
-      : 'inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium bg-purple-100 text-purple-700 border border-purple-200';
-    const toggleClass = isAgendaSheet
-      ? 'agenda-v2-attendee-more'
-      : 'inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium bg-gray-100 text-gray-600 border border-gray-200 hover:bg-gray-200 transition';
-    const extraClass = isAgendaSheet
-      ? 'hidden agenda-v2-attendee-extra'
-      : 'hidden flex flex-wrap gap-1 w-full mt-1';
-    
-    let html = visible.map(a => 
-      `<span class="${attendeeClass}">${escapeHtml(a.user_name || 'Membro')}</span>`
-    ).join('');
-    
-    if (hiddenCount > 0) {
-      html += `<button onclick="toggleAttendees('${eventId}')" id="attendees-toggle-${eventId}" data-count="${hiddenCount}" class="${toggleClass}">+${hiddenCount}</button>`;
-      html += `<div id="attendees-extra-${eventId}" class="${extraClass}">`;
-      html += hidden.map(a => `<span class="${attendeeClass}">${escapeHtml(a.user_name || 'Membro')}</span>`).join('');
-      html += `</div>`;
-    }
-    
-    container.innerHTML = html;
+    container.textContent = isAgendaSheet || !summary.count ? '' : attendanceCountLabel(summary.count);
   } catch (e) {
     console.error('Erro ao renderizar presenças:', e);
   }
@@ -286,10 +266,8 @@ function renderEvents(events, attendancesByEvent = {}) {
     const day = dateParts[2] || '--';
     const month = dateParts[1] || '';
     const attendees = isAnnouncement ? [] : (attendancesByEvent[e.id] || []);
-    const hasConfirmed = isLoggedIn && attendees.some(a => a.user_id === getCurrentUserInfo().user?.id);
-    const visibleAttendees = attendees.slice(0, 3);
-    const hiddenAttendees = attendees.slice(3);
-    const hiddenCount = hiddenAttendees.length;
+    const summary = attendanceSummary(attendees);
+    const hasConfirmed = isLoggedIn && summary.confirmed;
     
     return `
     <div class="min-w-[300px] max-w-[340px] flex-shrink-0 snap-start bg-white rounded-xl p-4 border border-gray-100 border-l-4 ${categoryColors[e.category] || 'border-l-gray-300'}">
@@ -313,11 +291,7 @@ function renderEvents(events, attendancesByEvent = {}) {
           ${hasConfirmed ? '<i class="fas fa-check mr-1"></i> Presença Confirmada' : '<i class="fas fa-hand-point-up mr-1"></i> Marcar Presença'}
         </button>
         <div id="attendees-${e.id}" class="mt-2 flex flex-wrap gap-1 items-center">
-          ${visibleAttendees.map(a => `<span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium bg-purple-100 text-purple-700 border border-purple-200">${escapeHtml(a.user_name || 'Membro')}</span>`).join('')}
-          ${hiddenCount > 0 ? `<button onclick="toggleAttendees('${e.id}')" id="attendees-toggle-${e.id}" data-count="${hiddenCount}" class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium bg-gray-100 text-gray-600 border border-gray-200 hover:bg-gray-200 transition">+${hiddenCount}</button>` : ''}
-          <div id="attendees-extra-${e.id}" class="hidden flex flex-wrap gap-1 w-full mt-1">
-            ${hiddenAttendees.map(a => `<span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium bg-purple-100 text-purple-700 border border-purple-200">${escapeHtml(a.user_name || 'Membro')}</span>`).join('')}
-          </div>
+          ${summary.count ? escapeHtml(attendanceCountLabel(summary.count)) : ''}
         </div>
       </div>
     </div>
@@ -395,7 +369,7 @@ function communityAgendaEventDomId(value) {
 function communityAgendaHasConfirmed(eventId) {
   const userInfo = getCurrentUserInfo();
   const attendees = communityAgendaState.attendancesByEvent[eventId] || [];
-  return !!(userInfo.isLoggedIn && attendees.some(item => item.user_id === userInfo.user?.id));
+  return !!(userInfo.isLoggedIn && attendanceSummary(attendees).confirmed);
 }
 
 function renderHomeEvents(events, attendancesByEvent = {}) {
@@ -461,6 +435,7 @@ function openCommunityEventDetails(eventId) {
   const time = communityAgendaTime(event.event_time);
   const endTime = communityAgendaTime(event.end_time);
   const attendees = communityAgendaState.attendancesByEvent[event.id] || [];
+  const summary = attendanceSummary(attendees);
   const hasConfirmed = communityAgendaHasConfirmed(event.id);
   const mapsUrl = safeExternalUrl(event.maps_url);
   const eventLink = safeExternalUrl(event.link);
@@ -501,7 +476,7 @@ function openCommunityEventDetails(eventId) {
 
       <div class="agenda-v2-attendance">
         <div class="agenda-v2-attendance__heading">
-          <div><span class="agenda-v2-attendance__icon"><i class="fas fa-users"></i></span><span><small>Comunidade</small><strong>${attendees.length ? attendees.length + (attendees.length === 1 ? ' pessoa confirmou' : ' pessoas confirmaram') : 'Seja o primeiro a confirmar'}</strong></span></div>
+          <div><span class="agenda-v2-attendance__icon"><i class="fas fa-users"></i></span><span><small>Comunidade</small><strong id="attendance-count-${eventDomId}">${escapeHtml(attendanceCountLabel(summary.count))}</strong></span></div>
         </div>
         <button id="attendance-btn-${eventDomId}" type="button" onclick="confirmAttendance('${eventDomId}')" class="agenda-attendance-button${hasConfirmed ? ' is-confirmed' : ''}">
           ${hasConfirmed ? '<i class="fas fa-check"></i> Presença confirmada' : '<i class="fas fa-hand-point-up"></i> Marcar presença'}
@@ -616,7 +591,7 @@ function renderCommunityAgendaView() {
           ${visibleEvents.map(item => {
             const date = communityAgendaDayParts(item);
             const time = communityAgendaTime(item.event_time);
-            const confirmedCount = (communityAgendaState.attendancesByEvent[item.id] || []).length;
+            const confirmedCount = attendanceSummary(communityAgendaState.attendancesByEvent[item.id]).count;
             return `
               <button type="button" class="agenda-v2-row" onclick="openCommunityEventDetails('${communityAgendaEventDomId(item.id)}')">
                 <span class="agenda-v2-row__date"><strong>${escapeHtml(date.day)}</strong><small>${escapeHtml(date.month)}</small></span>
