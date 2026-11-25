@@ -17,6 +17,13 @@ var eventReminderEnabled = null;
 var eventReminderBusy = false;
 var eventReminderError = false;
 var eventReminderRequest = 0;
+var birthdayPreference = null;
+var birthdayDraftDay = '';
+var birthdayDraftMonth = '';
+var birthdayReady = false;
+var birthdayBusy = false;
+var birthdayError = '';
+var birthdayRequest = 0;
 
 function getAppNotificationUser() {
   var userInfo = typeof getCurrentUserInfo === 'function' ? getCurrentUserInfo() : {};
@@ -53,6 +60,13 @@ function resetAppNotificationSession(userId) {
   stopNotificationsRealtime();
   appNotificationsOwnerId = userId || null;
   eventReminderRequest++;
+  birthdayRequest++;
+  birthdayPreference = null;
+  birthdayDraftDay = '';
+  birthdayDraftMonth = '';
+  birthdayReady = false;
+  birthdayBusy = false;
+  birthdayError = '';
   eventReminderEnabled = null;
   eventReminderBusy = false;
   eventReminderError = false;
@@ -189,6 +203,97 @@ function renderEventReminderPreference() {
   ].join('');
 }
 
+function validBirthdayDayMonth(day, month) {
+  return Number.isInteger(day) && Number.isInteger(month) && month >= 1 && month <= 12 &&
+    day >= 1 && day <= [31,29,31,30,31,30,31,31,30,31,30,31][month-1];
+}
+
+function setBirthdayDraft(field, value) {
+  var digits = String(value || '').replace(/[^0-9]/g, '').slice(0, 2);
+  if (field === 'day') birthdayDraftDay = digits;
+  if (field === 'month') birthdayDraftMonth = digits;
+}
+
+async function loadBirthdayPreference() {
+  var user = getAppNotificationUser();
+  if (!user || !isCurrentNotificationSession(user.id) || birthdayBusy || !window.supabaseClient) return;
+  var request = ++birthdayRequest;
+  birthdayBusy = true;
+  birthdayError = '';
+  renderNotificationsPanel();
+  try {
+    var result = await window.supabaseClient.from('birthday_reminder_preferences')
+      .select('birth_day,birth_month').eq('user_id', user.id).maybeSingle();
+    if (!isCurrentNotificationSession(user.id) || request !== birthdayRequest) return;
+    if (result.error) throw result.error;
+    birthdayPreference = result.data || null;
+    birthdayDraftDay = birthdayPreference ? String(birthdayPreference.birth_day) : '';
+    birthdayDraftMonth = birthdayPreference ? String(birthdayPreference.birth_month) : '';
+    birthdayReady = true;
+  } catch (error) {
+    if (isCurrentNotificationSession(user.id) && request === birthdayRequest) {
+      birthdayReady = false;
+      birthdayError = 'Não foi possível carregar a preferência.';
+    }
+  } finally {
+    if (isCurrentNotificationSession(user.id) && request === birthdayRequest) {
+      birthdayBusy = false;
+      renderNotificationsPanel();
+    }
+  }
+}
+
+async function saveBirthdayPreference(remove) {
+  var user = getAppNotificationUser();
+  if (!user || !isCurrentNotificationSession(user.id) || birthdayBusy || !birthdayReady) return;
+  var day = Number(birthdayDraftDay), month = Number(birthdayDraftMonth);
+  if (!remove && !validBirthdayDayMonth(day, month)) {
+    birthdayError = 'Informe um dia e mês válidos.';
+    renderNotificationsPanel();
+    return;
+  }
+  var request = ++birthdayRequest;
+  birthdayBusy = true;
+  birthdayError = '';
+  renderNotificationsPanel();
+  try {
+    var result = remove
+      ? await window.supabaseClient.from('birthday_reminder_preferences').delete().eq('user_id', user.id)
+      : await window.supabaseClient.from('birthday_reminder_preferences')
+          .upsert({user_id:user.id,birth_day:day,birth_month:month},{onConflict:'user_id'});
+    if (!isCurrentNotificationSession(user.id) || request !== birthdayRequest) return;
+    if (result.error) throw result.error;
+    birthdayPreference = remove ? null : {birth_day:day,birth_month:month};
+    birthdayDraftDay = remove ? '' : String(day);
+    birthdayDraftMonth = remove ? '' : String(month);
+  } catch (error) {
+    if (isCurrentNotificationSession(user.id) && request === birthdayRequest) {
+      birthdayReady = false;
+      birthdayError = 'Não foi possível confirmar a alteração.';
+    }
+  } finally {
+    if (isCurrentNotificationSession(user.id) && request === birthdayRequest) {
+      birthdayBusy = false;
+      renderNotificationsPanel();
+    }
+  }
+}
+
+function renderBirthdayPreference() {
+  var disabled = birthdayBusy || !birthdayReady ? ' disabled' : '';
+  return [
+    '<div class="notifications-panel-actions" aria-label="Preferência de aniversário">',
+    '<div class="w-full"><strong>Mensagem de aniversário</strong><p class="text-xs">Se desejar receber parabéns da ADPEL, informe apenas o dia e o mês. A data não será publicada. Envio automático em implantação.</p></div>',
+    birthdayError ? '<p class="w-full text-xs" role="status">' + escapeHtml(birthdayError) + '</p>' : '',
+    !birthdayReady && !birthdayBusy ? '<button type="button" onclick="loadBirthdayPreference()">Tentar novamente</button>' : '',
+    '<label class="text-xs">Dia <input type="number" min="1" max="31" inputmode="numeric" aria-label="Dia do aniversário" class="w-16 bg-slate-800 border border-slate-600 rounded px-2 py-1" value="' + escapeHtml(birthdayDraftDay) + '" oninput="setBirthdayDraft(&quot;day&quot;,this.value)"' + disabled + '></label>',
+    '<label class="text-xs">Mês <input type="number" min="1" max="12" inputmode="numeric" aria-label="Mês do aniversário" class="w-16 bg-slate-800 border border-slate-600 rounded px-2 py-1" value="' + escapeHtml(birthdayDraftMonth) + '" oninput="setBirthdayDraft(&quot;month&quot;,this.value)"' + disabled + '></label>',
+    '<button type="button" onclick="saveBirthdayPreference(false)"' + disabled + '>' + (birthdayPreference ? 'Atualizar' : 'Ativar parabéns') + '</button>',
+    birthdayPreference ? '<button type="button" onclick="saveBirthdayPreference(true)"' + disabled + '>Desativar e remover data</button>' : '',
+    '</div>'
+  ].join('');
+}
+
 function setAppNotificationsFilter(filter) {
   if (filter !== 'all' && filter !== 'unread') return;
   if (filter === appNotificationsFilter) return;
@@ -275,6 +380,7 @@ function openNotificationsPanel() {
   renderNotificationsPanel();
   loadUserNotifications();
   loadEventReminderPreference();
+  loadBirthdayPreference();
 }
 
 function closeNotificationsPanel() {
@@ -303,6 +409,7 @@ function renderNotificationsPanel() {
       '</div>',
       appNotificationsError ? '<div class="notification-empty" role="status"><p>Não foi possível atualizar. </p><button onclick="loadUserNotifications()">Tentar novamente</button></div>' : '',
       renderEventReminderPreference(),
+      renderBirthdayPreference(),
       '<div class="notifications-list" aria-busy="' + String(appNotificationsLoading) + '">',
         appNotificationsCache.length ? appNotificationsCache.map(renderNotificationItem).join('') : appNotificationsLoading ? '<div class="notification-empty" role="status"><p>Carregando notificações...</p></div>' : appNotificationsError ? '' : '<div class="notification-empty"><i class="fas fa-bell-slash"></i><p>' + (appNotificationsFilter === 'unread' ? 'Tudo em dia! Nenhuma notificação não lida.' : 'Nenhuma notificação ainda.') + '</p></div>',
       '</div>',
@@ -318,6 +425,8 @@ function getNotificationIcon(type) {
     community_amen: { icon: 'fa-hands-praying', className: 'is-amen' },
     system: { icon: 'fa-bell', className: 'is-system' },
     event: { icon: 'fa-calendar', className: 'is-event' },
+    event_reminder: { icon: 'fa-calendar-check', className: 'is-event' },
+    birthday_greeting: { icon: 'fa-cake-candles', className: 'is-system' },
     course: { icon: 'fa-graduation-cap', className: 'is-course' },
     offering: { icon: 'fa-hand-holding-heart', className: 'is-offering' }
   };
@@ -467,6 +576,9 @@ Object.assign(window, {
   loadMoreAppNotifications: loadMoreAppNotifications,
   loadEventReminderPreference: loadEventReminderPreference,
   toggleEventReminderPreference: toggleEventReminderPreference,
+  loadBirthdayPreference: loadBirthdayPreference,
+  setBirthdayDraft: setBirthdayDraft,
+  saveBirthdayPreference: saveBirthdayPreference,
   updateNotificationBadge: updateNotificationBadge,
   openNotificationsPanel: openNotificationsPanel,
   closeNotificationsPanel: closeNotificationsPanel,
