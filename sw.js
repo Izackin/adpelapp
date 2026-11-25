@@ -68,12 +68,17 @@ function isSensitiveOrDynamicRequest(url) {
 async function putInRuntimeCache(request, response) {
   if (!response || !response.ok || response.type === 'opaque') return;
 
-  const cache = await caches.open(RUNTIME_NAME);
-  await cache.put(request, response.clone());
+  try {
+    const cache = await caches.open(RUNTIME_NAME);
+    await cache.put(request, response.clone());
 
-  const keys = await cache.keys();
-  if (keys.length > MAX_RUNTIME_ENTRIES) {
-    await cache.delete(keys[0]);
+    const keys = await cache.keys();
+    for (const key of keys.slice(0, Math.max(0, keys.length - MAX_RUNTIME_ENTRIES))) {
+      await cache.delete(key);
+    }
+  } catch (error) {
+    // A full or unavailable cache must not discard a successful network response.
+    console.warn('[SW] Cache de recursos indisponível:', error);
   }
 }
 
@@ -90,7 +95,7 @@ async function networkFirst(request, options = {}) {
 }
 
 async function staleWhileRevalidate(request) {
-  const cached = await caches.match(request);
+  const cached = await caches.match(request).catch(() => undefined);
   const networkResponse = fetch(request, { cache: 'no-cache' })
     .then(async (response) => {
       await putInRuntimeCache(request, response);
