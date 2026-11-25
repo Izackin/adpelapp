@@ -3,12 +3,12 @@ const fs = require('node:fs');
 const path = require('node:path');
 const vm = require('node:vm');
 const source = fs.readFileSync(path.resolve(__dirname,'../admin-notifications.js'),'utf8');
-function node(){return {children:[],textContent:'',disabled:false,appendChild(n){this.children.push(n)},replaceChildren(){this.children=[]}}}
+function node(){return {children:[],textContent:'',disabled:false,addEventListener(){},appendChild(n){this.children.push(n)},replaceChildren(){this.children=[]}}}
 const cards=node(),message=node(),button=node();
 const document={addEventListener(){},createElement:node,getElementById(id){return {'automation-status-cards':cards,'automation-status-message':message,'automation-refresh':button}[id]||null;}};
 const rows=[{automation_key:'events',scheduler_exists:true,active:false,opted_in:4,eligible_now:2,generated_total:0},{automation_key:'birthdays',scheduler_exists:true,active:true,opted_in:1,eligible_now:0,generated_total:3,last_run_at:'2026-11-25T12:00:00Z',last_run_status:'succeeded'}];
-let mode='ok',pending=[];
-const context={document,window:{supabaseClient:{rpc(name){assert.equal(name,'get_admin_automation_status');if(mode==='pending')return new Promise(resolve=>pending.push(resolve));return Promise.resolve(mode==='error'?{error:{message:'forbidden'}}:{data:rows});}}},console};
+let mode='ok',pending=[],changes=0,confirm=false;
+const context={document,window:{confirm:()=>confirm,supabaseClient:{rpc(name,args){if(name==='set_admin_automation_active'){changes++;const row=rows.find(r=>r.automation_key===args.p_key);row.active=args.p_active;return Promise.resolve({data:args.p_active});}assert.equal(name,'get_admin_automation_control_status');if(mode==='pending')return new Promise(resolve=>pending.push(resolve));return Promise.resolve(mode==='error'?{error:{message:'forbidden'}}:{data:rows});}}},console};
 vm.createContext(context);vm.runInContext(source,context);
 (async()=>{
   await context.loadAdminAutomationStatus();
@@ -27,5 +27,19 @@ vm.createContext(context);vm.runInContext(source,context);
   assert.equal(button.disabled,false);
   mode='ok';await context.loadAdminAutomationStatus();
   assert.equal(cards.children.length,2);
+  assert.equal(cards.children[0].children[6].disabled,true);
+  await context.changeAutomationActive('events',true);
+  assert.equal(changes,0);
+  rows[0].release_approved=true;
+  await context.loadAdminAutomationStatus();
+  await context.changeAutomationActive('events',true);
+  assert.equal(changes,0);
+  confirm=true;
+  await context.changeAutomationActive('events',true);
+  assert.equal(changes,1);
+  assert.equal(cards.children[0].children[1].textContent,'Ativa');
+  await context.changeAutomationActive('events',false);
+  assert.equal(changes,2);
+  assert.equal(cards.children[0].children[1].textContent,'Pausada');
   console.log('automation admin status: PASS');
 })().catch(e=>{console.error(e);process.exitCode=1;});

@@ -74,6 +74,8 @@ async function loadNotificationStats() {
 
 
 let automationStatusRequest = 0;
+let automationControlBusy = false;
+let automationControlRows = [];
 const automationLabels = {
   events: 'Lembretes de eventos',
   birthdays: 'Mensagens de aniversário'
@@ -116,6 +118,14 @@ function renderAutomationStatus(rows) {
         ? 'Última execução: ' + date.toLocaleString('pt-BR',{timeZone:'America/Sao_Paulo'}) + ' · ' + (statuses[row.last_run_status] || 'Estado não identificado')
         : 'Nenhuma execução registrada';
       card.appendChild(last);
+      const control = document.createElement('button');
+      control.type = 'button';
+      control.className = 'px-3 py-2 border rounded-lg text-sm font-medium min-h-[44px] ' +
+        (row.active ? 'border-amber-300 text-amber-800' : 'border-emerald-300 text-emerald-800');
+      control.disabled = automationControlBusy || !row.scheduler_exists || (!row.active && !row.release_approved);
+      control.textContent = row.active ? 'Pausar automação' : row.release_approved ? 'Ativar automação' : 'Aguardando homologação';
+      control.addEventListener('click', () => changeAutomationActive(key, !row.active));
+      card.appendChild(control);
     }
     cards.appendChild(card);
   }
@@ -125,15 +135,17 @@ async function loadAdminAutomationStatus() {
   const message = document.getElementById('automation-status-message');
   const cards = document.getElementById('automation-status-cards');
   const button = document.getElementById('automation-refresh');
-  if (!message || !cards || !window.supabaseClient) return;
+  if (!message || !cards || !window.supabaseClient || automationControlBusy) return;
   const request = ++automationStatusRequest;
   if (button) button.disabled = true;
   cards.replaceChildren();
+  automationControlRows = [];
   message.textContent = 'Consultando automações...';
   try {
-    const {data,error} = await window.supabaseClient.rpc('get_admin_automation_status');
+    const {data,error} = await window.supabaseClient.rpc('get_admin_automation_control_status');
     if (request !== automationStatusRequest) return;
     if (error || !Array.isArray(data)) throw new Error('Consulta indisponível');
+    automationControlRows = data;
     renderAutomationStatus(data);
     message.textContent = 'Atualizado agora. Horário de Brasília.';
   } catch (error) {
@@ -142,5 +154,35 @@ async function loadAdminAutomationStatus() {
     message.textContent = 'Não foi possível consultar as automações. Verifique seu acesso master e tente novamente.';
   } finally {
     if (request === automationStatusRequest && button) button.disabled = false;
+  }
+}
+
+async function changeAutomationActive(key, active) {
+  if (automationControlBusy || !window.supabaseClient || typeof active !== 'boolean' ||
+      !Object.prototype.hasOwnProperty.call(automationLabels, key)) return;
+  const row = automationControlRows.find(item => item.automation_key === key);
+  if (!row || !row.scheduler_exists || row.active === active || (active && !row.release_approved)) return;
+  const confirmation = active
+    ? 'Ativar ' + automationLabels[key] + '? Os próximos agendamentos poderão gerar notificações reais para usuários que aderiram.'
+    : 'Pausar ' + automationLabels[key] + '? Novas execuções serão interrompidas; notificações já geradas não serão recolhidas.';
+  if (!window.confirm(confirmation)) return;
+  automationControlBusy = true;
+  automationStatusRequest++;
+  const message = document.getElementById('automation-status-message');
+  const refresh = document.getElementById('automation-refresh');
+  if (refresh) refresh.disabled = true;
+  renderAutomationStatus(automationControlRows);
+  if (message) message.textContent = 'Aplicando alteração...';
+  let succeeded = false;
+  try {
+    const {data,error} = await window.supabaseClient.rpc('set_admin_automation_active',{p_key:key,p_active:active});
+    if (error || data !== active) throw new Error('Alteração não confirmada');
+    succeeded = true;
+  } catch (error) {
+    if (typeof showToast === 'function') showToast('Não foi possível confirmar a alteração. Consulte o status novamente.','error');
+  } finally {
+    automationControlBusy = false;
+    await loadAdminAutomationStatus();
+    if (succeeded && typeof showToast === 'function') showToast(active ? 'Automação ativada.' : 'Automação pausada.','success');
   }
 }
