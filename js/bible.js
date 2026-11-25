@@ -3,6 +3,10 @@
 
   const STORAGE_KEY = 'adpel_bible_preferences_v2';
   const COLORS = ['yellow', 'green', 'blue', 'pink'];
+  const CHAPTER_CACHE_LIMIT = 12;
+  const CHAPTER_CACHE_TTL = 5 * 60 * 1000;
+  const chapterCache = new Map();
+  let annotationRequest = 0;
   const state = {
     books: [], translations: [], book: null, chapter: 1, translation: null,
     verses: [], selection: null, selectionAnchor: null, user: null, chapterRequest: 0,
@@ -247,9 +251,25 @@
   }
 
   async function fetchLocalChapter() {
-    return client().from('bible_verses').select('book_id,chapter,verse,text')
-      .eq('translation_id', state.translation.id).eq('book_id', state.book.id)
-      .eq('chapter', state.chapter).eq('is_canonical', true).order('verse');
+    const translationId = state.translation.id;
+    const bookId = state.book.id;
+    const chapter = state.chapter;
+    const key = JSON.stringify([translationId, bookId, chapter]);
+    const cached = chapterCache.get(key);
+    if (cached && Date.now() - cached.savedAt < CHAPTER_CACHE_TTL) {
+      chapterCache.delete(key);
+      chapterCache.set(key, cached);
+      return { data: cached.verses.map(verse => ({ ...verse })), error: null };
+    }
+    chapterCache.delete(key);
+    const result = await client().from('bible_verses').select('book_id,chapter,verse,text')
+      .eq('translation_id', translationId).eq('book_id', bookId)
+      .eq('chapter', chapter).eq('is_canonical', true).order('verse');
+    if (!result.error && Array.isArray(result.data) && result.data.length) {
+      chapterCache.set(key, { savedAt: Date.now(), verses: result.data.map(verse => ({ ...verse })) });
+      while (chapterCache.size > CHAPTER_CACHE_LIMIT) chapterCache.delete(chapterCache.keys().next().value);
+    }
+    return result;
   }
 
   async function fetchExternalChapter() {
@@ -273,6 +293,9 @@
       if (error) throw error;
       if (request !== state.chapterRequest) return;
       state.verses = data || [];
+      state.highlights = [];
+      state.notes = [];
+      state.bookmarks = [];
       renderChapter();
       await loadPersonalChapterData();
       if (request !== state.chapterRequest) return;
@@ -311,12 +334,20 @@
 
   async function loadPersonalChapterData() {
     if (!state.user) { state.highlights = []; state.notes = []; state.bookmarks = []; renderAnnotations(); return; }
-    const filter = (query) => query.eq('book_id', state.book.id).eq('chapter', state.chapter);
+    const request = ++annotationRequest;
+    const chapterRequest = state.chapterRequest;
+    const bookId = state.book.id;
+    const chapter = state.chapter;
+    const userId = state.user.id;
+    const filter = (query) => query.eq('user_id', userId).eq('book_id', bookId).eq('chapter', chapter);
     const [highlights, notes, bookmarks] = await Promise.all([
       filter(client().from('bible_highlights').select('*')),
       filter(client().from('bible_notes').select('*')),
       filter(client().from('bible_bookmarks').select('*'))
     ]);
+    // A slower response must not overwrite annotations from a newer chapter/session.
+    if (request !== annotationRequest || chapterRequest !== state.chapterRequest ||
+        state.book?.id !== bookId || state.chapter !== chapter || state.user?.id !== userId) return;
     state.highlights = highlights.data || [];
     state.notes = notes.data || [];
     state.bookmarks = bookmarks.data || [];
