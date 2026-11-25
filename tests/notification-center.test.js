@@ -19,7 +19,9 @@ assert.match(appNotifications, /table: 'app_notifications'/);
 assert.match(appNotifications, /filter: 'recipient_id=eq\.' \+ userId/);
 assert.match(appNotifications, /mergeRealtimeNotification\(payload\.new\)/);
 assert.match(appNotifications, /removeChannel\(appNotificationsRealtimeChannel\)/);
-assert.match(appNotifications, /setInterval\(loadUserNotifications, 60000\)/);
+assert.match(appNotifications, /setInterval\(function\(\) \{[\s\S]*?\}, 60000\)/);
+assert.match(appNotifications, /document\.visibilityState !== 'hidden'/);
+assert.match(appNotifications, /isCurrentNotificationSession\(userId\)/);
 assert.match(appNotifications, /notification_post/);
 assert.match(appNotifications, /community-post-highlight/);
 
