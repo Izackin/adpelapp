@@ -1978,6 +1978,18 @@ textarea::placeholder {
 
 .notifications-panel-actions {
   padding: 0.65rem 1rem 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+}
+.notifications-panel-actions button[aria-pressed="true"] {
+  border-color: #60a5fa;
+  background: rgba(37, 99, 235, 0.34);
+  color: #fff;
+}
+.notifications-panel-actions button:disabled {
+  opacity: 0.55;
+  cursor: wait;
 }
 
 .notifications-panel-actions button {

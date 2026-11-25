@@ -3,6 +3,16 @@ var appNotificationsPollingId = null;
 var appNotificationsPanelOpen = false;
 var appNotificationsRealtimeChannel = null;
 var appNotificationsRealtimeUserId = null;
+var appNotificationsOwnerId = null;
+var appNotificationsRequest = 0;
+var appNotificationsUnread = null;
+var appNotificationsFilter = 'all';
+var appNotificationsLimit = 20;
+var appNotificationsHasMore = false;
+var appNotificationsLoading = false;
+var appNotificationsError = false;
+var appNotificationsRefreshTimer = null;
+var APP_NOTIFICATIONS_MAX_VISIBLE = 100;
 
 function getAppNotificationUser() {
   var userInfo = typeof getCurrentUserInfo === 'function' ? getCurrentUserInfo() : {};
@@ -32,52 +42,97 @@ function formatNotificationDate(value) {
   return date.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' });
 }
 
+function resetAppNotificationSession(userId) {
+  appNotificationsRequest++;
+  if (appNotificationsRefreshTimer) clearTimeout(appNotificationsRefreshTimer);
+  appNotificationsRefreshTimer = null;
+  stopNotificationsRealtime();
+  appNotificationsOwnerId = userId || null;
+  appNotificationsCache = [];
+  appNotificationsUnread = null;
+  appNotificationsFilter = 'all';
+  appNotificationsLimit = 20;
+  appNotificationsHasMore = false;
+  appNotificationsLoading = false;
+  appNotificationsError = false;
+  closeNotificationsPanel();
+  updateNotificationBadge();
+}
+
+function isCurrentNotificationSession(userId) {
+  var user = getAppNotificationUser();
+  return !!user && user.id === userId && appNotificationsOwnerId === userId;
+}
+
 async function loadUserNotifications() {
   var user = getAppNotificationUser();
-  if (!user || !window.supabaseClient) {
-    stopNotificationsRealtime();
-    appNotificationsCache = [];
-    updateNotificationBadge();
-    renderNotificationsPanel();
-    return;
-  }
-
+  var userId = user && user.id;
+  if (appNotificationsOwnerId !== (userId || null)) resetAppNotificationSession(userId);
+  if (appNotificationsRefreshTimer) clearTimeout(appNotificationsRefreshTimer);
+  appNotificationsRefreshTimer = null;
+  if (!userId || !window.supabaseClient) return;
+  startNotificationsRealtime(userId);
+  var request = ++appNotificationsRequest;
+  var filter = appNotificationsFilter;
+  var limit = appNotificationsLimit;
+  appNotificationsLoading = true;
+  appNotificationsError = false;
+  renderNotificationsPanel();
   try {
-    startNotificationsRealtime(user.id);
-    var result = await window.supabaseClient
-      .from('app_notifications')
+    var listQuery = window.supabaseClient.from('app_notifications')
       .select('id, recipient_id, actor_id, type, title, body, entity_type, entity_id, url, read_at, created_at')
-      .eq('recipient_id', user.id)
-      .order('created_at', { ascending: false })
-      .limit(20);
-    if (result.error) throw result.error;
-    appNotificationsCache = result.data || [];
+      .eq('recipient_id', userId);
+    if (filter === 'unread') listQuery = listQuery.is('read_at', null);
+    var results = await Promise.all([
+      listQuery.order('created_at', { ascending: false }).order('id', { ascending: false }).limit(limit + 1),
+      window.supabaseClient.from('app_notifications').select('id', { count: 'exact', head: true })
+        .eq('recipient_id', userId).is('read_at', null)
+    ]);
+    if (!isCurrentNotificationSession(userId) || request !== appNotificationsRequest) return;
+    if (results[0].error || results[1].error) throw results[0].error || results[1].error;
+    var rows = (results[0].data || []).filter(function(item) { return item.recipient_id === userId; });
+    appNotificationsHasMore = rows.length > limit;
+    appNotificationsCache = rows.slice(0, limit);
+    appNotificationsUnread = typeof results[1].count === 'number' ? results[1].count : null;
     updateNotificationBadge();
-    renderNotificationsPanel();
     openPendingNotificationTarget();
   } catch (error) {
-    if (!isAppNotificationsSchemaError(error)) {
-      console.warn('Erro ao carregar notificações internas:', error);
+    if (!isCurrentNotificationSession(userId) || request !== appNotificationsRequest) return;
+    appNotificationsError = true;
+    if (!isAppNotificationsSchemaError(error)) console.warn('Erro ao carregar notificações internas:', error);
+  } finally {
+    if (isCurrentNotificationSession(userId) && request === appNotificationsRequest) {
+      appNotificationsLoading = false;
+      renderNotificationsPanel();
     }
-    appNotificationsCache = [];
-    updateNotificationBadge();
-    renderNotificationsPanel();
   }
 }
 
 function mergeRealtimeNotification(notification) {
-  if (!notification || !notification.id) return;
-  var existingIndex = appNotificationsCache.findIndex(function(item) {
-    return item.id === notification.id;
-  });
-  if (existingIndex >= 0) {
-    appNotificationsCache[existingIndex] = Object.assign({}, appNotificationsCache[existingIndex], notification);
-  } else {
-    appNotificationsCache.unshift(notification);
-    appNotificationsCache = appNotificationsCache.slice(0, 20);
-  }
-  updateNotificationBadge();
-  renderNotificationsPanel();
+  if (!notification || !notification.id || !isCurrentNotificationSession(notification.recipient_id)) return;
+  // Re-query canonical list and count; never overwrite a newer list with an older response.
+  appNotificationsRequest++;
+  if (appNotificationsRefreshTimer) clearTimeout(appNotificationsRefreshTimer);
+  appNotificationsRefreshTimer = setTimeout(function() {
+    appNotificationsRefreshTimer = null;
+    loadUserNotifications();
+  }, 250);
+}
+
+function setAppNotificationsFilter(filter) {
+  if (filter !== 'all' && filter !== 'unread') return;
+  if (filter === appNotificationsFilter) return;
+  appNotificationsFilter = filter;
+  appNotificationsCache = [];
+  appNotificationsLimit = 20;
+  appNotificationsHasMore = false;
+  loadUserNotifications();
+}
+
+function loadMoreAppNotifications() {
+  if (appNotificationsLoading || !appNotificationsHasMore || appNotificationsLimit >= APP_NOTIFICATIONS_MAX_VISIBLE) return;
+  appNotificationsLimit = Math.min(APP_NOTIFICATIONS_MAX_VISIBLE, appNotificationsLimit + 20);
+  loadUserNotifications();
 }
 
 function startNotificationsRealtime(userId) {
@@ -93,7 +148,7 @@ function startNotificationsRealtime(userId) {
       table: 'app_notifications',
       filter: 'recipient_id=eq.' + userId
     }, function(payload) {
-      if (payload && payload.new && payload.new.recipient_id === userId) {
+      if (isCurrentNotificationSession(userId) && payload && payload.new && payload.new.recipient_id === userId) {
         mergeRealtimeNotification(payload.new);
       }
     })
@@ -115,7 +170,7 @@ function stopNotificationsRealtime() {
 function updateNotificationBadge() {
   var badge = document.getElementById('notification-badge');
   if (!badge) return;
-  var unread = appNotificationsCache.filter(function(item) { return !item.read_at; }).length;
+  var unread = appNotificationsUnread;
   if (!unread) {
     badge.classList.add('hidden');
     badge.textContent = '';
@@ -143,6 +198,7 @@ function openNotificationsPanel() {
     if (typeof openModal === 'function') openModal('login-modal');
     return;
   }
+  if (appNotificationsOwnerId !== user.id) resetAppNotificationSession(user.id);
   appNotificationsPanelOpen = true;
   var panel = ensureNotificationsPanel();
   panel.classList.remove('hidden');
@@ -159,7 +215,8 @@ function closeNotificationsPanel() {
 function renderNotificationsPanel() {
   var panel = document.getElementById('notifications-panel');
   if (!panel || !appNotificationsPanelOpen) return;
-  var unread = appNotificationsCache.filter(function(item) { return !item.read_at; }).length;
+  if (!isCurrentNotificationSession(appNotificationsOwnerId)) { panel.innerHTML = ''; return; }
+  var unread = appNotificationsUnread;
   panel.innerHTML = [
     '<div class="notifications-panel-inner">',
       '<div class="notifications-panel-head">',
@@ -169,9 +226,16 @@ function renderNotificationsPanel() {
       '<div class="notifications-panel-actions">',
         unread ? '<button onclick="markAllNotificationsAsRead()"><i class="fas fa-check-double"></i> Marcar todas como lidas</button>' : '',
       '</div>',
-      '<div class="notifications-list">',
-        appNotificationsCache.length ? appNotificationsCache.map(renderNotificationItem).join('') : '<div class="notification-empty"><i class="fas fa-bell-slash"></i><p>Nenhuma notificação ainda.</p></div>',
+      '<div class="notifications-panel-actions" aria-label="Filtrar notificações">',
+        '<button type="button" aria-pressed="' + String(appNotificationsFilter === 'all') + '" onclick="setAppNotificationsFilter(&quot;all&quot;)">Todas</button>',
+        '<button type="button" aria-pressed="' + String(appNotificationsFilter === 'unread') + '" onclick="setAppNotificationsFilter(&quot;unread&quot;)">Não lidas' + (unread !== null ? ' (' + unread + ')' : '') + '</button>',
       '</div>',
+      appNotificationsError ? '<div class="notification-empty" role="status"><p>Não foi possível atualizar. </p><button onclick="loadUserNotifications()">Tentar novamente</button></div>' : '',
+      '<div class="notifications-list" aria-busy="' + String(appNotificationsLoading) + '">',
+        appNotificationsCache.length ? appNotificationsCache.map(renderNotificationItem).join('') : appNotificationsLoading ? '<div class="notification-empty" role="status"><p>Carregando notificações...</p></div>' : appNotificationsError ? '' : '<div class="notification-empty"><i class="fas fa-bell-slash"></i><p>' + (appNotificationsFilter === 'unread' ? 'Tudo em dia! Nenhuma notificação não lida.' : 'Nenhuma notificação ainda.') + '</p></div>',
+      '</div>',
+      appNotificationsHasMore && appNotificationsLimit < APP_NOTIFICATIONS_MAX_VISIBLE ? '<div class="notifications-panel-actions"><button onclick="loadMoreAppNotifications()"' + (appNotificationsLoading ? ' disabled' : '') + '>Carregar mais</button></div>' : '',
+      appNotificationsHasMore && appNotificationsLimit >= APP_NOTIFICATIONS_MAX_VISIBLE ? '<div class="notification-empty"><p>Exibindo as 100 notificações mais recentes deste filtro.</p></div>' : '',
     '</div>'
   ].join('');
 }
@@ -207,7 +271,9 @@ function renderNotificationItem(notification) {
 async function markNotificationAsRead(notificationId) {
   var user = getAppNotificationUser();
   if (!user || !notificationId || !window.supabaseClient) return;
+  if (!isCurrentNotificationSession(user.id)) return;
   var notification = appNotificationsCache.find(function(item) { return item.id === notificationId; });
+  if (!notification) return;
   var readAt = new Date().toISOString();
   try {
     var result = await window.supabaseClient
@@ -216,13 +282,11 @@ async function markNotificationAsRead(notificationId) {
       .eq('id', notificationId)
       .eq('recipient_id', user.id);
     if (result.error) throw result.error;
-    appNotificationsCache = appNotificationsCache.map(function(item) {
-      return item.id === notificationId ? Object.assign({}, item, { read_at: item.read_at || readAt }) : item;
-    });
-    updateNotificationBadge();
-    renderNotificationsPanel();
+    if (!isCurrentNotificationSession(user.id)) return;
     openNotificationTarget(notification);
+    await loadUserNotifications();
   } catch (error) {
+    if (!isCurrentNotificationSession(user.id)) return;
     console.warn('Erro ao marcar notificação como lida:', error);
     if (typeof showToast === 'function') showToast('Não foi possível abrir a notificação agora.', 'error');
   }
@@ -231,6 +295,7 @@ async function markNotificationAsRead(notificationId) {
 async function markAllNotificationsAsRead() {
   var user = getAppNotificationUser();
   if (!user || !window.supabaseClient) return;
+  if (!isCurrentNotificationSession(user.id)) return;
   var readAt = new Date().toISOString();
   try {
     var result = await window.supabaseClient
@@ -239,12 +304,10 @@ async function markAllNotificationsAsRead() {
       .eq('recipient_id', user.id)
       .is('read_at', null);
     if (result.error) throw result.error;
-    appNotificationsCache = appNotificationsCache.map(function(item) {
-      return Object.assign({}, item, { read_at: item.read_at || readAt });
-    });
-    updateNotificationBadge();
-    renderNotificationsPanel();
+    if (!isCurrentNotificationSession(user.id)) return;
+    await loadUserNotifications();
   } catch (error) {
+    if (!isCurrentNotificationSession(user.id)) return;
     console.warn('Erro ao marcar notificações como lidas:', error);
     if (typeof showToast === 'function') showToast('Não foi possível marcar tudo como lido.', 'error');
   }
@@ -298,7 +361,9 @@ function openPendingNotificationTarget() {
 
 function startNotificationsPolling() {
   if (appNotificationsPollingId) clearInterval(appNotificationsPollingId);
-  appNotificationsPollingId = setInterval(loadUserNotifications, 60000);
+  appNotificationsPollingId = setInterval(function() {
+    if (document.visibilityState !== 'hidden' && getAppNotificationUser()) loadUserNotifications();
+  }, 60000);
 }
 
 document.addEventListener('click', function(event) {
@@ -314,6 +379,10 @@ document.addEventListener('keydown', function(event) {
   if (event.key === 'Escape') closeNotificationsPanel();
 });
 
+document.addEventListener('visibilitychange', function() {
+  if (document.visibilityState === 'visible' && getAppNotificationUser()) loadUserNotifications();
+});
+
 document.addEventListener('DOMContentLoaded', function() {
   setTimeout(loadUserNotifications, 900);
   startNotificationsPolling();
@@ -321,6 +390,9 @@ document.addEventListener('DOMContentLoaded', function() {
 
 Object.assign(window, {
   loadUserNotifications: loadUserNotifications,
+  resetAppNotificationSession: resetAppNotificationSession,
+  setAppNotificationsFilter: setAppNotificationsFilter,
+  loadMoreAppNotifications: loadMoreAppNotifications,
   updateNotificationBadge: updateNotificationBadge,
   openNotificationsPanel: openNotificationsPanel,
   closeNotificationsPanel: closeNotificationsPanel,
