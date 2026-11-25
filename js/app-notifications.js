@@ -13,6 +13,10 @@ var appNotificationsLoading = false;
 var appNotificationsError = false;
 var appNotificationsRefreshTimer = null;
 var APP_NOTIFICATIONS_MAX_VISIBLE = 100;
+var eventReminderEnabled = null;
+var eventReminderBusy = false;
+var eventReminderError = false;
+var eventReminderRequest = 0;
 
 function getAppNotificationUser() {
   var userInfo = typeof getCurrentUserInfo === 'function' ? getCurrentUserInfo() : {};
@@ -48,6 +52,10 @@ function resetAppNotificationSession(userId) {
   appNotificationsRefreshTimer = null;
   stopNotificationsRealtime();
   appNotificationsOwnerId = userId || null;
+  eventReminderRequest++;
+  eventReminderEnabled = null;
+  eventReminderBusy = false;
+  eventReminderError = false;
   appNotificationsCache = [];
   appNotificationsUnread = null;
   appNotificationsFilter = 'all';
@@ -117,6 +125,68 @@ function mergeRealtimeNotification(notification) {
     appNotificationsRefreshTimer = null;
     loadUserNotifications();
   }, 250);
+}
+
+async function loadEventReminderPreference() {
+  var user = getAppNotificationUser();
+  if (!user || !isCurrentNotificationSession(user.id) || !window.supabaseClient || eventReminderBusy) return;
+  var request = ++eventReminderRequest;
+  eventReminderBusy = true;
+  eventReminderError = false;
+  renderNotificationsPanel();
+  try {
+    var result = await window.supabaseClient.from('event_reminder_preferences')
+      .select('enabled').eq('user_id', user.id).maybeSingle();
+    if (!isCurrentNotificationSession(user.id) || request !== eventReminderRequest) return;
+    if (result.error) throw result.error;
+    eventReminderEnabled = result.data?.enabled === true;
+  } catch (error) {
+    if (isCurrentNotificationSession(user.id) && request === eventReminderRequest) eventReminderError = true;
+  } finally {
+    if (isCurrentNotificationSession(user.id) && request === eventReminderRequest) {
+      eventReminderBusy = false;
+      renderNotificationsPanel();
+    }
+  }
+}
+
+async function toggleEventReminderPreference() {
+  var user = getAppNotificationUser();
+  if (!user || !isCurrentNotificationSession(user.id) || eventReminderBusy || eventReminderEnabled === null) return;
+  var request = ++eventReminderRequest;
+  var next = !eventReminderEnabled;
+  eventReminderBusy = true;
+  eventReminderError = false;
+  renderNotificationsPanel();
+  try {
+    var result = await window.supabaseClient.from('event_reminder_preferences')
+      .upsert({ user_id: user.id, enabled: next }, { onConflict: 'user_id' });
+    if (!isCurrentNotificationSession(user.id) || request !== eventReminderRequest) return;
+    if (result.error) throw result.error;
+    eventReminderEnabled = next;
+  } catch (error) {
+    if (isCurrentNotificationSession(user.id) && request === eventReminderRequest) {
+      eventReminderError = true;
+      eventReminderEnabled = null;
+    }
+  } finally {
+    if (isCurrentNotificationSession(user.id) && request === eventReminderRequest) {
+      eventReminderBusy = false;
+      renderNotificationsPanel();
+    }
+  }
+}
+
+function renderEventReminderPreference() {
+  return [
+    '<div class="notifications-panel-actions" aria-label="Preferências de lembretes">',
+    '<div><strong>Lembretes de eventos</strong><p class="text-xs">Receba lembretes na véspera dos eventos em que confirmou presença. Envio automático em implantação.</p></div>',
+    eventReminderError ? '<button onclick="loadEventReminderPreference()">Tentar novamente</button>' :
+    '<button type="button" role="switch" aria-checked="' + String(eventReminderEnabled === true) +
+      '" onclick="toggleEventReminderPreference()"' + (eventReminderBusy || eventReminderEnabled === null ? ' disabled' : '') + '>' +
+      (eventReminderBusy || eventReminderEnabled === null ? 'Carregando...' : eventReminderEnabled ? 'Ativado — desativar' : 'Desativado — ativar') + '</button>',
+    '</div>'
+  ].join('');
 }
 
 function setAppNotificationsFilter(filter) {
@@ -204,6 +274,7 @@ function openNotificationsPanel() {
   panel.classList.remove('hidden');
   renderNotificationsPanel();
   loadUserNotifications();
+  loadEventReminderPreference();
 }
 
 function closeNotificationsPanel() {
@@ -231,6 +302,7 @@ function renderNotificationsPanel() {
         '<button type="button" aria-pressed="' + String(appNotificationsFilter === 'unread') + '" onclick="setAppNotificationsFilter(&quot;unread&quot;)">Não lidas' + (unread !== null ? ' (' + unread + ')' : '') + '</button>',
       '</div>',
       appNotificationsError ? '<div class="notification-empty" role="status"><p>Não foi possível atualizar. </p><button onclick="loadUserNotifications()">Tentar novamente</button></div>' : '',
+      renderEventReminderPreference(),
       '<div class="notifications-list" aria-busy="' + String(appNotificationsLoading) + '">',
         appNotificationsCache.length ? appNotificationsCache.map(renderNotificationItem).join('') : appNotificationsLoading ? '<div class="notification-empty" role="status"><p>Carregando notificações...</p></div>' : appNotificationsError ? '' : '<div class="notification-empty"><i class="fas fa-bell-slash"></i><p>' + (appNotificationsFilter === 'unread' ? 'Tudo em dia! Nenhuma notificação não lida.' : 'Nenhuma notificação ainda.') + '</p></div>',
       '</div>',
@@ -393,6 +465,8 @@ Object.assign(window, {
   resetAppNotificationSession: resetAppNotificationSession,
   setAppNotificationsFilter: setAppNotificationsFilter,
   loadMoreAppNotifications: loadMoreAppNotifications,
+  loadEventReminderPreference: loadEventReminderPreference,
+  toggleEventReminderPreference: toggleEventReminderPreference,
   updateNotificationBadge: updateNotificationBadge,
   openNotificationsPanel: openNotificationsPanel,
   closeNotificationsPanel: closeNotificationsPanel,
