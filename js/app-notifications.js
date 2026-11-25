@@ -68,6 +68,8 @@ async function loadUserNotifications() {
   var user = getAppNotificationUser();
   var userId = user && user.id;
   if (appNotificationsOwnerId !== (userId || null)) resetAppNotificationSession(userId);
+  if (appNotificationsRefreshTimer) clearTimeout(appNotificationsRefreshTimer);
+  appNotificationsRefreshTimer = null;
   if (!userId || !window.supabaseClient) return;
   startNotificationsRealtime(userId);
   var request = ++appNotificationsRequest;
@@ -128,7 +130,7 @@ function setAppNotificationsFilter(filter) {
 }
 
 function loadMoreAppNotifications() {
-  if (appNotificationsLoading || !appNotificationsHasMore) return;
+  if (appNotificationsLoading || !appNotificationsHasMore || appNotificationsLimit >= APP_NOTIFICATIONS_MAX_VISIBLE) return;
   appNotificationsLimit = Math.min(APP_NOTIFICATIONS_MAX_VISIBLE, appNotificationsLimit + 20);
   loadUserNotifications();
 }
@@ -284,6 +286,7 @@ async function markNotificationAsRead(notificationId) {
     openNotificationTarget(notification);
     await loadUserNotifications();
   } catch (error) {
+    if (!isCurrentNotificationSession(user.id)) return;
     console.warn('Erro ao marcar notificação como lida:', error);
     if (typeof showToast === 'function') showToast('Não foi possível abrir a notificação agora.', 'error');
   }
@@ -304,6 +307,7 @@ async function markAllNotificationsAsRead() {
     if (!isCurrentNotificationSession(user.id)) return;
     await loadUserNotifications();
   } catch (error) {
+    if (!isCurrentNotificationSession(user.id)) return;
     console.warn('Erro ao marcar notificações como lidas:', error);
     if (typeof showToast === 'function') showToast('Não foi possível marcar tudo como lido.', 'error');
   }
