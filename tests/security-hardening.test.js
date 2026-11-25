@@ -145,10 +145,11 @@ assert.equal(
 
 [
   path.join(projectRoot, 'js', 'community.js'),
-  path.join(projectRoot, 'js', 'profile.js'),
-  path.join(projectRoot, 'spiritual-progress.js')
+  path.join(projectRoot, 'js', 'profile.js')
 ].forEach((file) => {
   assert.match(fs.readFileSync(file, 'utf8'), /\.from\('public_profiles'\)/);
 });
+
+assert.match(fs.readFileSync(path.join(projectRoot, 'spiritual-progress.js'), 'utf8'), /\.from\('public_spiritual_ranking'\)/);
 
 console.log('security-hardening: all assertions passed');
