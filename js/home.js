@@ -218,11 +218,12 @@ function loadHomeData(force) {
     return results[1].status === 'fulfilled';
   });
   const agendaTask = Promise.allSettled([
-    settle(() => ADPEL.fetch.events()),
+    settle(() => ADPEL.fetch.events({upcoming:true,strict:true})),
     settle(() => ADPEL.fetch.announcements())
   ]).then(async results => {
     if (!current()) return false;
-    if (results.every(result => result.status !== 'fulfilled')) return false;
+    // Keep the previous agenda rather than displaying an incorrect empty event list on network failure.
+    if (results[0].status !== 'fulfilled') return false;
     const events = results[0].status === 'fulfilled' ? results[0].value || [] : [];
     const announcements = results[1].status === 'fulfilled' ? results[1].value || [] : [];
     const futureEvents = events.filter(isHomeEventVisible);
