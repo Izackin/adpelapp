@@ -128,7 +128,11 @@ async function initAuth() {
       const previousUserId = currentUser && currentUser.id;
       const uid=session.user.id;
       const generation=setAuthSessionUser(session.user);
-      if(previousUserId!==uid)updateAuthUI(true,{skipSectionLoad:true,skipJourneyInit:true});
+      if(previousUserId!==uid){
+        if(previousUserId&&typeof closeCourseModal==='function')closeCourseModal();
+        updateAuthUI(true,{skipSectionLoad:true,skipJourneyInit:true});
+        if(previousUserId&&typeof navigateTo==='function'&&typeof currentSection!=='undefined'&&['courses','library','certificate','profile','community','tutor'].includes(currentSection))navigateTo('home');
+      }
       if (previousUserId !== currentUser.id && typeof resetAppNotificationSession === 'function') {
         resetAppNotificationSession(currentUser.id);
       }
