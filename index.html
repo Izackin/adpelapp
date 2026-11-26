@@ -1000,6 +1000,33 @@
           <input type="email" id="register-email" required class="w-full px-4 py-3 rounded-xl focus:ring-2 focus:ring-adpel-500 focus:border-transparent outline-none" placeholder="seu@email.com">
         </div>
         <div>
+          <label for="register-congregation" class="block text-sm font-medium mb-1">Congregação</label>
+          <select id="register-congregation" required class="w-full px-4 py-3 rounded-xl bg-slate-800 text-white border border-slate-600">
+            <option value="">Selecione sua congregação</option>
+            <option value="adpel-santo-andre">ADPEL SANTO ANDRÉ</option>
+          </select>
+        </div>
+        <div>
+          <label for="register-kind" class="block text-sm font-medium mb-1">Como você participa?</label>
+          <select id="register-kind" required class="w-full px-4 py-3 rounded-xl bg-slate-800 text-white border border-slate-600">
+            <option value="">Selecione</option><option value="membro">Sou membro</option><option value="visitante">Sou visitante</option>
+          </select>
+        </div>
+        <div>
+          <label for="register-whatsapp" class="block text-sm font-medium mb-1">WhatsApp com DDD</label>
+          <input type="tel" id="register-whatsapp" required maxlength="22" autocomplete="tel" inputmode="tel" class="w-full px-4 py-3 rounded-xl outline-none" placeholder="(62) 99999-9999">
+        </div>
+        <div>
+          <label for="register-birth-date" class="block text-sm font-medium mb-1">Data de nascimento (opcional)</label>
+          <input type="date" id="register-birth-date" autocomplete="bday" class="w-full px-4 py-3 rounded-xl outline-none">
+        </div>
+        <div class="space-y-3 text-sm">
+          <p>Seus dados cadastrais serão usados pela administração da congregação para gestão e acolhimento, após confirmação do e-mail. A declaração de membro será validada pela igreja. Os dados não serão publicados no perfil.</p>
+          <label class="flex items-start gap-2"><input id="register-privacy-ack" type="checkbox" required class="mt-1 shrink-0"><span>Li e concordo com o registro dessas informações para essa finalidade.</span></label>
+          <label class="flex items-start gap-2"><input id="register-contact-allowed" type="checkbox" class="mt-1 shrink-0"><span>Autorizo contato pelo WhatsApp para acolhimento e acompanhamento (opcional; somente maiores de 18 anos com data informada).</span></label>
+          <p class="text-xs">Se você for menor de idade, faça o cadastro com autorização de seu responsável.</p>
+        </div>
+        <div>
           <label class="block text-sm font-medium mb-1">Senha</label>
           <input type="password" id="register-password" required minlength="6" class="w-full px-4 py-3 rounded-xl focus:ring-2 focus:ring-adpel-500 focus:border-transparent outline-none" placeholder="Mínimo 6 caracteres">
         </div>
