@@ -11,8 +11,14 @@ const exporter = read('admin/member-export.js');
 const reports = read('admin/member-reports.js');
 const migration = read('supabase/migrations/20260928160714_member_import_history.sql');
 
-assert.match(html, /xlsx-0\.20\.3\/package\/dist\/xlsx\.full\.min\.js/);
-assert.match(html, /jspdf@4\.2\.1\/dist\/jspdf\.umd\.min\.js/);
+const optional = read('js/optional-resources.js');
+assert.match(optional, /xlsx-0\.20\.3\/package\/dist\/xlsx\.full\.min\.js/);
+assert.match(optional, /jspdf@4\.2\.1\/dist\/jspdf\.umd\.min\.js/);
+assert.match(html, /js\/optional-resources\.js[\s\S]*admin\/member-import\.js/);
+assert.doesNotMatch(html, /<script[^>]*src="https:\/\/[^"]*(?:xlsx\.full\.min\.js|jspdf\.umd\.min\.js)"/);
+assert.match(importer, /ADPELOptional\.load\('xlsx'\)/);
+assert.match(exporter, /ADPELOptional\.load\('xlsx'\)/);
+assert.match(reports, /ADPELOptional\.load\('pdf'\)/);
 assert.match(html, /id="member-import-modal"/);
 assert.match(html, /id="member-export-modal"/);
 assert.match(html, /onclick="showMemberImport\(\)"/);

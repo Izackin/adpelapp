@@ -238,11 +238,16 @@
     return context.doc;
   }
 
+  var pdfExportBusy=false;
   window.generateMemberPdf = async function() {
+    if(pdfExportBusy)return;
+    pdfExportBusy=true;
     try {
       var type = element('member-report-type').value;
       var list = pdfMembers();
       if (!list.length) return churchShowToast('Nenhum membro corresponde aos filtros do relatório.', 'warning');
+      if (!window.jspdf?.jsPDF) churchShowToast('Preparando gerador de PDF…','info');
+      await window.ADPELOptional.load('pdf');
       var doc = type === 'list' ? listPdf(list) : type === 'birthdays' ? birthdaysPdf(list) : generalPdf(list);
       doc.save('relatorio-membros-' + type + '-' + todayIso() + '.pdf');
       if (typeof logChurchAudit === 'function') await logChurchAudit('members_report_generated', 'members', null, { type: type, count: list.length, filters: pdfFilters() });
@@ -250,7 +255,7 @@
     } catch (error) {
       console.error('Falha ao gerar relatório de membros:', error);
       churchShowToast(error.message || 'Não foi possível gerar o PDF.', 'error');
-    }
+    } finally {pdfExportBusy=false;}
   };
 
   window.ADPELMemberReports = { compute: compute, render: renderReports };

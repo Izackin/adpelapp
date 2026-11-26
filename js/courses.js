@@ -379,6 +379,7 @@ async function renderCourseLessons(course) {
   }
 
   const completedIndexes = await getLessonProgress(course.id);
+  if (currentOpenCourse!==course) return;
 
   lessons.forEach((lesson, index) => {
     const lessonTitle = lesson.title || `Aula ${index + 1}`;
@@ -406,12 +407,14 @@ async function renderCourseLessons(course) {
     `;
 
     item.addEventListener('click', () => {
+      if (currentOpenCourse!==course) return;
       if (isYouTube && videoWrapper) {
         videoWrapper.classList.remove('hidden');
         loadYouTubePlayer(youtubeVideo, course.id, index, lessonTitle);
       } else {
         if (videoWrapper) {
           videoWrapper.classList.remove('hidden');
+          invalidateCoursePlayer();
           renderYouTubeFallback(videoWrapper, null);
         }
       }
@@ -444,10 +447,7 @@ async function openCourseModal(encodedCourse) {
 
   // Reset video
   if (videoWrapper) videoWrapper.classList.add('hidden');
-  if (ytPlayer && ytPlayer.destroy) {
-    ytPlayer.destroy();
-    ytPlayer = null;
-  }
+  invalidateCoursePlayer();
 
   await renderCourseLessons(course);
   await updateCertificateButton(course.id, normalizeLessons(course.lessons).length);
@@ -462,10 +462,7 @@ async function openCourseModal(encodedCourse) {
 function closeCourseModal() {
   const modal = document.getElementById('course-modal');
   const videoWrapper = document.getElementById('course-video-wrapper');
-  if (ytPlayer && ytPlayer.destroy) {
-    ytPlayer.destroy();
-    ytPlayer = null;
-  }
+  invalidateCoursePlayer();
   if (videoWrapper) videoWrapper.classList.add('hidden');
   if (modal) {
     modal.classList.add('hidden');
@@ -477,44 +474,59 @@ function closeCourseModal() {
   currentOpenCourse = null;
 }
 
-function loadYouTubePlayer(video, courseId, lessonIndex, lessonTitle, attempt) {
+let coursePlayerRequest = 0;
+function invalidateCoursePlayer() {
+  ++coursePlayerRequest;
+  currentCourseForPlayer=null;
+  currentLessonIndexForPlayer=null;
+  if (ytPlayer && ytPlayer.destroy) ytPlayer.destroy();
+  ytPlayer=null;
+}
+async function loadYouTubePlayer(video, courseId, lessonIndex, lessonTitle) {
   const normalizedVideo = typeof video === 'string'
     ? normalizeYouTubeUrl(/^[A-Za-z0-9_-]{11}$/.test(video) ? `https://youtu.be/${video}` : video)
     : video;
   const wrapper = document.getElementById('course-video-wrapper');
-  if (!normalizedVideo || !wrapper) {
-    renderYouTubeFallback(wrapper, normalizedVideo);
-    return;
-  }
-
-  const currentAttempt = Number(attempt) || 0;
-  if (!window.YT || !window.YT.Player) {
-    if (currentAttempt >= 20) {
-      renderYouTubeFallback(wrapper, normalizedVideo);
-      return;
-    }
-    setTimeout(() => loadYouTubePlayer(normalizedVideo, courseId, lessonIndex, lessonTitle, currentAttempt + 1), 500);
-    return;
-  }
-  currentCourseForPlayer = courseId;
-  currentLessonIndexForPlayer = lessonIndex;
-
-  if (ytPlayer && ytPlayer.destroy) {
-    ytPlayer.destroy();
-  }
-  const iframe = createYouTubeIframe(wrapper, 'yt-player', normalizedVideo, `Aula em vídeo: ${lessonTitle || 'Curso'}`);
-
-  ytPlayer = new YT.Player(iframe, {
-    events: {
-      'onStateChange': onPlayerStateChange,
-      'onError': (event) => {
-        console.warn('Falha no player do YouTube:', { code: event.data, videoId: normalizedVideo.videoId });
-        if (ytPlayer && ytPlayer.destroy) ytPlayer.destroy();
-        ytPlayer = null;
-        renderYouTubeFallback(wrapper, normalizedVideo);
+  const course=currentOpenCourse;
+  if (!course || course.id!==courseId || !wrapper) return;
+  invalidateCoursePlayer();
+  const request=coursePlayerRequest;
+  const owner=getCurrentUserInfo().user?.id || null;
+  const current=()=>request===coursePlayerRequest && currentOpenCourse===course && (getCurrentUserInfo().user?.id||null)===owner;
+  if (!normalizedVideo) {renderYouTubeFallback(wrapper,null);return;}
+  wrapper.replaceChildren();
+  const status=document.createElement('p');
+  status.className='p-6 text-center text-white';
+  status.setAttribute('role','status');
+  status.textContent='Carregando vídeo…';
+  wrapper.appendChild(status);
+  try {
+    await window.ADPELOptional.load('youtube');
+    if (!current()) return;
+    currentCourseForPlayer=courseId;
+    currentLessonIndexForPlayer=lessonIndex;
+    const iframe=createYouTubeIframe(wrapper,'yt-player',normalizedVideo,`Aula em vídeo: ${lessonTitle || 'Curso'}`);
+    ytPlayer = new window.YT.Player(iframe,{
+      events:{
+        onStateChange:event=>{if(current())onPlayerStateChange(event);},
+        onError:event=>{
+          if (!current()) return;
+          console.warn('Falha no player do YouTube:',{code:event.data,videoId:normalizedVideo.videoId});
+          invalidateCoursePlayer();
+          renderYouTubeFallback(wrapper,normalizedVideo);
+        }
       }
-    }
-  });
+    });
+  } catch(error) {
+    if (!current()) return;
+    invalidateCoursePlayer();
+    renderYouTubeFallback(wrapper,normalizedVideo);
+    const retry=document.createElement('button');
+    retry.type='button';retry.className='mt-3 px-4 py-3 rounded-lg bg-blue-700 text-white';
+    retry.textContent='Tentar novamente';
+    retry.onclick=()=>{if(currentOpenCourse===course && (getCurrentUserInfo().user?.id||null)===owner)loadYouTubePlayer(normalizedVideo,courseId,lessonIndex,lessonTitle);};
+    wrapper.appendChild(retry);
+  }
 }
 
 function onPlayerStateChange(event) {

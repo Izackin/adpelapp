@@ -333,6 +333,8 @@ async function paidOpenCourseModal(encodedCourse) {
   }
 
   currentOpenCourse = course;
+  var owner = getCurrentUserInfo().user?.id || null;
+  var current = () => currentOpenCourse === course && (getCurrentUserInfo().user?.id || null) === owner;
 
   var modal = document.getElementById('course-modal');
   var titleEl = document.getElementById('course-modal-title');
@@ -351,10 +353,13 @@ async function paidOpenCourseModal(encodedCourse) {
     certBtn.classList.remove('flex');
   }
 
-  if (ytPlayer && ytPlayer.destroy) {
-    ytPlayer.destroy();
-    ytPlayer = null;
-  }
+  invalidateCoursePlayer();
+  var oldLessons = document.getElementById('course-lessons-container');
+  if (oldLessons) oldLessons.replaceChildren();
+  var content = document.getElementById('course-content-area');
+  var accessPanel = document.getElementById('course-access-panel');
+  if (content) content.classList.add('hidden');
+  if (accessPanel) accessPanel.classList.add('hidden');
 
   if (modal) {
     modal.classList.remove('hidden');
@@ -365,6 +370,7 @@ async function paidOpenCourseModal(encodedCourse) {
   var access = null;
   if (course.is_paid) {
     access = await paidGetCurrentCourseAccess(course.id);
+    if (!current()) return;
     course.accessStatus = access ? access.status : null;
     course.hasAccess = !!(access && access.status === 'active');
 
@@ -376,18 +382,19 @@ async function paidOpenCourseModal(encodedCourse) {
     }
   }
 
-  paidSetCourseContentVisibility(true);
-
   try {
     course.lessons = await paidLoadProtectedLessons(course.id);
   } catch (error) {
+    if (!current()) return;
     console.error('Erro ao carregar conteúdo protegido do curso:', error);
     course.lessons = [];
     showToast('Não foi possível carregar as aulas deste curso.', 'error');
   }
 
-  currentOpenCourse = course;
+  if (!current()) return;
+  paidSetCourseContentVisibility(true);
   await renderCourseLessons(course);
+  if (!current()) return;
   await updateCertificateButton(course.id, normalizeLessons(course.lessons).length);
 }
 

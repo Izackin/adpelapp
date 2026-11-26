@@ -9,6 +9,8 @@
   var BATCH_SIZE = 100;
   var ALLOWED_FIELDS = ['full_name', 'birth_date', 'phone', 'email', 'address', 'entry_date', 'status', 'role', 'baptized', 'baptism_date', 'notes'];
   var state = resetState();
+  var fileReadRequest = 0;
+  var templateBusy = false;
 
   function resetState() {
     return {
@@ -39,6 +41,7 @@
   function body() { return document.getElementById('member-import-body'); }
 
   window.showMemberImport = function() {
+    ++fileReadRequest;
     state = resetState();
     var element = modal();
     if (!element) return;
@@ -49,13 +52,18 @@
 
   window.hideMemberImport = function() {
     if (state.running) return toast('Aguarde o processamento do lote atual.', 'warning');
+    ++fileReadRequest;
     var element = modal();
     if (element) element.classList.add('hidden');
     document.body.classList.remove('overflow-hidden');
   };
 
-  window.downloadMemberImportTemplate = function() {
-    if (!window.XLSX) return toast('Biblioteca de planilhas indisponível.', 'error');
+  window.downloadMemberImportTemplate = async function() {
+    if (templateBusy) return;
+    templateBusy=true;
+    try {
+    if (!window.XLSX) toast('Preparando modelo de planilha…','info');
+    await window.ADPELOptional.load('xlsx');
     var guide = [
       ['Modelo ADPEL para importação de membros'],
       ['Preencha a aba Membros. Apenas Nome completo é obrigatório.'],
@@ -69,9 +77,12 @@
     window.XLSX.utils.book_append_sheet(workbook, memberSheet, 'Membros');
     window.XLSX.utils.book_append_sheet(workbook, window.XLSX.utils.aoa_to_sheet(guide), 'Instruções');
     window.XLSX.writeFile(workbook, 'modelo-importacao-membros-adpel.xlsx', { compression: true });
+    } catch(error) { toast(error.message || 'Não foi possível gerar a planilha.','error'); }
+    finally {templateBusy=false;}
   };
 
   window.handleMemberImportFile = async function(input) {
+    var request=++fileReadRequest;
     var file = input && input.files ? input.files[0] : null;
     if (!file) return;
     if (file.size > 15 * 1024 * 1024) {
@@ -86,7 +97,13 @@
     try {
       var dataset;
       if (extension === 'csv') dataset = core().parseCsv(await file.text());
-      else dataset = core().parseWorkbook(await file.arrayBuffer(), window.XLSX);
+      else {
+        if (!window.XLSX) toast('Carregando leitor de planilhas…','info');
+        await window.ADPELOptional.load('xlsx');
+        if(request!==fileReadRequest)return;
+        dataset = core().parseWorkbook(await file.arrayBuffer(), window.XLSX);
+      }
+      if(request!==fileReadRequest)return;
       if (!dataset.headers.length || !dataset.rows.length) throw new Error('O arquivo não possui registros para importar.');
       state.fileName = file.name;
       state.headers = dataset.headers;
@@ -95,6 +112,8 @@
       state.step = 'mapping';
       render();
     } catch (error) {
+      if(request!==fileReadRequest)return;
+      input.value='';
       console.error('Falha ao ler arquivo de membros:', error);
       toast(error.message || 'Não foi possível ler o arquivo.', 'error');
     }
