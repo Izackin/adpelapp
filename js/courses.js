@@ -567,8 +567,21 @@ async function downloadCertificate() {
     let result = await readIssued();
     if (result.error) throw result.error;
     if (!result.data) {
+      // Keep master users' own learning flow consistent with ordinary users.
+      const course = currentOpenCourse;
+      if (course?.id !== courseId || getCurrentUserInfo().user?.id !== uid) return;
+      const total = normalizeLessons(course.lessons).length;
+      const done = new Set((await getLessonProgress(courseId)).filter(i => Number.isInteger(i) && i >= 0 && i < total));
+      if (getCurrentUserInfo().user?.id !== uid || currentOpenCourse?.id !== courseId) return;
+      if (total < 1 || done.size !== total) {
+        showToast('Complete todas as aulas para baixar o certificado.','warning');
+        return;
+      }
+      const title = course.certificate_title || course.title || 'Certificado de conclusão';
+      const description = course.certificate_description || 'Concluiu o curso "' + course.title + '" com êxito.';
       const issued = await client.from('certificates').insert({
-        user_id:uid, course_id:courseId, title:'Certificado de conclusão'
+        user_id:uid, course_id:courseId, title, description, certificate_type:'curso',
+        certificate_data:{user_name:userInfo.profile?.full_name || userInfo.user.email || 'Estudante',course_title:course.title,course_duration:course.duration,description}
       }).select('*').single();
       if (issued.error && issued.error.code === '23505') result = await readIssued();
       else result = issued;
@@ -576,7 +589,7 @@ async function downloadCertificate() {
     if (result.error || !result.data || !result.data.id) throw result.error || new Error('Emissão não confirmada.');
     if (getCurrentUserInfo().user?.id !== uid || currentOpenCourse?.id !== courseId) return;
     // Render exclusively from the persisted certificate; never print a client-generated fallback.
-    viewCertificate(encodeURIComponent(JSON.stringify(result.data)));
+    renderIssuedCertificate(result.data);
     showToast('Certificado disponível no seu histórico.', 'success');
   } catch (error) {
     console.warn('Emissão do certificado não confirmada:',error);
