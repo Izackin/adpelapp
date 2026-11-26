@@ -95,8 +95,13 @@
     ];
   }
 
+  var xlsxExportBusy=false;
   window.exportMembersXlsx = async function() {
-    if (!window.XLSX) return churchShowToast('Biblioteca de planilhas indisponível.', 'error');
+    if(xlsxExportBusy)return;
+    xlsxExportBusy=true;
+    try {
+    if (!window.XLSX) churchShowToast('Preparando gerador de planilhas…','info');
+    await window.ADPELOptional.load('xlsx');
     var list = selectedMembers();
     if (!list.length) return churchShowToast('Nenhum membro corresponde aos filtros.', 'warning');
     var matrix = [core().templateHeaders].concat(list.map(xlsxRow));
@@ -116,5 +121,7 @@
     window.XLSX.writeFile(workbook, 'membros-adpel-' + fileDate() + '.xlsx', { compression: true });
     await audit('xlsx', list.length);
     churchShowToast('Planilha XLSX gerada com sucesso.', 'success');
+    } catch(error) {churchShowToast(error.message || 'Não foi possível gerar a planilha.','error');}
+    finally {xlsxExportBusy=false;}
   };
 })();
