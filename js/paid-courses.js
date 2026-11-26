@@ -351,10 +351,7 @@ async function paidOpenCourseModal(encodedCourse) {
     certBtn.classList.remove('flex');
   }
 
-  if (ytPlayer && ytPlayer.destroy) {
-    ytPlayer.destroy();
-    ytPlayer = null;
-  }
+  invalidateCoursePlayer();
 
   if (modal) {
     modal.classList.remove('hidden');
