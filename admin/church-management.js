@@ -331,7 +331,7 @@ function renderChurchMembers(onlyBirthdays) {
     return matchesSearch && matchesStatus && matchesRole;
   });
 
-  var filterKey = [search,status,roleFilter,Boolean(onlyBirthdays)].join('|');
+  var filterKey = [search,status,roleFilter,Boolean(onlyBirthdays || search === 'aniversariantes')].join('|');
   if (filterKey !== memberDirectoryFilterKey) { memberDirectoryPage = 1; memberDirectoryFilterKey = filterKey; }
   var total = list.length;
   var pageCount = Math.max(1, Math.ceil(total / memberDirectoryPageSize));
