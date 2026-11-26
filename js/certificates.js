@@ -286,7 +286,22 @@ async function viewCertificate(encodedCert) {
     return;
   }
 
+  const info = getCurrentUserInfo();
+  if (!info.isLoggedIn || !info.user || !cert?.id || !window.supabaseClient) return;
+  try {
+    const result = await window.supabaseClient.from('certificates').select('*').eq('id',cert.id).eq('user_id',info.user.id).single();
+    if (result.error || !result.data) throw result.error || new Error('Registro não encontrado');
+    if (getCurrentUserInfo().user?.id !== info.user.id) return;
+    renderIssuedCertificate(result.data);
+  } catch (error) {
+    showToast('Não foi possível consultar o certificado registrado.','warning');
+  }
+}
+
+function renderIssuedCertificate(cert) {
+  if (!cert || !cert.id) return;
   const userInfo = getCurrentUserInfo();
+  if (!userInfo.isLoggedIn || cert.user_id !== userInfo.user?.id) return;
   const userName = cert.certificate_data?.user_name || userInfo.profile?.full_name || userInfo.user?.email || 'Estudante';
   const certTitle = cert.title || 'Certificado de Conclusão';
   const courseTitle = cert.certificate_data?.course_title || cert.title || 'Curso';
