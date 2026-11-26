@@ -5,12 +5,13 @@ assert.match(source,/\.from\('verse_of_day'\)\s*\.select\('text, reference'\)/);
 function deferred(){let resolve,reject;const promise=new Promise((yes,no)=>{resolve=yes;reject=no;});return {promise,resolve,reject};}
 async function ticks(){for(let i=0;i<24;i++)await Promise.resolve();}
 async function runScenario(mode){
- const calls=[],course={id:'c1',is_published:true,is_featured:true,lesson_count:2};
+ const calls=[],course={id:'c1',is_published:true,is_featured:true,is_paid:mode==='paid-active'||mode==='paid-revoked',lesson_count:2};
  let session=mode==='guest'?null:'u1',pendingCourses=deferred(),pendingProgress=deferred();
  const state={continue:null,featured:null,agenda:null};
  const ctx={_lastHomeLoad:0,SECTION_LOAD_DEBOUNCE:2000,console:{log(){},error(){}},carregarVersiculoDoDia(){calls.push('verse');return true;},
  getCurrentUserInfo:()=>session?{isLoggedIn:true,user:{id:session}}:{isLoggedIn:false},
  ADPEL:{fetch:{courses(){calls.push('courses');return pendingCourses.promise;},events(){calls.push('events');return Promise.resolve([{id:'e1'}]);},announcements(){calls.push('announcements');return Promise.resolve([]);}}},
+ paidCoursesAccessMap(){calls.push('access');return Promise.resolve({c1:{status:mode==='paid-active'?'active':'revoked'}});},
  getAllLessonProgress(){calls.push('progress');return pendingProgress.promise;},
  isContentVisibleNow:()=>true,isHomeEventVisible:()=>true,normalizeLessons:x=>x||[],
  buildUnifiedAgenda:(events,announcements)=>events.concat(announcements),
@@ -33,8 +34,10 @@ async function runScenario(mode){
    if(mode==='failure')pendingProgress.reject(Error('simulated'));
    else pendingProgress.resolve([{course_id:'c1',lesson_index:0}]);
    pendingCourses.resolve([course]);await first;
-   assert.equal(state.featured.length,1);assert.equal(state.continue.length,mode==='member'?1:0);
+   assert.equal(state.featured.length,1);assert.equal(state.continue.length,(mode==='member'||mode==='paid-active')?1:0);
+   if(mode==='paid-active'||mode==='paid-revoked')assert.equal(calls.filter(x=>x==='access').length,1);
+   if(mode==='paid-active')assert.equal(state.continue[0].hasAccess,true);
    if(mode==='member'){assert.equal(state.continue[0].totalLessons,2);assert.equal(state.continue[0].completedLessons,1);}
  }
 }
-(async()=>{for(const mode of ['member','guest','switch','failure'])await runScenario(mode);console.log('home parallel loading: PASS');})().catch(e=>{console.error(e);process.exitCode=1;});
+(async()=>{for(const mode of ['member','guest','switch','failure','paid-active','paid-revoked'])await runScenario(mode);console.log('home parallel loading: PASS');})().catch(e=>{console.error(e);process.exitCode=1;});

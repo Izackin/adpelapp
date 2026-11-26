@@ -289,7 +289,7 @@ function isLessonCompleted(completedIndexes, index) {
   return completedIndexes.includes(index);
 }
 
-async function getAllLessonProgress() {
+async function getAllLessonProgress(options) {
   const userInfo = getCurrentUserInfo();
   if (!userInfo.isLoggedIn || !userInfo.user) return [];
   try {
@@ -302,6 +302,7 @@ async function getAllLessonProgress() {
     return data || [];
   } catch (e) {
     console.error('Erro ao buscar progresso geral:', e);
+    if(options?.strict)throw e;
     return [];
   }
 }

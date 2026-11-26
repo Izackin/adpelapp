@@ -190,9 +190,9 @@ function loadHomeData(force) {
   const settle = fn => Promise.resolve().then(fn);
   const publicVerse = settle(carregarVersiculoDoDia);
   const courseTask = Promise.allSettled([
-    settle(() => ADPEL.fetch.courses()),
-    owner ? settle(getAllLessonProgress) : Promise.resolve([])
-  ]).then(results => {
+    settle(() => ADPEL.fetch.courses({published:true,strict:true,force:!!force})),
+    owner ? settle(() => getAllLessonProgress({strict:true})) : Promise.resolve([])
+  ]).then(async results => {
     if (!current()) return false;
     if (results[0].status !== 'fulfilled') return false;
     const courses = results[0].value || [];
@@ -207,15 +207,27 @@ function loadHomeData(force) {
       const count = course.lesson_count;
       const total = count != null && Number.isInteger(Number(count)) && Number(count) >= 0
         ? Number(count) : normalizeLessons(course.lessons).length;
-      const completed = Math.min(total, (progressMap[course.id] || new Set()).size);
+      const completed = [...(progressMap[course.id] || new Set())].filter(index=>Number.isInteger(index)&&index>=0&&index<total).length;
       const status = total === 0 || completed >= total ? 'completed' : completed > 0 ? 'in-progress' : 'not-started';
       return { ...course, totalLessons: total, completedLessons: completed, status };
     });
-    const inProgressCourses = homeCourses.filter(c => c.status === 'in-progress');
+    let inProgressCourses = homeCourses.filter(c => c.status === 'in-progress');
+    let accessOK=true;
+    if(owner && inProgressCourses.some(c=>c.is_paid)){
+      try{
+        const access=await paidCoursesAccessMap({strict:true});
+        if(!current())return false;
+        inProgressCourses=inProgressCourses.filter(c=>!c.is_paid || access[c.id]?.status==='active').map(c=>({...c,hasAccess:true}));
+      }catch(error){
+        if(!current())return false;
+        accessOK=false;
+        inProgressCourses=inProgressCourses.filter(c=>!c.is_paid);
+      }
+    }
     const featuredCourses = homeCourses.filter(c => c.is_featured);
     renderContinueSection(inProgressCourses.slice(0, 1));
     renderFeaturedCourses(featuredCourses.slice(0, 1));
-    return results[1].status === 'fulfilled';
+    return results[1].status === 'fulfilled' && accessOK;
   });
   const agendaTask = Promise.allSettled([
     settle(() => ADPEL.fetch.events({upcoming:true,strict:true})),
@@ -231,7 +243,7 @@ function loadHomeData(force) {
     const homeAgenda = buildUnifiedAgenda(futureEvents, publishedAnnouncements);
     // Preserve real attendance counts; the agenda block is independent of courses.
     const attendances = typeof fetchAttendancesForEvents === 'function'
-      ? await fetchAttendancesForEvents(homeAgenda) : await fetchAllAttendances();
+      ? await fetchAttendancesForEvents(homeAgenda,{strict:true}) : await fetchAllAttendances();
     if (!current()) return false;
     const attendancesByEvent = {};
     (attendances || []).forEach(a => {

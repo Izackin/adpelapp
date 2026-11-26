@@ -1,6 +1,6 @@
 // Paid Courses V1 - catalog metadata, paywall and protected content access.
 
-async function paidCoursesAccessMap() {
+async function paidCoursesAccessMap(options) {
   var userInfo = getCurrentUserInfo();
   if (!userInfo.isLoggedIn || !userInfo.user || !window.supabaseClient) return {};
 
@@ -19,6 +19,7 @@ async function paidCoursesAccessMap() {
     return map;
   } catch (error) {
     console.warn('Não foi possível carregar acessos aos cursos:', error);
+    if(options?.strict)throw error;
     return {};
   }
 }
@@ -70,7 +71,7 @@ async function paidLoadCoursesData() {
   var list=document.getElementById('courses-carousels'),empty=document.getElementById('courses-empty');
   if(list)list.classList.add('hidden');if(empty)empty.classList.add('hidden');
   try {
-    var results = await Promise.all([ADPEL.fetch.courses(), owner ? getAllLessonProgress() : Promise.resolve([]), owner ? paidCoursesAccessMap() : Promise.resolve({})]);
+    var results = await Promise.all([ADPEL.fetch.courses({published:true,strict:true}), owner ? getAllLessonProgress({strict:true}) : Promise.resolve([]), owner ? paidCoursesAccessMap({strict:true}) : Promise.resolve({})]);
     var latest=getCurrentUserInfo();
     if(request!==paidCatalogRequest || owner!==(latest.isLoggedIn&&latest.user?latest.user.id:null))return;
     var published = (results[0] || []).filter(function(course) { return course.is_published; });
@@ -90,7 +91,7 @@ async function paidLoadCoursesData() {
     var coursesWithStatus = published.map(function(course) {
       var total = Math.max(0, Number(course.lesson_count || 0));
       var completedSet = progressMap[course.id] || new Set();
-      var completed = completedSet.size;
+      var completed = [...completedSet].filter(index=>Number.isInteger(index)&&index>=0&&index<total).length;
       var access = accessMap[course.id] || null;
       var hasAccess = !course.is_paid || !!(access && access.status === 'active');
       var status = 'not-started';
@@ -120,7 +121,7 @@ async function paidLoadCoursesData() {
     filterCourseCatalog();
   } catch (error) {
     console.error('Erro ao carregar cursos:', error);
-    if(request===paidCatalogRequest){paidCatalogPending=false;if(loading)loading.textContent='Não foi possível carregar os cursos. Volte à tela para tentar novamente.';}
+    if(request===paidCatalogRequest && owner===(getCurrentUserInfo().user?.id||null)){paidCatalog=[];paidCatalogPending=false;if(loading)loading.textContent='Não foi possível carregar os cursos. Volte à tela para tentar novamente.';}
   }
 }
 

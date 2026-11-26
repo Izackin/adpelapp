@@ -90,7 +90,7 @@ async function initAuth() {
         console.warn('Perfil não encontrado ou erro ao carregar:', e);
         currentProfile = null;
       }
-      updateAuthUI(true);
+      updateAuthUI(true,{skipSectionLoad:true});
     } else {
       updateAuthUI(false);
     }
@@ -167,7 +167,7 @@ async function initAuth() {
   // Form events are bound before session bootstrap.
 }
 
-function updateAuthUI(isLoggedIn) {
+function updateAuthUI(isLoggedIn, options) {
   // Atualizar banner de boas-vindas
   if (typeof updateBannerWelcome === 'function') {
     setTimeout(() => updateBannerWelcome(), 100);
@@ -212,7 +212,7 @@ function updateAuthUI(isLoggedIn) {
   }
 
   // Re-render seções dinâmicas apenas se necessário (evita fetch duplicado)
-  if (isLoggedIn && currentUser) {
+  if (isLoggedIn && currentUser && !options?.skipSectionLoad) {
     const section = currentSection || 'home';
     if (typeof loadSectionData === 'function') loadSectionData(section);
   }

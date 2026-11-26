@@ -40,7 +40,8 @@ document.addEventListener('DOMContentLoaded', async () => {
 });
 
 async function initApp() {
-  await loadHomeData();
+  // Hash navigation has already loaded the requested section. Avoid the hidden Home.
+  if (typeof currentSection === 'undefined' || currentSection === 'home') await loadHomeData();
 
   if (window.ADPELJourney && typeof window.ADPELJourney.init === 'function') {
     window.ADPELJourney.init().catch(error => {

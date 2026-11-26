@@ -1,0 +1,26 @@
+const assert=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path'),vm=require('node:vm');
+const read=p=>fs.readFileSync(path.resolve(__dirname,'..',p),'utf8');
+(async()=>{
+ const src=read('supabase.js'),code=src.slice(src.indexOf('let publishedCourseCache ='),src.indexOf('async function fetchFeaturedCourses('));
+ let owner='u1',calls=0,fail=false,filters=[],pending=null;
+ const ctx={console:{error(){}},getCurrentUserInfo:()=>({user:owner?{id:owner}:null}),supabase:{from(table){assert.equal(table,'courses');calls++;return{select(fields){assert.ok(!fields.includes('lessons,'));return this;},eq(k,v){filters.push([k,v]);return this;},order(){if(pending)return pending;return Promise.resolve(fail?{error:Error('network')}:{data:[{id:'c',title:'Original',is_published:true}],error:null});}}}}};
+ vm.createContext(ctx);vm.runInContext(code,ctx);
+ const opt={published:true,strict:true};
+ const [a,b]=await Promise.all([ctx.fetchCourses(opt),ctx.fetchCourses(opt)]);
+ assert.equal(calls,1);assert.deepEqual(filters,[['is_published',true]]);
+ a[0].title='Alterado';assert.equal(b[0].title,'Original');assert.equal((await ctx.fetchCourses(opt))[0].title,'Original');assert.equal(calls,1);
+ owner='u2';await ctx.fetchCourses(opt);assert.equal(calls,2);
+ await ctx.fetchCourses();assert.equal(calls,3);
+ fail=true;await assert.rejects(()=>ctx.fetchCourses({...opt,force:true}));assert.equal(calls,4);
+ fail=false;await ctx.fetchCourses({...opt,force:true});assert.equal(calls,5);
+ let resolve;pending=new Promise(r=>resolve=r);const old=ctx.fetchCourses({...opt,force:true});owner='u3';pending=null;await ctx.fetchCourses(opt);
+ resolve({data:[{id:'old',title:'old'}]});await old;assert.equal((await ctx.fetchCourses(opt))[0].id,'c');
+ const script=read('script.js'),init=script.slice(script.indexOf('async function initApp()'),script.indexOf('function isContentVisibleNow'));
+ let homes=0,journeys=0,updates=0;const startup={currentSection:'courses',window:{ADPELJourney:{init:async()=>{journeys++;}}},loadHomeData:async()=>{homes++;},verificarAtualizacoesPendentes(){updates++;},console:{error(){}}};
+ vm.createContext(startup);vm.runInContext(init,startup);
+ await startup.initApp();assert.equal(homes,0);assert.equal(journeys,1);assert.equal(updates,1);
+ startup.currentSection='home';await startup.initApp();assert.equal(homes,1);
+ assert.match(read('auth.js'),/updateAuthUI\(true,\{skipSectionLoad:true\}\)/);
+ assert.match(read('js/home.js'),/access\[c.id\]\?\.status==='active'/);
+ console.log('public catalog cache and startup: PASS');
+})().catch(e=>{console.error(e);process.exitCode=1;});
