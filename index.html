@@ -443,10 +443,10 @@
       </section>
 
       <!-- SECT: COURSES -->
-      <div id="courses" class="hidden space-y-8">
-        <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div id="courses" class="hidden space-y-5 app-inner-view">
+        <div class="app-inner-heading">
           <div>
-            <h2 class="text-3xl font-bold text-gray-800">Meus Cursos</h2>
+            <p class="app-eyebrow">Aprender</p><h2>Meus cursos</h2>
             <p class="text-gray-500 mt-1">Acompanhe seu progresso e continue aprendendo.</p>
           </div>
         </div>
@@ -454,11 +454,26 @@
         <!-- Search Bar -->
         <div class="relative">
           <i class="fas fa-search absolute left-4 top-3.5 text-gray-400"></i>
-          <input type="text" placeholder="Buscar cursos por nome, categoria..." class="w-full md:w-96 pl-11 pr-4 py-3 bg-white border border-gray-200 rounded-xl focus:ring-2 focus:ring-adpel-500 focus:border-transparent outline-none shadow-sm">
+          <input id="course-catalog-search" type="search" aria-label="Buscar cursos" oninput="filterCourseCatalog()" placeholder="Buscar por nome ou categoria" class="w-full md:w-96 pl-11 pr-4 py-3 bg-white border border-gray-200 rounded-xl focus:ring-2 focus:ring-adpel-500 focus:border-transparent outline-none shadow-sm">
         </div>
 
+        <div class="app-catalog-toolbar">
+          <label class="sr-only" for="course-catalog-filter">Filtrar cursos por situação</label>
+          <select id="course-catalog-filter" onchange="filterCourseCatalog()"><option value="">Todos os cursos</option><option value="in-progress">Em andamento</option><option value="not-started">Disponíveis e exclusivos</option><option value="completed">Concluídos</option></select>
+          <span id="course-catalog-count" role="status" aria-live="polite"></span>
+        </div>
+        <div id="course-catalog-loading" class="app-inner-status hidden" role="status">Carregando cursos…</div>
         <!-- Carrosséis de Cursos -->
         <div id="courses-carousels" class="space-y-10 hidden">
+          <!-- Continue estudando -->
+          <div id="courses-inprogress-section">
+            <h3 class="text-lg font-semibold text-gray-800 mb-3 flex items-center gap-2">
+              <span class="w-2 h-2 rounded-full bg-amber-500"></span>
+              Continuar Assistindo
+            </h3>
+            <div id="courses-inprogress" class="flex gap-4 overflow-x-auto pb-4 snap-x snap-mandatory scrollbar-hide scroll-smooth"></div>
+          </div>
+
           <!-- Concluídos -->
           <div id="courses-completed-section">
             <h3 class="text-lg font-semibold text-gray-800 mb-3 flex items-center gap-2">
@@ -468,16 +483,7 @@
             <div id="courses-completed" class="flex gap-4 overflow-x-auto pb-4 snap-x snap-mandatory scrollbar-hide scroll-smooth"></div>
           </div>
 
-          <!-- Continuar Assistindo -->
-          <div id="courses-inprogress-section">
-            <h3 class="text-lg font-semibold text-gray-800 mb-3 flex items-center gap-2">
-              <span class="w-2 h-2 rounded-full bg-amber-500"></span>
-              Continuar Assistindo
-            </h3>
-            <div id="courses-inprogress" class="flex gap-4 overflow-x-auto pb-4 snap-x snap-mandatory scrollbar-hide scroll-smooth"></div>
-          </div>
-
-          <!-- Não Iniciados -->
+          <!-- Explore os cursos -->
           <div id="courses-notstarted-section">
             <h3 class="text-lg font-semibold text-gray-800 mb-3 flex items-center gap-2">
               <span class="w-2 h-2 rounded-full bg-blue-500"></span>
@@ -491,31 +497,32 @@
         <div id="courses-empty" class="bg-white rounded-xl shadow-sm overflow-hidden hidden">
           <div class="p-8 text-center empty-state">
             <div class="empty-state-icon"><i class="fas fa-graduation-cap text-3xl"></i></div>
-            <h3>Nenhum curso disponível</h3>
-            <p>Não há cursos publicados no momento.</p>
+            <h3 id="course-catalog-empty-title">Nenhum curso disponível</h3>
+            <p id="course-catalog-empty-description">Não há cursos publicados no momento.</p>
           </div>
         </div>
       </div>
 
       <!-- SECT: LIBRARY -->
-      <div id="library" class="hidden space-y-8">
-        <div class="flex items-center justify-between">
+      <div id="library" class="hidden space-y-5 app-inner-view">
+        <div class="app-inner-heading">
           <div>
-            <h2 class="text-3xl font-bold text-gray-800">Sua Biblioteca Digital</h2>
+            <p class="app-eyebrow">Aprender</p><h2>Biblioteca digital</h2>
             <p class="text-gray-500 mt-1">Livros, revistas e materiais de leitura.</p>
           </div>
         </div>
 
-        <!-- Category Navigation -->
-        <div class="flex gap-3 overflow-x-auto pb-2">
-          <button class="px-4 py-2 bg-adpel-600 text-white rounded-lg text-sm font-medium whitespace-nowrap">Todos</button>
-          <button class="px-4 py-2 bg-white text-gray-600 border border-gray-200 rounded-lg text-sm font-medium whitespace-nowrap hover:bg-gray-50">Evangélicos</button>
-          <button class="px-4 py-2 bg-white text-gray-600 border border-gray-200 rounded-lg text-sm font-medium whitespace-nowrap hover:bg-gray-50">Devocionais</button>
-          <button class="px-4 py-2 bg-white text-gray-600 border border-gray-200 rounded-lg text-sm font-medium whitespace-nowrap hover:bg-gray-50">História</button>
+        <div class="app-catalog-controls">
+          <label class="sr-only" for="library-search">Buscar livros</label>
+          <input id="library-search" type="search" oninput="filterLibraryCatalog()" placeholder="Buscar livro, autor ou categoria">
+          <label class="sr-only" for="library-category">Categoria</label>
+          <select id="library-category" onchange="filterLibraryCatalog()"><option value="">Todas as categorias</option></select>
+          <span id="library-count" role="status" aria-live="polite"></span>
         </div>
+        <div id="library-loading" class="app-inner-status hidden" role="status">Carregando biblioteca…</div>
 
         <!-- Books Grid -->
-        <div id="books-grid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-6">
+        <div id="books-grid" class="app-library-grid grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
         </div>
       </div>
 
@@ -676,7 +683,7 @@
       </div>
 
       <!-- SECT: PROFILE -->
-      <div id="profile" class="hidden space-y-8">
+      <div id="profile" class="hidden space-y-5 app-inner-view">
          <div id="profile-content">
             <h2 class="text-2xl font-bold text-gray-800 mb-6">Meu Perfil</h2>
             <div class="flex flex-col items-center mb-8">
@@ -723,7 +730,7 @@
           <button id="course-cert-btn" onclick="downloadCertificate()" class="hidden bg-white/20 hover:bg-white/30 text-white px-3 py-1.5 rounded-lg text-sm font-medium transition backdrop-blur-sm border border-white/30 items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed">
             <i class="fas fa-award"></i> <span>Certificado</span>
           </button>
-          <button onclick="closeCourseModal()" class="text-white/80 hover:text-white transition p-1"><i class="fas fa-times text-xl"></i></button>
+          <button type="button" onclick="closeCourseModal()" aria-label="Fechar curso" class="text-white/80 hover:text-white transition p-1 min-w-[44px] min-h-[44px]"><i class="fas fa-times text-xl"></i></button>
         </div>
       </div>
       <div class="p-6 space-y-6">
