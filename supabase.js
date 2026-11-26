@@ -113,13 +113,14 @@ async function fetchHomeData() {
   }
 }
 
-async function fetchAnnouncements() {
+async function fetchAnnouncements(options) {
   try {
     const { data, error } = await supabase.from('announcements').select('*').eq('is_published', true).order('created_at', { ascending: false });
     if (error) throw error;
     return data || [];
   } catch (e) {
     console.error('Erro ao buscar avisos:', e);
+    if (options && options.strict) throw e;
     return [];
   }
 }
