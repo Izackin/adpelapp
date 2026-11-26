@@ -145,7 +145,7 @@ O core publico foi dividido entre `script.js` e os modulos em `js/`. O core admi
 
 `script.js` inicializa o app apos o carregamento do DOM e mantem helpers compartilhados. Modulos em `js/` cuidam de Navegacao, Home, Agenda, Cursos, Biblioteca, Biblia embutida, Atualizacoes, Ofertas, Perfil e Certificados.
 
-A navegacao principal usa `navigateTo(section)` e preserva o destino no hash da URL. A arquitetura publica possui cinco areas: `home`, `word`, `learn`, `community-hub` e `more`. As secoes internas `courses`, `library`, `certificate`, `profile` e `community` exigem login.
+A navegacao principal usa `navigateTo(section)` e preserva o destino no hash da URL. Home e Agenda compartilham um carregador em memoria por sessao: consultas simultaneas sao reaproveitadas, cursos e agenda renderizam de forma independente, respostas de sessoes antigas sao descartadas e o versiculo editorial e reutilizado durante o dia. A continuidade usa `lesson_count` do catalogo, sem buscar aulas protegidas. A navegacao usa debounce por usuario e secao. A arquitetura publica possui cinco areas: `home`, `word`, `learn`, `community-hub` e `more`. As secoes internas `courses`, `library`, `certificate`, `profile` e `community` exigem login.
 
 ## Como o backend funciona
 
