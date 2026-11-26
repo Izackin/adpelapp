@@ -31,7 +31,56 @@
   ];
 
   var currentProgressCache = null;
-  var progressRequestPromise = null;
+  var journeySession = null;
+  var JOURNEY_REFRESH_MS = 60000;
+
+  function journeyDay() {
+    var parts = new Intl.DateTimeFormat('en-CA',{timeZone:'America/Sao_Paulo',year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(new Date());
+    var values = {};
+    parts.forEach(function(part){values[part.type]=part.value;});
+    return values.year + '-' + values.month + '-' + values.day;
+  }
+
+  function resetJourneySession() {
+    journeySession = null;
+    currentProgressCache = null;
+    dailyChallengesCache = [];
+    dailySummaryCache = {completed_count:0,total_count:0,day_completed:false,completion_xp:0};
+    dailyChallengesLoadError = null;
+    progressTableUnavailable = false;
+    challengeTableUnavailable = false;
+  }
+
+  function getJourneySession(uid) {
+    if (!journeySession || journeySession.uid !== uid) {
+      resetJourneySession();
+      journeySession = {uid:uid,tail:Promise.resolve(),initPending:null,visitDay:'',loadedAt:0,profile:null,profileAt:0};
+    }
+    return journeySession;
+  }
+
+  function isCurrentJourneySession(state) {
+    if (journeySession !== state) return false;
+    if (typeof getCurrentUserInfo !== 'function') return true;
+    var info = getUserInfo();
+    return !!(info.isLoggedIn && info.user && info.user.id === state.uid);
+  }
+
+  async function verifyJourneySession(state) {
+    if (!isCurrentJourneySession(state)) return false;
+    if (typeof getCurrentUserInfo === 'function') return true;
+    var info = await resolveUserInfo();
+    return journeySession === state && !!(info.isLoggedIn && info.user && info.user.id === state.uid);
+  }
+
+  function enqueueJourney(state, fn) {
+    var task = state.tail.then(async function(){
+      if (!(await verifyJourneySession(state))) return null;
+      return fn();
+    });
+    state.tail = task.catch(function(){});
+    return task;
+  }
   var rankingCache = [];
   var progressTableUnavailable = false;
   var challengeTableUnavailable = false;
@@ -51,6 +100,7 @@
 
   async function resolveUserInfo() {
     var existing = getUserInfo();
+    if (typeof getCurrentUserInfo === 'function') return existing;
     if (existing.isLoggedIn && existing.user) return existing;
     if (!window.ADPEL || !window.ADPEL.auth || typeof window.ADPEL.auth.getSession !== 'function') {
       return existing;
@@ -216,9 +266,20 @@
     return [];
   }
 
-  async function applyMissionSnapshot(snapshot, userInfo) {
+  async function applyMissionSnapshot(snapshot, userInfo, state) {
     var payload = snapshot || {};
     var progress = payload.progress || null;
+    if (!progress || String(progress.user_id) !== String(state.uid) || !(await verifyJourneySession(state))) return null;
+    // The authenticated main app already loaded the user's profile. Reuse it.
+    var profile = typeof getCurrentUserInfo === 'function' ? getUserInfo().profile : null;
+    if (!profile) {
+      if (state.profile && Date.now()-state.profileAt < JOURNEY_REFRESH_MS) profile=state.profile;
+      else {
+        profile=await loadJourneyProfile(state.uid);
+        if (profile) {state.profile=profile;state.profileAt=Date.now();}
+      }
+    }
+    if (!(await verifyJourneySession(state))) return null;
     dailyChallengesCache = (payload.missions || []).map(normalizeChallenge);
     dailySummaryCache = {
       completed_count: Number(payload.completed_count) || 0,
@@ -228,82 +289,56 @@
     };
     dailyChallengesLoadError = null;
     challengeTableUnavailable = false;
-
-    if (!progress) return null;
-    currentProgressCache = normalizeProgress(progress);
-    if (userInfo && userInfo.user) {
-      currentProgressCache = applyJourneyProfile(
-        currentProgressCache,
-        await loadJourneyProfile(userInfo.user.id)
-      );
-    }
+    currentProgressCache = applyJourneyProfile(normalizeProgress(progress),profile);
+    state.loadedAt=Date.now();
     return currentProgressCache;
   }
 
-  async function getOrCreateProgressInternal() {
-    var userInfo = await resolveUserInfo();
-    if (!userInfo.isLoggedIn || !userInfo.user || progressTableUnavailable || !window.supabaseClient) return null;
-
+  async function getOrCreateProgressInternal(userInfo,state) {
     try {
       var result = await window.supabaseClient.rpc('get_daily_missions');
       if (result.error) throw result.error;
-      return await applyMissionSnapshot(result.data, userInfo);
+      return await applyMissionSnapshot(result.data,userInfo,state);
     } catch (error) {
-      if (isMissingTableError(error) || isMissingChallengeTableError(error)) {
-        progressTableUnavailable = true;
-        challengeTableUnavailable = true;
-        console.warn('[Minha Caminhada] Estrutura segura de missões ainda não encontrada.');
-        renderJourneyUnavailable();
-        return null;
-      }
-      handleDailyChallengesLoadError('carregar missões', error, 'RPC get_daily_missions');
+      if (!(await verifyJourneySession(state))) return null;
+      handleDailyChallengesLoadError('carregar missões',error,'RPC get_daily_missions');
       return null;
     }
   }
 
-  async function getOrCreateProgress() {
-    if (progressRequestPromise) {
-      return progressRequestPromise;
-    }
-
-    progressRequestPromise = getOrCreateProgressInternal();
-
-    try {
-      return await progressRequestPromise;
-    } finally {
-      progressRequestPromise = null;
-    }
-  }
-
-  async function recordJourneyAction(activityType, sourceKey, options) {
-    var userInfo = await resolveUserInfo();
-    if (!userInfo.isLoggedIn || !userInfo.user || !window.supabaseClient) return currentProgressCache;
-    var actionOptions = options || {};
-
+  async function executeJourneyAction(activityType,sourceKey,options,userInfo,state) {
+    var actionOptions=options||{};
     try {
       var result = await window.supabaseClient.rpc('record_journey_action', {
         action_type: activityType,
         source_key: sourceKey == null ? null : String(sourceKey)
       });
       if (result.error) throw result.error;
-      var progress = await applyMissionSnapshot(result.data, userInfo);
+      var progress=await applyMissionSnapshot(result.data,userInfo,state);
+      if (!progress || !(await verifyJourneySession(state))) return null;
       renderJourneyWidgets(progress);
-
-      var reward = Number(result.data && result.data.xp_awarded) || 0;
+      var reward=Number(result.data && result.data.xp_awarded)||0;
       if (result.data && result.data.day_completed_now && typeof showToast === 'function') {
-        showToast('Caminhada de hoje concluída! +' + Number(result.data.completion_xp || 0) + ' XP', 'success');
-      } else if (reward > 0 && !actionOptions.silent && typeof showToast === 'function') {
-        showToast('Missão concluída! +' + reward + ' XP', 'success');
+        showToast('Caminhada de hoje concluída! +' + Number(result.data.completion_xp || 0) + ' XP','success');
+      } else if (reward>0 && !actionOptions.silent && typeof showToast === 'function') {
+        showToast('Missão concluída! +' + reward + ' XP','success');
       }
       return progress;
     } catch (error) {
-      console.error('[Minha Caminhada] Não foi possível registrar a ação:', {
-        activityType: activityType,
-        code: error && error.code,
-        message: error && error.message
-      });
-      return currentProgressCache;
+      if (!(await verifyJourneySession(state))) return null;
+      console.error('[Minha Caminhada] Não foi possível registrar a ação:',{activityType:activityType,code:error&&error.code,message:error&&error.message});
+      if (activityType==='daily_visit') handleDailyChallengesLoadError('registrar visita',error,'RPC record_journey_action');
+      return null;
     }
+  }
+
+  async function recordJourneyAction(activityType, sourceKey, options) {
+    var userInfo = await resolveUserInfo();
+    if (!userInfo.isLoggedIn || !userInfo.user || !window.supabaseClient) return null;
+    var state=getJourneySession(userInfo.user.id);
+    return enqueueJourney(state,function(){
+      return executeJourneyAction(activityType,sourceKey,options,userInfo,state);
+    });
   }
 
   function registerDailyVisit() {
@@ -728,18 +763,42 @@
   }
 
   async function initJourney() {
-    var progress = await getOrCreateProgress();
-    if (!progress) {
+    var info=await resolveUserInfo();
+    if (!info.isLoggedIn || !info.user || !window.supabaseClient) {
+      resetJourneySession();
       renderJourneyWidgets(null);
-      return;
+      return null;
     }
-    await registerDailyVisit();
+    var state=getJourneySession(info.user.id);
+    if (state.initPending) return state.initPending;
+    var day=journeyDay();
+    if (state.visitDay===day && currentProgressCache && Date.now()-state.loadedAt<JOURNEY_REFRESH_MS) {
+      renderJourneyWidgets(currentProgressCache);
+      return currentProgressCache;
+    }
+    var pending=enqueueJourney(state,async function(){
+      var currentDay=journeyDay();
+      var progress;
+      if (state.visitDay!==currentDay) {
+        // record_journey_action already prepares and returns today's mission snapshot.
+        progress=await executeJourneyAction('daily_visit',null,{silent:true},info,state);
+        if (progress && journeyDay()===currentDay) state.visitDay=currentDay;
+      } else {
+        progress=await getOrCreateProgressInternal(info,state);
+        if (progress && isCurrentJourneySession(state)) renderJourneyWidgets(progress);
+      }
+      if (!progress && isCurrentJourneySession(state)) renderJourneyWidgets(null);
+      return progress;
+    }).finally(function(){if(state.initPending===pending)state.initPending=null;});
+    state.initPending=pending;
+    return pending;
   }
 
   window.ADPELJourney = {
     LEVELS: LEVELS,
     MEDALS: MEDALS,
     init: initJourney,
+    resetSession: resetJourneySession,
     renderJourneyWidgets: renderJourneyWidgets,
     renderRanking: renderRankingPremium,
     renderDailyChallenges: renderDailyChallengesPremium,
