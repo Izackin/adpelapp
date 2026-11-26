@@ -58,6 +58,7 @@ function isExistingRegistrationResult(data) {
 }
 
 document.addEventListener('DOMContentLoaded', () => {
+  bindAuthForms();
   window.ADPELAuthReady = initAuth();
 });
 
@@ -162,8 +163,7 @@ async function initAuth() {
     }
   });
   
-  // Bind form events
-  bindAuthForms();
+  // Form events are bound before session bootstrap.
 }
 
 function updateAuthUI(isLoggedIn) {
@@ -236,98 +236,9 @@ function bindAuthForms() {
   // Login form
   const loginForm = document.getElementById('login-form');
   if (loginForm) {
-    loginForm.addEventListener('submit', async (e) => {
+    loginForm.addEventListener('submit', (e) => {
       e.preventDefault();
-      let email = document.getElementById('login-email').value.trim();
-      let password = document.getElementById('login-password').value;
-      
-      // Sanitização contra valores corrompidos (ex: undefinednull)
-      if (typeof email === 'string') {
-        email = email.replace(/undefined|null/gi, '').trim();
-      } else {
-        email = '';
-      }
-      if (typeof password === 'string') {
-        password = password.replace(/undefined|null/gi, '');
-      } else {
-        password = '';
-      }
-      
-      if (!email || !password) {
-        showToast('Preencha todos os campos.', 'error');
-        return;
-      }
-      
-      try {
-        showLoading(true, 'login');
-        const msgArea = document.getElementById('login-message-area');
-        if (msgArea) msgArea.classList.add('hidden');
-        
-        const { data, error } = await ADPEL.auth.signIn(email, password);
-        
-        if (error) {
-          showLoading(false, 'login');
-          
-          // Remove "undefinednull" e lixo do erro
-          const errMsg = safeErrorMsg(error);
-          
-          // Mensagens de erro específicas
-          if (errMsg.includes('Invalid login credentials') || errMsg.includes('User not found')) {
-            if (msgArea) {
-              msgArea.className = 'text-sm text-center p-3 rounded-lg bg-blue-50 text-blue-700 block';
-              msgArea.innerHTML = `Este email não possui cadastro ou a senha está incorreta. <button type="button" onclick="showRegisterModal(event)" class="font-bold underline hover:text-blue-900 ml-1">Criar conta</button>`;
-            }
-            showToast('Email ou senha incorretos. Verifique seus dados.', 'error');
-          } else if (errMsg.includes('Email not confirmed')) {
-            if (msgArea) {
-              msgArea.className = 'text-sm text-center p-3 rounded-lg bg-yellow-50 text-yellow-700 block';
-              msgArea.textContent = 'Email ainda não confirmado. Verifique sua caixa de entrada.';
-            }
-            showToast('Email ainda não confirmado. Verifique sua caixa de entrada.', 'warning');
-          } else {
-            if (msgArea) {
-              msgArea.className = 'text-sm text-center p-3 rounded-lg bg-red-50 text-red-700 block';
-              msgArea.textContent = 'Erro ao fazer login: ' + errMsg;
-            }
-            showToast('Erro ao fazer login: ' + errMsg, 'error');
-          }
-          
-          // Força o modal a continuar visível mesmo se algo o escondeu
-          const modal = document.getElementById('login-modal');
-          if (modal && modal.classList.contains('hidden')) {
-            modal.classList.remove('hidden');
-            modal.classList.add('flex');
-          }
-          return;
-        }
-        
-        showLoading(false, 'login');
-        closeModal('login-modal');
-        
-        // Forçar atualização imediata da UI (caso o onAuthStateChange atrase)
-        if (data && data.user) {
-          currentUser = data.user;
-          try {
-            currentProfile = await ADPEL.profile.getProfile();
-          } catch (e) {
-            console.warn('Perfil não encontrado após login:', e);
-            currentProfile = null;
-          }
-          updateAuthUI(true);
-          // Atualizar banner de boas-vindas
-          if (typeof updateBannerWelcome === 'function') {
-            updateBannerWelcome();
-          }
-          if (typeof initPushNotifications === 'function') {
-            setTimeout(() => initPushNotifications(), 700);
-          }
-          if (typeof adpelDebugLog === 'function') adpelDebugLog('Login OK', { isMaster: getCurrentUserInfo().isMaster });
-          // Removido reload — UI já atualiza dinamicamente
-        }
-      } catch (error) {
-        showLoading(false, 'login');
-        showToast('Erro ao fazer login. Tente novamente.', 'error');
-      }
+      if (typeof window.login === 'function') window.login();
     });
   }
   

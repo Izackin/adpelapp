@@ -14,6 +14,7 @@ window.openModal = function(modalId) {
       modal.classList.add('hidden');
       modal.classList.remove('flex');
       modal.setAttribute('aria-hidden', 'true');
+      if (modalId === 'login-modal' || modalId === 'register-modal') resetAuthPasswordVisibility(modal);
 
       var anotherModalOpen = document.querySelector('#login-modal:not(.hidden), #register-modal:not(.hidden)');
       if (!anotherModalOpen) document.body.classList.remove('modal-open');
@@ -82,26 +83,66 @@ window.openModal = function(modalId) {
       var firstInput = document.getElementById('login-email');
       if (firstInput) window.setTimeout(function() { firstInput.focus(); }, 50);
     };
+    var authLoginBusy = false;
+    window.toggleAuthPassword = function(id, button) {
+      if (!['login-password','register-password','register-confirm'].includes(id)) return;
+      var input = document.getElementById(id);
+      if (!input || !button) return;
+      var visible = input.type === 'password';
+      input.type = visible ? 'text' : 'password';
+      button.setAttribute('aria-pressed', String(visible));
+      button.setAttribute('aria-label', visible ? 'Ocultar senha' : 'Mostrar senha');
+      var icon = button.querySelector('i');
+      if (icon) icon.className = visible ? 'fas fa-eye-slash' : 'fas fa-eye';
+    };
+    function resetAuthPasswordVisibility(modal) {
+      if (!modal || !modal.querySelectorAll) return;
+      modal.querySelectorAll('.auth-password-toggle').forEach(function(button) {
+        var input = document.getElementById(button.getAttribute('aria-controls'));
+        if (input && input.type === 'text') window.toggleAuthPassword(input.id, button);
+      });
+    }
     window.login = async function() {
-      var email = (document.getElementById('login-email')?.value || '').replace(/undefined|null/gi, '').trim();
-      var password = (document.getElementById('login-password')?.value || '').replace(/undefined|null/gi, '');
-      if (!email || !password) {
-        alert('Preencha todos os campos.');
-        return;
+      if (authLoginBusy) return;
+      var email = (document.getElementById('login-email')?.value || '').trim();
+      // Passwords are opaque: never remove literal substrings or trim them.
+      var password = document.getElementById('login-password')?.value || '';
+      var button = document.getElementById('login-submit-btn');
+      var message = document.getElementById('login-message-area');
+      function errorText(text) {
+        if (message) {
+          message.textContent = text;
+          message.className = 'auth-login-message text-sm p-3 rounded-lg';
+        } else if (typeof window.showToast === 'function') window.showToast(text,'error');
       }
-      if (!window.supabaseClient) {
-        alert('Cliente não inicializado. Recarregue a página.');
-        return;
-      }
+      if (!email || !password) { errorText('Preencha seu e-mail e sua senha.'); return; }
+      if (!window.supabaseClient) { errorText('Não foi possível conectar. Recarregue a página.'); return; }
+      authLoginBusy = true;
+      if (button) { button.disabled=true; button.textContent='Entrando…'; }
+      if (message) message.classList.add('hidden');
+      var success = false;
       try {
-        const { data, error } = await window.supabaseClient.auth.signInWithPassword({ email, password });
-        if (error) {
-          alert('Erro ao fazer login: ' + (error.message || 'Erro desconhecido'));
-          return;
-        }
+        var result = await window.supabaseClient.auth.signInWithPassword({email:email,password:password});
+        if (result.error) throw result.error;
+        if (!result.data || !result.data.session) throw new Error('Sessão indisponível');
+        success = true;
         window.location.reload();
-      } catch (e) {
-        alert('Erro ao fazer login. Tente novamente.');
+      } catch (error) {
+        success = false;
+        var code = String(error && error.code || '');
+        var detail = String(error && error.message || '').toLowerCase();
+        errorText(code === 'email_not_confirmed' || detail.includes('email not confirmed')
+          ? 'O servidor exige a confirmação deste e-mail. Fale com a igreja se precisar de ajuda.'
+          : code === 'invalid_credentials' || detail.includes('invalid login credentials')
+          ? 'E-mail ou senha incorretos. Confira os dados ou recupere sua senha.'
+          : Number(error && error.status) === 429
+          ? 'Muitas tentativas. Tente novamente em alguns minutos.'
+          : 'Não foi possível entrar agora. Verifique sua conexão e tente novamente.');
+      } finally {
+        if (!success) {
+          authLoginBusy=false;
+          if (button) { button.disabled=false;button.textContent='Entrar'; }
+        }
       }
     };
     // Mover modais para filho direto do body ao carregar
