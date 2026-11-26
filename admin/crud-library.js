@@ -83,7 +83,7 @@ async function handleLibrarySubmit(e) {
     if (result.error) { throw result.error; }
     if (typeof showToast === 'function') { showToast(id ? 'Livro atualizado!' : 'Livro criado!', 'success'); }
     hideLibraryForm();
-    await loadAllData();
+    await loadAllData('library');
   } catch (error) {
     console.error('Erro ao salvar livro:', error);
     if (typeof showToast === 'function') { showToast('Erro: ' + error.message, 'error'); }
@@ -96,7 +96,7 @@ async function deleteLibrary(id) {
     var result = await window.supabaseClient.from('library_books').delete().eq('id', id);
     if (result.error) { throw result.error; }
     if (typeof showToast === 'function') { showToast('Livro excluído!', 'success'); }
-    await loadAllData();
+    await loadAllData('library');
   } catch (error) {
     console.error('Erro ao excluir livro:', error);
     if (typeof showToast === 'function') { showToast('Erro: ' + error.message, 'error'); }
