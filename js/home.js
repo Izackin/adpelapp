@@ -169,17 +169,20 @@ function homeStatus(message, retry) {
 }
 function loadHomeData(force) {
   const owner = homeSessionId();
-  const changed = homeLoadState.owner !== owner;
+  const previousOwner = homeLoadState.owner;
+  const changed = previousOwner !== owner;
   if (!changed && homeLoadState.pending) return homeLoadState.pending;
   if (!force && !changed && Date.now() - homeLoadState.loadedAt < SECTION_LOAD_DEBOUNCE) return Promise.resolve();
   const request = ++homeLoadState.request;
   homeLoadState.owner = owner;
   if (changed) {
     homeLoadState.loadedAt = 0;
-    // Clear session-specific progress and attendance immediately.
-    renderContinueSection([]);
-    renderHomeEvents([]);
-    if (typeof renderCommunityAgenda === 'function') renderCommunityAgenda([]);
+    // On an actual session change, clear session-specific progress and attendance.
+    if (previousOwner !== undefined) {
+      renderContinueSection([]);
+      renderHomeEvents([]);
+      if (typeof renderCommunityAgenda === 'function') renderCommunityAgenda([]);
+    }
   }
   homeStatus('Atualizando conteúdo…',false);
   _lastHomeLoad = Date.now();
