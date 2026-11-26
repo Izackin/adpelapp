@@ -221,9 +221,10 @@ function buildCertificateHTML({ userName, certTitle, courseTitle, description, d
         <div class="recipient">${escapeHtml(safeUserName)}</div>
         <p>${escapeHtml(safeDescription)}</p>
         <div class="course-name">${escapeHtml(safeCourseTitle)}</div>
-        <p class="details">Carga horária de ${safeDuration ? safeDuration + ' horas' : 'não especificada'} &bull; Concluído em ${safeCompletedDate}</p>
+        <p class="details">Carga horária de ${safeDuration ? escapeHtml(safeDuration) + ' horas' : 'não especificada'} &bull; Concluído em ${escapeHtml(safeCompletedDate)}</p>
       </div>
-      <div class="date">Goiânia, ${safeCompletedDate}</div>
+      <div class="date">Goiânia, ${escapeHtml(safeCompletedDate)}</div>
+      ${certificateId ? `<p style="position:relative;text-align:center;font-size:9pt;overflow-wrap:anywhere;color:#475569">Registro ADPEL: ${escapeHtml(certificateId)}</p>` : ''}
       <div class="footer">
         <div class="signature">
           <div class="signature-line"></div>
@@ -304,7 +305,8 @@ async function viewCertificate(encodedCert) {
     description,
     duration,
     completedDate,
-    logoUrl
+    logoUrl,
+    certificateId: cert.id
   });
 
   const iframe = document.getElementById('certificate-iframe');
