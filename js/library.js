@@ -85,7 +85,7 @@ async function loadLibraryData() {
   if (!owner) { libraryLoading=false; return; }
   if (loading) { loading.textContent='Carregando biblioteca…'; loading.classList.remove('hidden'); }
   try {
-    const library = await ADPEL.fetch.library();
+    const library = await ADPEL.fetch.library({published:true,strict:true});
     if (request !== libraryRequest || owner !== librarySession()) return;
     libraryCatalog = (library || []).filter(b => b.is_published);
     libraryLoading = false;
@@ -95,6 +95,7 @@ async function loadLibraryData() {
   } catch (e) {
     console.error(e);
     if (request === libraryRequest && owner === librarySession()) {
+      libraryCatalog=[];
       libraryLoading=false;
       if (loading) loading.textContent='Não foi possível carregar a biblioteca. Volte à tela para tentar novamente.';
     }
