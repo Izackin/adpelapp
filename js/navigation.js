@@ -5,12 +5,15 @@ var SECTION_LOAD_DEBOUNCE = 2000;
 
 function navigateTo(section, options) {
   var navigationOptions = options || {};
+  const target = document.getElementById(section);
+  if (!target || !['home','word','tutor','learn','community-hub','more','courses','library','certificate','cofres','ranking','bible','profile','community'].includes(section)) return;
   // Seções que exigem login
   var restrictedSections = ['courses', 'library', 'certificate', 'profile', 'community'];
   var userInfo = getCurrentUserInfo();
 
   if (restrictedSections.indexOf(section) !== -1 && !userInfo.isLoggedIn) {
     openModal('login-modal');
+    if (window.ADPELAppShell) window.ADPELAppShell.setActive(currentSection);
     return;
   }
 
@@ -19,18 +22,14 @@ function navigateTo(section, options) {
     const el = document.getElementById(s);
     if (el) el.classList.add('hidden');
   });
-  const target = document.getElementById(section);
-  if (target) {
-    target.classList.remove('hidden');
-    currentSection = section;
-  } else {
-    return;
-  }
+  const changed = currentSection !== section;
+  target.classList.remove('hidden');
+  currentSection = section;
   if (navigationOptions.updateHistory !== false) {
     var nextHash = '#' + section;
     if (window.location.hash !== nextHash) window.history.pushState({ section: section }, '', nextHash);
   }
-  window.scrollTo({ top: 0, behavior: 'smooth' });
+  if (changed) window.scrollTo({ top: 0, behavior: 'instant' });
   loadSectionData(section);
 
   // Fechar sidebar mobile ao navegar
@@ -46,14 +45,17 @@ function navigateTo(section, options) {
 }
 
 function loadSectionData(section) {
+  // Home and agenda share a session-aware in-flight loader.
+  if (section === 'home' || section === 'community-hub') return loadHomeData();
+  const info = getCurrentUserInfo();
+  const loadKey = section + ':' + (info.isLoggedIn && info.user ? info.user.id : 'guest');
   const now = Date.now();
-  if (_lastSectionLoads[section] && (now - _lastSectionLoads[section] < SECTION_LOAD_DEBOUNCE)) {
+  if (_lastSectionLoads[loadKey] && (now - _lastSectionLoads[loadKey] < SECTION_LOAD_DEBOUNCE)) {
     console.log(`⏭️ loadSectionData(${section}) debounce`);
     return;
   }
-  _lastSectionLoads[section] = now;
+  _lastSectionLoads[loadKey] = now;
   switch(section) {
-    case 'home': loadHomeData(); break;
     case 'word': if (typeof renderReadingContinuation === 'function') renderReadingContinuation(); break;
     case 'tutor': if (window.ADPELTutor && typeof window.ADPELTutor.activate === 'function') window.ADPELTutor.activate(); break;
     case 'courses': loadCoursesData(); break;
@@ -68,7 +70,7 @@ function loadSectionData(section) {
 }
 
 function handleNavigationHash() {
-  const hash = window.location.hash.replace('#', '');
+  const hash = window.location.hash.replace('#', '') || 'home';
   if (hash && ['home','word','tutor','learn','community-hub','more','courses','library','certificate','cofres','ranking','profile','community'].includes(hash)) {
     navigateTo(hash, { updateHistory: false });
   }

@@ -92,7 +92,9 @@
     renderBottomNavigation();
     watchVirtualKeyboard();
   });
-  window.addEventListener('hashchange', function () { setActive(pageContext()); });
+  window.addEventListener('hashchange', function () {
+    if (!isMainPage() || typeof window.navigateTo !== 'function') setActive(pageContext());
+  });
 
   window.ADPELAppShell = {
     destinations: destinations,
