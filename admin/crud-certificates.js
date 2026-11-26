@@ -79,7 +79,7 @@ async function handleCertificateSubmit(e) {
     if (result.error) { throw result.error; }
     if (typeof showToast === 'function') { showToast(id ? 'Certificado atualizado!' : 'Certificado criado!', 'success'); }
     hideCertificateForm();
-    await loadAllData();
+    await loadAllData('certificates');
   } catch (error) {
     console.error('Erro ao salvar certificado:', error);
     if (typeof showToast === 'function') { showToast('Erro: ' + error.message, 'error'); }
@@ -92,7 +92,7 @@ async function deleteCertificate(id) {
     var result = await window.supabaseClient.from('certificates').delete().eq('id', id);
     if (result.error) { throw result.error; }
     if (typeof showToast === 'function') { showToast('Certificado excluído!', 'success'); }
-    await loadAllData();
+    await loadAllData('certificates');
   } catch (error) {
     console.error('Erro ao excluir certificado:', error);
     if (typeof showToast === 'function') { showToast('Erro: ' + error.message, 'error'); }
