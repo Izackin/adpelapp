@@ -182,7 +182,32 @@ self.addEventListener('push', (event) => {
         entity_id: data.entity_id || null
       }
     };
-    event.waitUntil(self.registration.showNotification(title, options));
+    if (data.type === 'automation_test') {
+      // Retain only the most recent test's local execution evidence, never message text or credentials.
+      const receivedAt = new Date().toISOString();
+      event.waitUntil((async () => {
+        let shown = false;
+        let failure = null;
+        try {
+          await self.registration.showNotification(title, options);
+          shown = true;
+        } catch (error) {
+          failure = error && error.name ? String(error.name).slice(0, 64) : 'Error';
+        }
+        try {
+          const cache = await caches.open('adpel-push-diagnostics-v1');
+          const key = new URL('__adpel_push_test_trace__', self.registration.scope).href;
+          await cache.put(key, new Response(JSON.stringify({
+            id: data.notification_id || null, receivedAt, shown, failure,
+            completedAt: new Date().toISOString()
+          }), { headers: { 'Content-Type': 'application/json' } }));
+        } catch (error) {
+          console.warn('[SW] Diagnóstico de push indisponível.');
+        }
+      })());
+    } else {
+      event.waitUntil(self.registration.showNotification(title, options));
+    }
   } catch (error) {
     console.error('[SW] Erro no push:', error);
   }
