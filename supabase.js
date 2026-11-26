@@ -146,13 +146,39 @@ async function fetchEvents(options) {
   }
 }
 
-async function fetchCourses() {
-  try {
-    const { data, error } = await supabase.from('courses').select('id,title,slug,description,thumbnail_url,teacher_name,category,duration,is_featured,is_published,display_order,created_at,updated_at,certificate_title,certificate_description,is_paid,price_cents,lesson_count').order('created_at', { ascending: false });
-    if (error) throw error;
+// Only the explicit published metadata path is cached. Never cache access grants or lessons.
+let publishedCourseCache = null;
+function publishedCourseOwner() {
+  return typeof getCurrentUserInfo === 'function' ? (getCurrentUserInfo().user?.id || null) : null;
+}
+async function fetchCourses(options) {
+  const published = options?.published === true;
+  const owner = publishedCourseOwner();
+  async function queryCourses() {
+    let query = supabase.from('courses').select('id,title,slug,description,thumbnail_url,teacher_name,category,duration,is_featured,is_published,display_order,created_at,updated_at,certificate_title,certificate_description,is_paid,price_cents,lesson_count');
+    if(published) query=query.eq('is_published',true);
+    const {data,error}=await query.order('created_at',{ascending:false});
+    if(error)throw error;
     return data || [];
-  } catch (e) {
-    console.error('Erro ao buscar cursos:', e);
+  }
+  try {
+    if(!published)return await queryCourses();
+    let cache=publishedCourseCache;
+    if(!cache||cache.owner!==owner)cache=publishedCourseCache={owner,rows:null,at:0,pending:null};
+    if(!options.force && cache.rows && Date.now()-cache.at<30000) return cache.rows.map(row=>({...row}));
+    if(!cache.pending || options.force){
+      const task=queryCourses().then(rows=>{
+        if(publishedCourseCache===cache && cache.pending===task && publishedCourseOwner()===owner){
+          cache.rows=rows.map(row=>({...row}));cache.at=Date.now();
+        }
+        return rows;
+      }).finally(()=>{if(cache.pending===task)cache.pending=null;});
+      cache.pending=task;
+    }
+    return (await cache.pending).map(row=>({...row}));
+  }catch(error){
+    console.error('Erro ao buscar cursos:',error);
+    if(options?.strict)throw error;
     return [];
   }
 }
@@ -168,13 +194,16 @@ async function fetchFeaturedCourses() {
   }
 }
 
-async function fetchLibrary() {
+async function fetchLibrary(options) {
   try {
-    const { data, error } = await supabase.from('library_books').select('*').order('created_at', { ascending: false });
+    let query = supabase.from('library_books').select('*');
+    if(options?.published)query=query.eq('is_published',true);
+    const { data, error } = await query.order('created_at', { ascending: false });
     if (error) throw error;
     return data || [];
   } catch (e) {
     console.error('Erro ao buscar biblioteca:', e);
+    if(options?.strict)throw e;
     return [];
   }
 }
