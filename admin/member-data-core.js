@@ -20,7 +20,7 @@
   ];
 
   var TEMPLATE_HEADERS = FIELD_DEFINITIONS.map(function(field) { return field.label; });
-  var VALID_STATUSES = ['ativo', 'afastado', 'transferido', 'falecido', 'removido'];
+  var VALID_STATUSES = ['ativo', 'afastado', 'transferido', 'falecido', 'removido', 'pendente'];
   var VALID_ROLES = ['visitante', 'membro', 'obreiro', 'lider', 'pastor', 'crianca', 'jovem'];
   var MEMBER_IMPORT_PRESETS = {
     generic: { id: 'generic', label: 'Genérico', available: true },
@@ -31,6 +31,8 @@
   var STATUS_ALIASES = {
     'ativo': 'ativo',
     'membro ativo': 'ativo',
+    'pendente': 'pendente',
+    'pendente de validacao': 'pendente',
     'afastado': 'afastado',
     'transferido': 'transferido',
     'transferencia': 'transferido',
