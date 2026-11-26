@@ -7,6 +7,8 @@
   const CHAPTER_CACHE_TTL = 5 * 60 * 1000;
   const chapterCache = new Map();
   let annotationRequest = 0;
+  let searchRequest = 0;
+  function invalidateBibleSearch(){++searchRequest;$('bible-loading')?.classList.add('hidden');}
   const state = {
     books: [], translations: [], book: null, chapter: 1, translation: null,
     verses: [], selection: null, selectionAnchor: null, user: null, chapterRequest: 0,
@@ -281,6 +283,7 @@
   async function loadChapter(bookRef = state.book?.id, chapter = state.chapter, verseToFocus = null, options = {}) {
     const book = state.books.find((item) => item.id === bookRef || item.name_pt === bookRef);
     if (!book || !state.translation) return;
+    invalidateBibleSearch();
     const request = ++state.chapterRequest;
     state.book = book;
     state.chapter = Math.min(Math.max(1, Number(chapter) || 1), book.chapter_count);
@@ -547,7 +550,12 @@
 
   async function searchBible() {
     const term = $('bible-search-input')?.value.trim();
-    if (!term) return;
+    if (!term || !state.translation) return;
+    const request=++searchRequest;
+    const translationId=state.translation.id;
+    const current=()=>request===searchRequest&&state.translation?.id===translationId;
+    const results=$('bible-results');
+    if(results)results.replaceChildren();
     $('bible-search-results')?.classList.remove('hidden');
     $('bible-page')?.classList.add('hidden');
     $('bible-loading')?.classList.remove('hidden');
@@ -556,19 +564,21 @@
     try {
       const reference = parseReference(term);
       let query = client().from('bible_verses').select('book_id,chapter,verse,text')
-        .eq('translation_id', state.translation.id).eq('is_canonical', true).limit(40);
+        .eq('translation_id', translationId).eq('is_canonical', true).limit(40);
       if (reference) {
         query = query.eq('book_id', reference.book.id).eq('chapter', reference.chapter);
         if (reference.verseStart) query = query.gte('verse', reference.verseStart).lte('verse', reference.verseEnd);
       } else query = query.ilike('text', `%${term.replace(/[%_]/g, '')}%`);
       const { data, error } = await query.order('book_id').order('chapter').order('verse');
+      if (!current()) return;
       if (error) throw error;
       renderSearchResults(data || []);
     } catch (error) {
+      if(!current())return;
       console.error('Erro na busca bíblica:', error);
       if ($('bible-error-text')) $('bible-error-text').textContent = 'Erro ao buscar na Bíblia. Tente novamente.';
       $('bible-error')?.classList.remove('hidden');
-    } finally { $('bible-loading')?.classList.add('hidden'); }
+    } finally { if(current())$('bible-loading')?.classList.add('hidden'); }
   }
 
   function renderSearchResults(results) {
@@ -656,6 +666,7 @@
     });
     $('bible-book-select')?.addEventListener('change', (event) => loadChapter(event.target.value, 1));
     $('bible-translation-select')?.addEventListener('change', async (event) => {
+      invalidateBibleSearch();
       state.translation = state.translations.find((item) => item.code === event.target.value) || state.translation;
       await savePreferences({ translation_code: state.translation.code }); await loadChapter();
     });
@@ -718,8 +729,8 @@
     await loadChapter(state.book.id,state.chapter,saved?.book.id===state.book.id&&saved.chapter===state.chapter?saved.verseStart:null,{linked:true});
     registerBibleOpen();
   }
-  function voltarCapaBiblia() { $('bible-reader')?.classList.add('hidden'); $('bible-cover')?.classList.remove('hidden'); }
-  function voltarLeituraBiblia() { $('bible-search-results')?.classList.add('hidden'); $('bible-page')?.classList.remove('hidden'); }
+  function voltarCapaBiblia() { invalidateBibleSearch(); $('bible-reader')?.classList.add('hidden'); $('bible-cover')?.classList.remove('hidden'); }
+  function voltarLeituraBiblia() { invalidateBibleSearch(); $('bible-search-results')?.classList.add('hidden'); $('bible-page')?.classList.remove('hidden'); }
   function capituloAnterior() { if (state.chapter > 1) loadChapter(state.book.id, state.chapter - 1); }
   function proximoCapitulo() { if (state.chapter < state.book.chapter_count) loadChapter(state.book.id, state.chapter + 1); }
   function toggleFullscreen() { if (!document.fullscreenElement) document.documentElement.requestFullscreen?.(); else document.exitFullscreen?.(); }
