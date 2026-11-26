@@ -160,7 +160,7 @@ exerciseCrud().then(() => {
   assert.match(html, /id="agenda-active"/);
   assert.match(html, /id="agenda-featured"/);
   assert.match(html, /id="agenda-participants-modal"/);
-  assert.match(admin, /Promise\.all\([\s\S]*event_attendances/);
+  assert.match(admin, /if\(all\|\|agenda\)first\.push\(read\('presenças',client\.from\('event_attendances'\)/);
   assert.match(migration, /add column if not exists end_date date/);
   assert.match(migration, /source text not null default 'manual'/);
   assert.match(migration, /check \(source in \('manual', 'google'\)\)/);

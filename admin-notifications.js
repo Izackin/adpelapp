@@ -4,8 +4,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const form = document.getElementById('notification-form');
   if (form) form.addEventListener('submit', sendMasterNotification);
 
-  // Carrega estatísticas ao iniciar
-  loadNotificationStats();
+  // Estatísticas são carregadas ao abrir Notificações, após o gate master.
 });
 
 async function sendMasterNotification(e) {

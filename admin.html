@@ -216,6 +216,7 @@
     <div id="admin-backdrop" onclick="toggleSidebar()" class="hidden fixed inset-0 bg-slate-950/70 z-30 md:hidden transition-opacity duration-300"></div>
     <main class="flex-1 md:ml-64 p-4 md:p-6 pt-20 md:pt-6 pb-24 md:pb-6 overflow-y-auto touch-pan-y min-h-0">
       <div id="admin-load-status" class="admin-load-status" role="status" aria-live="polite" aria-busy="true">Carregando painel…</div>
+      <button type="button" id="admin-retry-view" hidden onclick="loadAllData(adminCurrentView)" class="mb-3 px-4 py-3 bg-adpel-600 text-white rounded-lg">Tentar atualizar esta área</button>
       <!-- DASHBOARD HOME -->
       <div id="admin-view-home" class="space-y-6 animate-fade-in">
         <section class="admin-v2-hero">
@@ -226,7 +227,7 @@
           </div>
           <div class="admin-v2-hero__actions">
             <span id="admin-dashboard-updated">Carregando dados...</span>
-            <button id="admin-refresh-button" type="button" onclick="loadAllData()" class="admin-v2-refresh" disabled>
+            <button id="admin-refresh-button" type="button" onclick="loadAllData('home')" class="admin-v2-refresh" disabled>
               <i class="fas fa-rotate"></i> Atualizar
             </button>
           </div>
@@ -1381,7 +1382,7 @@
         
         showApp();
         adminAccessReady = true;
-        loadAllData();
+        loadAllData(adminCurrentView);
       } catch (e) {
         console.error('Erro na verificação de acesso admin:', e);
         showGate();

@@ -69,7 +69,7 @@ async function handleAppUpdateSubmit(e) {
       showToast(id ? 'Atualização salva!' : 'Atualização criada!', 'success');
     }
     hideAppUpdateForm();
-    await loadAllData();
+    await loadAllData('app-updates');
   } catch (error) {
     console.error('Erro ao salvar atualização do app:', error);
     if (typeof showToast === 'function') { showToast('Erro: ' + error.message, 'error'); }
@@ -87,7 +87,7 @@ async function toggleAppUpdateActive(id, isActive) {
     if (typeof showToast === 'function') {
       showToast(!isActive ? 'Atualização ativada!' : 'Atualização desativada!', 'success');
     }
-    await loadAllData();
+    await loadAllData('app-updates');
   } catch (error) {
     console.error('Erro ao alterar status da atualização:', error);
     if (typeof showToast === 'function') { showToast('Erro: ' + error.message, 'error'); }
@@ -101,7 +101,7 @@ async function deleteAppUpdate(id) {
     var result = await window.supabaseClient.from('app_updates').delete().eq('id', id);
     if (result.error) { throw result.error; }
     if (typeof showToast === 'function') { showToast('Atualização excluída!', 'success'); }
-    await loadAllData();
+    await loadAllData('app-updates');
   } catch (error) {
     console.error('Erro ao excluir atualização:', error);
     if (typeof showToast === 'function') { showToast('Erro: ' + error.message, 'error'); }

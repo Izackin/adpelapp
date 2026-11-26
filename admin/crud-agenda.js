@@ -244,7 +244,7 @@ async function handleCreateAgenda(e) {
     await logAgendaAudit(action, savedId, data);
     if (typeof showToast === 'function') showToast(id ? 'Evento atualizado!' : 'Evento criado!', 'success');
     hideAgendaForm();
-    await loadAllData();
+    await loadAllData('agenda');
   } catch (error) {
     console.error('Erro ao salvar evento:', error);
     if (typeof showToast === 'function') showToast('Erro: ' + error.message, 'error');
@@ -263,7 +263,7 @@ async function deleteAgenda(id) {
     if (result.error) throw result.error;
     await logAgendaAudit('event_deleted', id, event, { attendance_count: attendanceCount });
     if (typeof showToast === 'function') showToast('Evento excluído!', 'success');
-    await loadAllData();
+    await loadAllData('agenda');
   } catch (error) {
     console.error('Erro ao excluir evento:', error);
     if (typeof showToast === 'function') showToast('Erro: ' + error.message, 'error');

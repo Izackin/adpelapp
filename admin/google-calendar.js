@@ -145,7 +145,7 @@ async function selectGoogleCalendar() {
     var data = await invokeGoogleCalendarFunction('google-calendar-api', { action: 'select_calendar', calendar_id: select.value });
     googleCalendarIntegration = data.integration;
     googleCalendarChoosing = false;
-    if (typeof loadAllData === 'function') await loadAllData();
+    if (typeof loadAllData === 'function') await loadAllData('agenda');
     if (typeof showToast === 'function') showToast('Google Agenda conectado. ' + ((data.sync && data.sync.created) || 0) + ' evento(s) importado(s).', 'success');
   } catch (error) {
     if (typeof showToast === 'function') showToast(error.message, 'error');
@@ -163,7 +163,7 @@ async function syncGoogleCalendarNow() {
   try {
     var data = await invokeGoogleCalendarFunction('google-calendar-api', { action: 'sync' });
     googleCalendarIntegration = data.integration;
-    if (typeof loadAllData === 'function') await loadAllData();
+    if (typeof loadAllData === 'function') await loadAllData('agenda');
     var sync = data.sync || {};
     if (typeof showToast === 'function') showToast('Sincronização concluída: ' + (sync.created || 0) + ' novo(s), ' + (sync.updated || 0) + ' atualizado(s).', 'success');
   } catch (error) {
@@ -183,7 +183,7 @@ async function disconnectGoogleCalendar() {
     var data = await invokeGoogleCalendarFunction('google-calendar-api', { action: 'disconnect' });
     googleCalendarIntegration = data.integration;
     googleCalendarChoices = [];
-    if (typeof loadAllData === 'function') await loadAllData();
+    if (typeof loadAllData === 'function') await loadAllData('agenda');
     if (typeof showToast === 'function') showToast('Google Agenda desconectado.', 'success');
   } catch (error) {
     if (typeof showToast === 'function') showToast(error.message, 'error');
@@ -207,5 +207,5 @@ document.addEventListener('DOMContentLoaded', function() {
     var cleanUrl = window.location.pathname + (params.toString() ? '?' + params.toString() : '') + window.location.hash;
     window.history.replaceState({}, document.title, cleanUrl);
   }
-  setTimeout(loadGoogleCalendarStatus, 800);
+  // Status is loaded on the agenda view, after the master gate.
 });

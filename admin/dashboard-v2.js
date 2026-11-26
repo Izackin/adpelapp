@@ -94,10 +94,12 @@ function adminDashboardStats() {
   };
 }
 
-function adminDashboardQuickAction(action) {
+async function adminDashboardQuickAction(action) {
   if (action === 'member') {
-    adminNavigateTo('church');
+    await adminNavigateTo('church');
+    if (adminCurrentView!=='church' || adminViewFailed['church']) return;
     window.setTimeout(function() {
+      if (adminCurrentView!=='church') return;
       if (typeof setChurchTab === 'function') setChurchTab('members');
       if (typeof showMemberForm === 'function') showMemberForm();
       var form = document.getElementById('member-form-container');
@@ -107,8 +109,10 @@ function adminDashboardQuickAction(action) {
   }
 
   if (action === 'event') {
-    adminNavigateTo('agenda');
+    await adminNavigateTo('agenda');
+    if (adminCurrentView!=='agenda' || adminViewFailed['agenda']) return;
     window.setTimeout(function() {
+      if (adminCurrentView!=='agenda') return;
       if (typeof showAgendaForm === 'function') showAgendaForm();
       var form = document.getElementById('agenda-form-container');
       if (form && typeof form.scrollIntoView === 'function') form.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -117,8 +121,10 @@ function adminDashboardQuickAction(action) {
   }
 
   if (action === 'notification') {
-    adminNavigateTo('notifications');
+    await adminNavigateTo('notifications');
+    if (adminCurrentView!=='notifications' || adminViewFailed['notifications']) return;
     window.setTimeout(function() {
+      if (adminCurrentView!=='notifications') return;
       var title = document.getElementById('notif-title');
       if (title && typeof title.focus === 'function') title.focus();
     }, 80);
@@ -126,8 +132,10 @@ function adminDashboardQuickAction(action) {
   }
 
   if (action === 'course') {
-    adminNavigateTo('courses');
+    await adminNavigateTo('courses');
+    if (adminCurrentView!=='courses' || adminViewFailed['courses']) return;
     window.setTimeout(function() {
+      if (adminCurrentView!=='courses') return;
       if (typeof showCourseForm === 'function') showCourseForm();
       var form = document.getElementById('course-form-container');
       if (form && typeof form.scrollIntoView === 'function') form.scrollIntoView({ behavior: 'smooth', block: 'start' });

@@ -31,8 +31,9 @@ assert.match(html, /data-admin-view="notifications"[^>]*onclick="adminNavigateTo
 assert.ok(html.includes('id="admin-view-notifications"'));
 
 assert.match(core, /await task\('visão geral',loadAdminDashboardData\)/);
-assert.ok(core.includes("view === 'home'"));
-assert.ok(core.includes('renderAdminDashboardV2()'));
+assert.match(core, /home\s*=\s*view\s*===\s*'home'/);
+assert.match(core, /if\s*\(all\s*\|\|\s*home\)\s*\{\s*if\s*\(typeof loadAdminDashboardData\s*===\s*'function'\)\s*await task\('visão geral',loadAdminDashboardData\)/);
+assert.match(dashboard, /async function loadAdminDashboardData\(\)[\s\S]*?renderAdminDashboardV2\(\);/);
 
 assert.ok(dashboard.includes(".from('audit_logs')"));
 assert.ok(dashboard.includes(".from('member_imports')"));
