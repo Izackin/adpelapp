@@ -102,7 +102,7 @@ function setChurchTab(tab) {
   }
   var active = document.getElementById('church-tab-' + tab);
   if (active) active.classList.remove('hidden');
-  if (tab === 'members' && typeof loadMemberIntakes === 'function') loadMemberIntakes();
+  if (tab === 'members') renderChurchMembers();
 
   var buttons = document.querySelectorAll('.church-tab-btn');
   for (var b = 0; b < buttons.length; b++) {
@@ -304,14 +304,18 @@ function renderChurchMembers(onlyBirthdays) {
 
   var search = churchText((document.getElementById('member-search') || {}).value).toLowerCase();
   var status = (document.getElementById('member-status-filter') || {}).value || '';
+  var roleFilter = (document.getElementById('member-kind-filter') || {}).value || '';
   var list = onlyBirthdays || search === 'aniversariantes' ? getBirthdayMembers() : membersData.slice();
+  var summary = document.getElementById('member-directory-summary');
+  if (summary) summary.textContent = membersData.filter(function(m){return m.status !== 'removido' && m.role !== 'visitante';}).length + ' membros • ' + membersData.filter(function(m){return m.status !== 'removido' && m.role === 'visitante';}).length + ' visitantes • ' + membersData.filter(function(m){return m.status === 'pendente';}).length + ' pendentes';
 
   list = list.filter(function(member) {
     var matchesSearch = !search || search === 'aniversariantes' ||
       String(member.full_name || '').toLowerCase().indexOf(search) >= 0 ||
-      String(member.phone || '').toLowerCase().indexOf(search) >= 0;
-    var matchesStatus = !status || member.status === status;
-    return matchesSearch && matchesStatus;
+      String(member.phone || '').toLowerCase().indexOf(search) >= 0 || String(member.email || '').toLowerCase().indexOf(search) >= 0;
+    var matchesStatus = status ? member.status === status : member.status !== 'removido';
+    var matchesRole = !roleFilter || (roleFilter === 'visitante' ? member.role === 'visitante' : member.role !== 'visitante');
+    return matchesSearch && matchesStatus && matchesRole;
   });
 
   if (list.length === 0) {
@@ -338,8 +342,9 @@ function renderChurchMembers(onlyBirthdays) {
       '<div class="flex flex-wrap md:justify-end gap-2">' +
       (phone ? '<a href="https://wa.me/55' + escapeHtml(phone) + '" target="_blank" rel="noopener" class="p-2 text-green-500 hover:bg-green-50 rounded-lg min-w-[44px] min-h-[44px] flex items-center justify-center"><i class="fab fa-whatsapp"></i></a>' : '') +
       '<button type="button" onclick="openMemberAccountLink(\'' + escapeHtml(member.id) + '\')" class="px-3 py-2 text-cyan-600 hover:bg-cyan-50 rounded-lg min-h-[44px] text-sm font-semibold" title="Vincular conta do aplicativo"><i class="fas fa-link mr-1"></i>Conta do app</button>' +
-      '<button onclick="editMember(\'' + memberJson + '\')" class="p-2 text-adpel-500 hover:bg-adpel-50 rounded-lg min-w-[44px] min-h-[44px]"><i class="fas fa-edit"></i></button>' +
-      '<button onclick="openMemberExit(\'' + member.id + '\')" class="p-2 text-orange-500 hover:bg-orange-50 rounded-lg min-w-[44px] min-h-[44px]" title="Registrar saida"><i class="fas fa-user-minus"></i></button>' +
+      '<button type="button" onclick="editMember(\'' + memberJson + '\')" class="px-3 py-2 text-adpel-500 hover:bg-adpel-50 rounded-lg min-h-[44px] text-sm font-semibold"><i class="fas fa-edit mr-1"></i>Editar ficha</button>' +
+      '<button type="button" onclick="openMemberIntakeDialog(\'' + escapeHtml(member.id) + '\')" class="px-3 py-2 text-cyan-600 hover:bg-cyan-50 rounded-lg min-h-[44px] text-sm font-semibold"><i class="fas fa-hand-holding-heart mr-1"></i>Acolhimento</button>' +
+      (member.status === 'removido' ? '<button type="button" onclick="openMemberReturn(\'' + escapeHtml(member.id) + '\')" class="px-3 py-2 text-green-700 border rounded-lg min-h-[44px] text-sm font-semibold">Registrar retorno</button>' : '<button type="button" onclick="openMemberExit(\'' + escapeHtml(member.id) + '\')" class="px-3 py-2 text-orange-600 border rounded-lg min-h-[44px] text-sm font-semibold"><i class="fas fa-archive mr-1"></i>Arquivar</button>') +
       '</div></div></div>';
   }
   container.innerHTML = html;
@@ -353,7 +358,20 @@ function editMember(encodedMember) {
   }
 }
 
+function openMemberReturn(memberId) {
+  var member = findMember(memberId);
+  if (!member || member.status !== 'removido') return;
+  setChurchTab('movements');
+  populateMemberSelects();
+  document.getElementById('movement-member-id').value = memberId;
+  document.getElementById('movement-type').value = 'retorno';
+  document.getElementById('movement-date').value = churchToday();
+  document.getElementById('movement-reason').focus();
+}
+
 function openMemberExit(memberId) {
+  var member = findMember(memberId);
+  if (!member || member.status === 'removido') { churchShowToast('Este cadastro já está arquivado.', 'info'); return; }
   setChurchTab('movements');
   populateMemberSelects();
   document.getElementById('movement-member-id').value = memberId;
@@ -367,13 +385,15 @@ function populateMemberSelects() {
   if (!select) return;
   var html = '<option value="">Selecione um membro</option>';
   for (var i = 0; i < membersData.length; i++) {
-    html += '<option value="' + membersData[i].id + '">' + escapeHtml(membersData[i].full_name || 'Sem nome') + '</option>';
+    html += '<option value="' + membersData[i].id + '">' + escapeHtml((membersData[i].full_name || 'Sem nome') + ' — ' + churchLabel(membersData[i].status)) + '</option>';
   }
   select.innerHTML = html;
 }
 
+var memberMovementBusy = false;
 async function handleMemberMovementSubmit(event) {
   event.preventDefault();
+  if (memberMovementBusy) return;
   var memberId = document.getElementById('movement-member-id').value;
   var type = document.getElementById('movement-type').value;
   if (!memberId || !type) {
@@ -389,23 +409,33 @@ async function handleMemberMovementSubmit(event) {
     responsible: churchText(document.getElementById('movement-responsible').value) || null
   };
 
+  var member = findMember(memberId);
+  if (type === 'saida') {
+    if (member && member.status === 'removido') { churchShowToast('Este cadastro já está arquivado.', 'info'); return; }
+    if (!window.confirm('Arquivar esta ficha? O histórico e a conta de login serão preservados.')) return;
+  }
+  memberMovementBusy = true;
+  var submit = event.target && event.target.querySelector('button[type="submit"]');
+  if (submit) submit.disabled = true;
   try {
     var result = await window.supabaseClient.from('member_movements').insert(data);
     if (result.error) throw result.error;
 
-    var nextStatus = getStatusFromMovement(type);
-    if (nextStatus) {
-      var updateResult = await window.supabaseClient.from('members').update({ status: nextStatus }).eq('id', memberId);
-      if (updateResult.error) throw updateResult.error;
-    }
-
     await logChurchAudit('member_movement_created', 'member_movements', memberId, data);
     document.getElementById('member-movement-form').reset();
     document.getElementById('movement-date').value = churchToday();
-    churchShowToast('Movimentacao registrada.', 'success');
+    churchShowToast(type === 'saida' ? 'Ficha arquivada. A conta de login continua intacta.' : 'Movimentação registrada.', 'success');
     await loadChurchManagementData();
+    if (type === 'saida' || type === 'retorno') {
+      var statusFilter = document.getElementById('member-status-filter');
+      if (statusFilter) statusFilter.value = '';
+      setChurchTab('members');
+    }
   } catch (error) {
-    churchShowToast('Erro ao registrar movimentacao: ' + error.message, 'error');
+    churchShowToast('Erro ao registrar movimentação: ' + error.message, 'error');
+  } finally {
+    memberMovementBusy = false;
+    if (submit) submit.disabled = false;
   }
 }
 

@@ -928,17 +928,22 @@
         </section>
 
         <section id="church-tab-members" class="church-tab-panel hidden space-y-4">
+          <div class="bg-white rounded-xl border border-gray-200 p-4 flex flex-wrap items-center justify-between gap-3">
+            <div><h3 class="text-lg font-bold text-gray-800">Pessoas da igreja</h3><p id="member-directory-summary" class="text-sm text-gray-500"></p><p class="text-xs text-gray-500 mt-1">Uma ficha por pessoa. Arquivados ficam fora da lista principal.</p></div>
+            <button type="button" onclick="openMemberIntakeDialog(null)" class="px-4 py-3 border border-amber-500 text-amber-600 rounded-lg font-semibold min-h-[44px]"><i class="fas fa-user-check mr-2"></i>Revisões de cadastro</button>
+          </div>
           <div class="flex flex-col md:flex-row md:items-center justify-between gap-3">
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 flex-1">
-              <input type="search" id="member-search" oninput="renderChurchMembers()" placeholder="Buscar por nome ou telefone" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-adpel-500 outline-none">
+              <input type="search" id="member-search" oninput="renderChurchMembers()" placeholder="Buscar nome, telefone ou e-mail" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-adpel-500 outline-none">
               <select id="member-status-filter" onchange="renderChurchMembers()" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-adpel-500 outline-none">
-                <option value="">Todos os status</option>
+                <option value="">Cadastros não arquivados</option>
                 <option value="ativo">Ativo</option><option value="pendente">Pendente de validação</option>
                 <option value="afastado">Afastado</option>
                 <option value="transferido">Transferido</option>
                 <option value="falecido">Falecido</option>
                 <option value="removido">Removido</option>
               </select>
+              <select id="member-kind-filter" onchange="renderChurchMembers()" aria-label="Tipo de pessoa" class="w-full px-3 py-2 border border-gray-300 rounded-lg min-h-[44px]"><option value="">Membros e visitantes</option><option value="membro">Somente membros</option><option value="visitante">Somente visitantes</option></select>
             </div>
             <div class="flex flex-col sm:flex-row gap-2">
               <button onclick="showMemberImport()" class="px-4 py-2.5 border border-cyan-500 text-cyan-500 rounded-lg text-sm font-medium hover:bg-cyan-500/10 min-h-[44px]"><i class="fas fa-file-import mr-2"></i>Importar</button>
@@ -948,14 +953,7 @@
             </div>
           </div>
 
-          <section class="bg-white rounded-xl border border-gray-200 p-4 space-y-3" aria-labelledby="member-intakes-title">
-            <div class="flex flex-wrap items-center justify-between gap-2"><div><h3 id="member-intakes-title" class="font-bold text-gray-800">Cadastros pelo aplicativo</h3><p class="text-sm text-gray-500">Novos membros declarados e visitantes para acolhimento.</p></div><button type="button" onclick="loadMemberIntakes()" class="px-4 py-2 border rounded-lg min-h-[44px] text-sm font-semibold">Atualizar</button></div>
-            <div class="grid sm:grid-cols-2 gap-2">
-              <select id="member-intake-kind" onchange="loadMemberIntakes()" aria-label="Tipo de cadastro" class="border rounded-lg p-2 min-h-[44px]"><option value="">Todos os cadastros</option><option value="membro">Membros declarados</option><option value="visitante">Visitantes</option></select>
-              <select id="member-intake-status" onchange="loadMemberIntakes()" aria-label="Acompanhamento" class="border rounded-lg p-2 min-h-[44px]"><option value="">Todos os acompanhamentos</option><option value="novo">Novos</option><option value="em_acompanhamento">Em acompanhamento</option><option value="concluido">Concluídos</option></select>
-            </div>
-            <div id="member-intake-list" class="space-y-3" aria-live="polite"><p class="text-sm text-gray-500">Clique em Atualizar para consultar.</p></div>
-          </section>
+          
 
           <div id="member-form-container" class="hidden bg-white rounded-xl shadow-sm border border-gray-200 p-4 md:p-6">
             <h3 id="member-form-title" class="font-bold text-gray-800 mb-4">Novo Membro</h3>
@@ -1158,6 +1156,21 @@
   </div>
 
   <!-- MEMBER IMPORT -->
+  <div id="member-intake-modal" class="hidden fixed inset-0 z-[180] bg-slate-950/80 p-3 overflow-y-auto" role="dialog" aria-modal="true" aria-labelledby="member-intakes-title">
+    <div class="max-w-2xl mx-auto my-4 bg-white rounded-xl border border-gray-200 shadow-xl">
+      <header class="flex justify-end p-2"><button type="button" onclick="closeMemberIntakeDialog()" aria-label="Fechar" class="min-w-[44px] min-h-[44px] rounded-lg bg-gray-100 text-gray-700"><i class="fas fa-times"></i></button></header>
+      <section class="bg-white rounded-xl border border-gray-200 p-4 space-y-3" aria-labelledby="member-intakes-title">
+            <div class="flex flex-wrap items-center justify-between gap-2"><div><h3 id="member-intakes-title" class="font-bold text-gray-800">Revisões e acolhimento</h3><p class="text-sm text-gray-500">Consulte a situação do cadastro e acompanhe o acolhimento.</p></div><button type="button" onclick="loadMemberIntakes()" class="px-4 py-2 border rounded-lg min-h-[44px] text-sm font-semibold">Atualizar</button></div>
+            <div class="grid sm:grid-cols-2 gap-2">
+              <select id="member-intake-kind" onchange="loadMemberIntakes()" aria-label="Tipo de cadastro" class="border rounded-lg p-2 min-h-[44px]"><option value="">Todos os cadastros</option><option value="membro">Membros declarados</option><option value="visitante">Visitantes</option></select>
+              <select id="member-intake-status" onchange="loadMemberIntakes()" aria-label="Acompanhamento" class="border rounded-lg p-2 min-h-[44px]"><option value="">Abertos</option><option value="novo">Novos</option><option value="em_acompanhamento">Em acompanhamento</option><option value="concluido">Concluídos</option></select>
+            </div>
+            <div id="member-intake-list" class="space-y-3" aria-live="polite"><p class="text-sm text-gray-500">Clique em Atualizar para consultar.</p></div>
+          </section>
+      <footer class="p-4"><button type="button" onclick="closeMemberIntakeDialog()" class="w-full min-h-[44px] border rounded-lg font-semibold">Voltar às pessoas</button></footer>
+    </div>
+  </div>
+
   <div id="member-account-modal" class="hidden fixed inset-0 z-[180] bg-slate-950/80 p-3 overflow-y-auto" role="dialog" aria-modal="true" aria-labelledby="member-account-title">
     <div class="max-w-lg mx-auto mt-8 bg-white rounded-xl shadow-xl border border-gray-200">
       <header class="flex items-center justify-between gap-3 p-4 border-b border-gray-200">
