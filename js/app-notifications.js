@@ -669,7 +669,8 @@ function startNotificationsPolling() {
 document.addEventListener('click', function(event) {
   var panel = document.getElementById('notifications-panel');
   if (!panel || panel.classList.contains('hidden')) return;
-  if (panel.contains(event.target)) return;
+  // Inline actions may rerender the panel before this event bubbles to document.
+  if (panel.contains(event.target) || (typeof event.composedPath === 'function' && event.composedPath().includes(panel))) return;
   var bell = document.getElementById('notification-bell');
   if (bell && bell.contains(event.target)) return;
   closeNotificationsPanel();
