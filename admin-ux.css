@@ -1589,3 +1589,54 @@
     margin-top: 0 !important;
   }
 }
+
+/* Refinamento administrativo: hierarquia clara e controles compactos. */
+#admin-app .admin-nav { display:grid; gap:.9rem; }
+#admin-app .admin-nav-group { display:grid; gap:.2rem; }
+#admin-app .admin-nav-label { padding:.45rem .75rem .25rem; font-size:.65rem; font-weight:750; letter-spacing:.08em; text-transform:uppercase; color:#94a3b8; }
+#admin-app .admin-nav button { text-align:left; min-height:44px; padding:.65rem .75rem; border:1px solid transparent; font-size:.85rem; }
+#admin-app .admin-nav button[aria-current="page"] { background:#1e3a5f !important; border-color:#3b82f6; color:#f8fafc !important; box-shadow:inset 3px 0 #60a5fa; }
+#admin-app .admin-nav button[aria-current="page"] i { color:#93c5fd; }
+#admin-app button:focus-visible { outline:2px solid #93c5fd; outline-offset:2px; }
+#admin-app .admin-load-status { position:sticky; top:0; z-index:5; color:#bfdbfe; font-size:.82rem; font-weight:650; padding:.65rem .85rem; margin-bottom:.75rem; border:1px solid #334155; border-radius:.7rem; background:#0f172a; }
+#admin-app .admin-load-status:empty { display:none; }
+#admin-app #admin-refresh-button:disabled { opacity:.6; cursor:wait; }
+#admin-app main > [id^="admin-view-"] { max-width:1440px; margin-inline:auto; }
+#admin-app .admin-v2-hero { background:#101c30; box-shadow:none; }
+#admin-app .admin-v2-card, #admin-app .admin-v2-section { box-shadow:none; }
+#admin-app .admin-v2-quick-action strong, #admin-app .admin-v2-event-main > strong, #admin-app .admin-v2-activity-main strong { font-size:.86rem; }
+#admin-app .admin-v2-quick-action small, #admin-app .admin-v2-event-main > small, #admin-app .admin-v2-activity-main small, #admin-app .admin-v2-integration-state p, #admin-app .admin-v2-member-grid span { color:#a6b6cc; font-size:.75rem; }
+#admin-app .admin-v2-text-action, #admin-app .admin-v2-secondary-button { min-height:44px; font-size:.8rem; }
+#admin-app .admin-people-header { padding:1.15rem; box-shadow:none !important; }
+#admin-app .admin-people-header h3 { font-size:1.15rem; letter-spacing:-.02em; }
+#admin-app .admin-people-filters { grid-template-columns:minmax(0,2fr) repeat(2,minmax(0,1fr)); }
+#admin-app .admin-people-actions { align-items:center; }
+#admin-app .admin-people-actions button { font-size:.82rem; }
+#admin-app #admin-members-list { border:0; background:transparent !important; box-shadow:none !important; padding:0; }
+#admin-app .admin-person-card { background:#111c2f !important; border-color:#334155 !important; padding:1rem; border-radius:1rem; }
+#admin-app .admin-person-card h4 { font-size:1rem; }
+#admin-app .admin-person-card p { overflow-wrap:anywhere; }
+#admin-app .admin-person-actions { align-items:center; justify-content:flex-end; }
+#admin-app .admin-person-actions button { border:1px solid #334155; background:#17263b; color:#bfdbfe; border-radius:.65rem; font-size:.8rem; }
+#admin-app .admin-person-actions button:hover { background:#1e3a5f; }
+#admin-app .admin-person-actions button[onclick^="openMemberExit"] { color:#fdba74; }
+#admin-app .admin-directory-pagination { display:flex; justify-content:space-between; align-items:center; gap:.5rem; flex-wrap:wrap; padding:.8rem 0; color:#cbd5e1; font-size:.8rem; }
+#admin-app .admin-directory-pagination div { display:flex; gap:.5rem; }
+#admin-app .admin-directory-pagination button { min-height:44px; padding:.5rem .85rem; border:1px solid #334155; background:#17263b; border-radius:.65rem; }
+#admin-app .admin-directory-pagination button:disabled { opacity:.45; cursor:not-allowed; }
+@media(max-width:767px) {
+  #admin-app .admin-nav { gap:.65rem; }
+  #admin-app #sidebar { width:min(18rem,85vw); }
+  #admin-app .admin-people-filters { grid-template-columns:repeat(2,minmax(0,1fr)); gap:.5rem; }
+  #admin-app #member-search { grid-column:1/-1; }
+  #admin-app .admin-people-actions { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); }
+  #admin-app .admin-people-actions button { padding:.6rem; }
+  #admin-app .admin-person-actions { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); width:100%; gap:.45rem; }
+  #admin-app .admin-person-actions button, #admin-app .admin-person-actions a { justify-content:center; min-width:0; padding:.55rem .35rem; text-align:center; }
+  #admin-app .admin-person-card > div { gap:.85rem; }
+  #admin-app #admin-view-home .admin-v2-quick-action { min-height:4.4rem !important; }
+}
+@media(max-width:340px) {
+  #admin-app .admin-people-filters { grid-template-columns:1fr; }
+  #admin-app .admin-person-actions { grid-template-columns:1fr; }
+}
