@@ -1,0 +1,32 @@
+const assert=require('node:assert/strict');
+const fs=require('node:fs');
+const path=require('node:path');
+const vm=require('node:vm');
+const root=path.resolve(__dirname,'..');
+const sw=fs.readFileSync(path.join(root,'sw.js'),'utf8');
+const page=fs.readFileSync(path.join(root,'notifications.js'),'utf8');
+const handlers={}, traces=[];
+let fail=false, presented=0;
+const origin='https://example.test';
+const self={location:{origin,href:origin+'/sw.js'},registration:{scope:origin+'/',async showNotification(){presented++;if(fail)throw new Error('display failure');}},addEventListener(name,handler){handlers[name]=handler;}};
+const caches={async open(){return {async put(key,response){traces.push(await response.json());}};},async match(){return traces.length?new Response(JSON.stringify(traces.at(-1))):null;}};
+vm.runInNewContext(sw,{self,caches,URL,Response,Date,console});
+async function push(type){let promise;handlers.push({data:{json:()=>({type,title:'private title',body:'private body',notification_id:'test-id'})},waitUntil(p){promise=p;}});await promise;}
+let owner=true;
+const registration={active:{},scope:origin+'/',pushManager:{async getSubscription(){return {endpoint:'https://example.test/secret-endpoint'};}}};
+const client={from(table){return {select(){return this;},eq(){return this;},then(resolve){return Promise.resolve(resolve({count:table==='app_notifications'?(owner?1:0):1}));}};}};
+const notificationApi={permission:'granted'};
+const window={supabaseClient:client,PushManager:function(){},Notification:notificationApi};
+const ctx={window,document:{addEventListener(){}},navigator:{serviceWorker:{controller:{},async getRegistration(){return registration;}}},Notification:notificationApi,caches,URL,getCurrentUserInfo:()=>({isLoggedIn:true,user:{id:'u1'}}),console};
+vm.runInNewContext(page,ctx);
+(async()=>{
+  await push('event_reminder');assert.equal(traces.length,0);assert.equal(presented,1);
+  await push('automation_test');assert.equal(traces.length,1);assert.equal(traces[0].shown,true);
+  assert.equal(JSON.stringify(traces[0]).includes('private'),false);
+  let result=await window.getPushDeviceDiagnostic();
+  assert.equal(result.registered,true);assert.equal(result.trace.shown,true);
+  assert.equal(JSON.stringify(result).includes('secret-endpoint'),false);
+  owner=false;result=await window.getPushDeviceDiagnostic();assert.equal(result.trace,null);
+  fail=true;await push('automation_test');assert.equal(traces.at(-1).shown,false);assert.equal(traces.at(-1).failure,'Error');
+  console.log('push device diagnostic: PASS');
+})().catch(e=>{console.error(e);process.exitCode=1;});

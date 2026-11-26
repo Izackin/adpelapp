@@ -203,7 +203,56 @@ document.addEventListener('DOMContentLoaded', () => {
   setTimeout(initPushNotifications, 2500);
 });
 
+// Read-only diagnostic: never prints endpoint, keys, or notification content.
+async function getPushDeviceDiagnostic() {
+  const user = getAuthenticatedPushUser();
+  if (!user) return { status: 'signed_out' };
+  if (!isPushSupported()) return { status: 'unsupported' };
+  const result = {
+    status: 'ok',
+    permission: Notification.permission,
+    workerActive: false,
+    controlled: !!navigator.serviceWorker.controller,
+    subscribed: false,
+    registered: null,
+    trace: null
+  };
+  try {
+    const registration = await navigator.serviceWorker.getRegistration();
+    result.workerActive = !!(registration && registration.active);
+    if (!registration) return result;
+    const subscription = await registration.pushManager.getSubscription();
+    result.subscribed = !!subscription;
+    if (subscription && window.supabaseClient) {
+      const { count, error } = await window.supabaseClient.from('push_subscriptions')
+        .select('id', { count: 'exact', head: true })
+        .eq('user_id', user.id).eq('endpoint', subscription.endpoint);
+      if (!error && typeof count === 'number') result.registered = count === 1;
+    }
+    if (typeof caches !== 'undefined' && window.supabaseClient) {
+      try {
+        const key = new URL('__adpel_push_test_trace__', registration.scope).href;
+        const response = await caches.match(key, { cacheName: 'adpel-push-diagnostics-v1' });
+        const trace = response ? await response.json() : null;
+        if (trace && typeof trace.id === 'string') {
+          const { count, error } = await window.supabaseClient.from('app_notifications')
+            .select('id', { count: 'exact', head: true }).eq('recipient_id', user.id)
+            .eq('id', trace.id).eq('type', 'automation_test');
+          if (!error && count === 1) {
+            result.trace = { receivedAt: trace.receivedAt, completedAt: trace.completedAt, shown: trace.shown === true, failure: trace.failure || null };
+          }
+        }
+      } catch (_) { /* No local evidence is not proof of failed delivery. */ }
+    }
+    const current = getAuthenticatedPushUser();
+    return current && current.id === user.id ? result : { status: 'signed_out' };
+  } catch (_) {
+    return { status: 'error' };
+  }
+}
+
 Object.assign(window, {
+  getPushDeviceDiagnostic,
   initPushNotifications,
   requestPushPermission,
   removeCurrentPushSubscription,

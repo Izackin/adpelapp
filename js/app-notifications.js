@@ -24,6 +24,9 @@ var birthdayReady = false;
 var birthdayBusy = false;
 var birthdayError = '';
 var birthdayRequest = 0;
+var pushDiagnosticResult = null;
+var pushDiagnosticBusy = false;
+var pushDiagnosticRequest = 0;
 
 function getAppNotificationUser() {
   var userInfo = typeof getCurrentUserInfo === 'function' ? getCurrentUserInfo() : {};
@@ -61,6 +64,9 @@ function resetAppNotificationSession(userId) {
   appNotificationsOwnerId = userId || null;
   eventReminderRequest++;
   birthdayRequest++;
+  pushDiagnosticRequest++;
+  pushDiagnosticResult = null;
+  pushDiagnosticBusy = false;
   birthdayPreference = null;
   birthdayDraftDay = '';
   birthdayDraftMonth = '';
@@ -389,6 +395,55 @@ function closeNotificationsPanel() {
   if (panel) panel.classList.add('hidden');
 }
 
+async function checkCurrentPushDevice() {
+  var user = getAppNotificationUser();
+  if (!user || !isCurrentNotificationSession(user.id) || pushDiagnosticBusy || typeof getPushDeviceDiagnostic !== 'function') return;
+  var request = ++pushDiagnosticRequest;
+  pushDiagnosticBusy = true;
+  pushDiagnosticResult = null;
+  renderNotificationsPanel();
+  try {
+    var result = await getPushDeviceDiagnostic();
+    if (request === pushDiagnosticRequest && isCurrentNotificationSession(user.id)) pushDiagnosticResult = result;
+  } catch (_) {
+    if (request === pushDiagnosticRequest && isCurrentNotificationSession(user.id)) pushDiagnosticResult = {status:'error'};
+  } finally {
+    if (request === pushDiagnosticRequest && isCurrentNotificationSession(user.id)) {
+      pushDiagnosticBusy = false;
+      renderNotificationsPanel();
+    }
+  }
+}
+
+function renderPushDeviceDiagnostic() {
+  if (typeof getPushDeviceDiagnostic !== 'function') return '';
+  var rows = [];
+  var d = pushDiagnosticResult;
+  if (d && d.status === 'ok') {
+    rows.push('Permissão: ' + ({granted:'concedida',denied:'bloqueada',default:'não solicitada'}[d.permission] || 'indisponível'));
+    rows.push('Service Worker ativo: ' + (d.workerActive ? 'sim' : 'não'));
+    rows.push('Página controlada: ' + (d.controlled ? 'sim' : 'não'));
+    rows.push('Inscrição local: ' + (d.subscribed ? 'encontrada' : 'ausente'));
+    rows.push('Inscrição desta conta no servidor: ' + (d.registered === true ? 'confirmada' : d.registered === false ? 'não encontrada' : 'não verificada'));
+    if (d.trace) {
+      var date = new Date(d.trace.receivedAt);
+      rows.push('Último teste recebido pelo Service Worker: ' + (isNaN(date.getTime()) ? 'horário indisponível' : date.toLocaleString('pt-BR')));
+      rows.push('Solicitação de exibição: ' + (d.trace.shown ? 'aceita pelo navegador' : 'falhou (' + (d.trace.failure || 'erro') + ')'));
+    } else {
+      rows.push('Nenhum registro local de teste desta conta. Isso não comprova falha de entrega.');
+    }
+  } else if (d) {
+    rows.push(d.status === 'unsupported' ? 'Push não suportado neste ambiente.' : 'Não foi possível consultar o dispositivo.');
+  }
+  return [
+    '<div class="notifications-panel-actions" aria-label="Diagnóstico de notificações">',
+    '<div class="w-full"><strong>Diagnóstico deste dispositivo</strong><p class="text-xs">Verifique a inscrição e o recebimento de testes. Nenhuma mensagem será enviada.</p></div>',
+    '<button type="button" onclick="checkCurrentPushDevice()"' + (pushDiagnosticBusy ? ' disabled' : '') + '>' + (pushDiagnosticBusy ? 'Verificando...' : 'Verificar dispositivo') + '</button>',
+    rows.length ? '<div class="w-full text-xs" role="status">' + rows.map(function(row){return '<p>' + escapeHtml(row) + '</p>';}).join('') + '</div>' : '',
+    '</div>'
+  ].join('');
+}
+
 function renderNotificationsPanel() {
   var panel = document.getElementById('notifications-panel');
   if (!panel || !appNotificationsPanelOpen) return;
@@ -410,6 +465,7 @@ function renderNotificationsPanel() {
       appNotificationsError ? '<div class="notification-empty" role="status"><p>Não foi possível atualizar. </p><button onclick="loadUserNotifications()">Tentar novamente</button></div>' : '',
       renderEventReminderPreference(),
       renderBirthdayPreference(),
+      renderPushDeviceDiagnostic(),
       '<div class="notifications-list" aria-busy="' + String(appNotificationsLoading) + '">',
         appNotificationsCache.length ? appNotificationsCache.map(renderNotificationItem).join('') : appNotificationsLoading ? '<div class="notification-empty" role="status"><p>Carregando notificações...</p></div>' : appNotificationsError ? '' : '<div class="notification-empty"><i class="fas fa-bell-slash"></i><p>' + (appNotificationsFilter === 'unread' ? 'Tudo em dia! Nenhuma notificação não lida.' : 'Nenhuma notificação ainda.') + '</p></div>',
       '</div>',
@@ -579,6 +635,7 @@ Object.assign(window, {
   loadBirthdayPreference: loadBirthdayPreference,
   setBirthdayDraft: setBirthdayDraft,
   saveBirthdayPreference: saveBirthdayPreference,
+  checkCurrentPushDevice: checkCurrentPushDevice,
   updateNotificationBadge: updateNotificationBadge,
   openNotificationsPanel: openNotificationsPanel,
   closeNotificationsPanel: closeNotificationsPanel,
