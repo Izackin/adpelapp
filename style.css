@@ -2151,6 +2151,70 @@ textarea::placeholder {
   }
 }
 
+/* Central de notificações: controles fixos e uma única área rolável. */
+.notifications-panel {
+  inset: 0;
+  width: auto;
+  padding: 0;
+  display: flex;
+  align-items: flex-start;
+  justify-content: flex-end;
+  isolation: isolate;
+}
+.notifications-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(2,6,23,.55);
+}
+.notifications-panel-inner {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  width: min(28rem, calc(100% - 2rem));
+  max-height: calc(100vh - 6.5rem);
+  max-height: calc(100dvh - 6.5rem);
+  margin: 5.25rem 1rem 1rem;
+  min-height: 0;
+  background: linear-gradient(180deg,#111b2e,#0b1424);
+}
+.notifications-panel-head { flex-shrink: 0; align-items: center; padding: .85rem 1rem; }
+.notifications-subtitle { font-size: .8rem; color: #cbd5e1; margin-top: .18rem; }
+.notifications-close { flex: 0 0 44px; width: 44px; height: 44px; color: #f1f5f9; }
+.notifications-tabs { display: flex; gap: .5rem; padding: .65rem .85rem; flex-shrink: 0; }
+.notifications-tabs button { flex: 1; min-height: 44px; border: 1px solid #334155; border-radius: .8rem; color: #cbd5e1; font-weight: 750; font-size: .85rem; }
+.notifications-tabs button[aria-pressed="true"] { color: white; border-color: #60a5fa; background: #1e3a8a; }
+.notifications-toolbar { flex-shrink: 0; padding: 0 .85rem .5rem; border-bottom: 1px solid #334155; }
+.notifications-toolbar .notifications-panel-actions { padding: .2rem 0; }
+.notifications-panel-actions button { min-height: 44px; }
+.notifications-management button { font-size: .75rem; padding: 0 .6rem; }
+.notifications-management .notifications-danger { color: #fecaca; border-color: rgba(248,113,113,.4); background: rgba(127,29,29,.24); }
+.notifications-scroll { min-height: 0; flex: 1 1 auto; overflow-y: auto; overscroll-behavior: contain; padding-bottom: .65rem; }
+.notifications-list { max-height: none; overflow: visible; padding: .75rem .85rem .15rem; }
+.notifications-scroll > .notifications-panel-actions { padding: .8rem; margin: .75rem .85rem; border: 1px solid #334155; border-radius: .9rem; }
+.notification-item { grid-template-columns: minmax(0,1fr) auto; align-items: center; gap: .25rem; padding: .65rem; }
+.notification-open { display: grid; grid-template-columns: auto minmax(0,1fr); align-items: start; gap: .65rem; min-width: 0; width: 100%; text-align: left; padding: .2rem; }
+.notification-copy { overflow-wrap: anywhere; }
+.notification-copy span { color: #cbd5e1; }
+.notification-copy time { margin-top: .2rem; color: #94a3b8; font-size: .72rem; }
+.notification-remove { display: grid; place-items: center; min-width: 44px; min-height: 44px; border-radius: .7rem; color: #fca5a5; background: rgba(127,29,29,.18); }
+.notification-remove:disabled { opacity: .5; cursor: wait; }
+.notifications-footer { flex-shrink: 0; padding: .6rem .85rem; border-top: 1px solid #334155; background: #111b2e; }
+.notifications-footer button { width: 100%; min-height: 44px; border-radius: .8rem; font-size: .9rem; font-weight: 750; background: #1e3a8a; color: white; }
+.notifications-panel button:focus-visible { outline: 2px solid #93c5fd; outline-offset: 2px; }
+@media (max-width: 640px) {
+  .notifications-panel { align-items: flex-end; justify-content: center; padding: .5rem .5rem calc(.5rem + env(safe-area-inset-bottom,0px)); }
+  .notifications-panel-inner { width: 100%; margin: 0; height: min(44rem, calc(100vh - 2rem)); height: min(44rem, calc(100dvh - 2rem - env(safe-area-inset-bottom,0px))); max-height: 100%; }
+  .notifications-management { gap: .3rem; }
+  .notifications-management button { flex: 1 1 auto; }
+}
+@media (max-height: 420px) {
+  .notifications-panel-inner { margin: 0; max-height: 100%; }
+  .notifications-panel { align-items: center; padding: .25rem; }
+  .notifications-panel-head { padding: .35rem .75rem; }
+  .notifications-tabs { padding: .25rem .65rem; }
+  .notifications-footer { padding: .25rem .65rem; }
+}
+
 /* Comunidade ADPEL */
 .community-shell {
   display: grid;
