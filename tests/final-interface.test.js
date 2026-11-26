@@ -1,0 +1,22 @@
+const assert=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path'),vm=require('node:vm');
+const read=p=>fs.readFileSync(path.resolve(__dirname,'..',p),'utf8');
+const boot=read('js/bootstrap.js'), auth=read('auth.js'), html=read('index.html'), journey=read('spiritual-progress.js');
+const start=boot.indexOf('var authLoginBusy ='),end=boot.indexOf('// Mover modais',start);
+const elements={'login-email':{value:' person@example.invalid '},'login-password':{id:'login-password',type:'password',value:'nullundefined literal '},'login-submit-btn':{disabled:false,textContent:''},'login-message-area':{textContent:'',classList:{add(){}}}};
+let requests=0,reloads=0,resolve,received;
+const win={supabaseClient:{auth:{signInWithPassword(value){requests++;received=value;return new Promise(r=>{resolve=r;});}}},location:{reload(){reloads++;}}};
+const ctx={window:win,document:{getElementById:id=>elements[id]||null}};
+vm.createContext(ctx);vm.runInContext(boot.slice(start,end),ctx);
+(async()=>{
+ const attrs={};const icon={};const button={setAttribute(k,v){attrs[k]=v;},querySelector:()=>icon};
+ win.toggleAuthPassword('login-password',button);assert.equal(elements['login-password'].type,'text');assert.equal(attrs['aria-pressed'],'true');
+ win.toggleAuthPassword('login-password',button);assert.equal(elements['login-password'].type,'password');assert.equal(attrs['aria-pressed'],'false');
+ const first=win.login();await win.login();assert.equal(requests,1);assert.equal(received.password,'nullundefined literal ');assert.equal(received.email,'person@example.invalid');assert.equal(elements['login-submit-btn'].disabled,true);
+ resolve({error:{code:'invalid_credentials'}});await first;assert.equal(reloads,0);assert.equal(elements['login-submit-btn'].disabled,false);assert.match(elements['login-message-area'].textContent,/incorretos/);
+ const next=win.login();resolve({data:{session:{user:{id:'test'}}},error:null});await next;assert.equal(reloads,1);assert.equal(requests,2);
+ assert.match(html,/type="submit" id="login-submit-btn"/);
+ assert.match(auth,/loginForm.addEventListener\('submit',[\s\S]*?window.login\(\)/);
+ assert.match(auth,/registerForm.dataset.submitting = 'true'/);
+ assert.match(journey,/journey-medal-details/);assert.match(journey,/role="progressbar"/);
+ console.log('final interface: PASS');
+})().catch(e=>{console.error(e);process.exitCode=1;});
