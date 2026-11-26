@@ -98,7 +98,9 @@ Deno.serve(async (request) => {
       await webPush.sendNotification({
         endpoint: subscription.endpoint,
         keys: { p256dh: subscription.p256dh, auth: subscription.auth },
-      }, payloadText);
+      }, payloadText, notification.type === "automation_test"
+        ? { urgency: "high", TTL: 120 }
+        : undefined);
     },
     async (endpoint) => {
       const { error } = await supabaseAdmin
