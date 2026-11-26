@@ -71,18 +71,7 @@ function adminNavigateTo(view) {
   if (target) {
     target.classList.remove('hidden');
   }
-  if (view === 'notifications' && typeof loadAdminAutomationStatus === 'function') {
-    loadAdminAutomationStatus();
-  }
-  if (view === 'community' && typeof loadAdminCommunity === 'function') {
-    loadAdminCommunity();
-  }
-  if (view === 'home' && !adminLoadPromise && adminInitialLoadComplete && typeof renderAdminDashboardV2 === 'function') {
-    renderAdminDashboardV2();
-  }
-  if (view === 'bible-study' && typeof loadAdminBibleStudy === 'function') {
-    loadAdminBibleStudy();
-  }
+  var loading = loadAdminView(view);
 
   // Close mobile sidebar
   if (window.innerWidth < 768) {
@@ -98,6 +87,7 @@ function adminNavigateTo(view) {
     var menuButton = document.getElementById('admin-menu-toggle');
     if (menuButton) menuButton.setAttribute('aria-expanded','false');
   }
+  return loading;
 }
 
 // ============================================================
@@ -131,84 +121,141 @@ var adminLoadPromise = null;
 var adminLoadQueued = false;
 var adminInitialLoadComplete = false;
 var adminAccessReady = false;
+var adminPendingViews = new Set();
+var adminRunningView = null;
+var adminViewLoadedAt = Object.create(null);
+var adminViewFailed = Object.create(null);
+var ADMIN_VIEW_TTL = 30000;
 
 function adminLoadingState(active, message) {
   var el = document.getElementById('admin-load-status');
   if (el) { el.textContent = message || ''; el.setAttribute('aria-busy',String(active)); }
   var button = document.getElementById('admin-refresh-button');
   if (button) button.disabled = active;
+  var target=document.getElementById('admin-view-'+adminCurrentView);
+  if(target)target.inert=active && (adminRunningView==='all'||adminRunningView===adminCurrentView||adminPendingViews.has('all')||adminPendingViews.has(adminCurrentView));
+  var retry=document.getElementById('admin-view-retry');
+  if(retry)retry.hidden=active||!adminViewFailed[adminCurrentView];
 }
 
-function loadAllData() {
+function loadAdminView(view) {
   if (!adminAccessReady || !window.supabaseClient) return Promise.resolve();
-  // Serialize refreshes. A refresh requested after a write must not reuse stale data.
-  if (adminLoadPromise) { adminLoadQueued = true; return adminLoadPromise; }
-  adminLoadPromise = (async function() {
+  if (adminLoadPromise && (adminRunningView===view||adminRunningView==='all'||adminPendingViews.has(view)||adminPendingViews.has('all'))) {
+    adminLoadingState(true,'Carregando '+(adminViewTitles[view]||'painel')+'…');
+    return adminLoadPromise;
+  }
+  // Home and church use live snapshots because their summaries span modules.
+  if (view!=='home' && view!=='church' && adminViewLoadedAt[view] && Date.now()-adminViewLoadedAt[view]<ADMIN_VIEW_TTL) {
+    adminLoadingState(!!adminLoadPromise,adminLoadPromise?'Atualizando dados…':'');
+    return Promise.resolve();
+  }
+  return queueAdminView(view);
+}
+
+function loadAllData(view) {
+  // Explicit refreshes after writes must enqueue a new pass; retain the old
+  // full refresh for legacy callers (including unchanged financial flows).
+  if (!adminAccessReady || !window.supabaseClient) return Promise.resolve();
+  adminViewLoadedAt=Object.create(null);
+  return queueAdminView(view || 'all');
+}
+
+function queueAdminView(view) {
+  adminPendingViews.add(view);
+  if (adminLoadPromise) {
+    adminLoadQueued=true;
+    adminLoadingState(true,'Atualizando dados…');
+    return adminLoadPromise;
+  }
+  adminLoadPromise=(async function(){
     try {
-      do {
-        adminLoadQueued = false;
-        adminLoadingState(true, adminInitialLoadComplete ? 'Atualizando dados…' : 'Carregando painel…');
-        try { await loadAdminDataPass(); } catch (error) {
+      while(adminPendingViews.size) {
+        var next=adminPendingViews.has('all')?'all':adminPendingViews.values().next().value;
+        if(next==='all')adminPendingViews.clear();else adminPendingViews.delete(next);
+        adminRunningView=next;
+        adminLoadQueued=false;
+        adminLoadingState(true,'Carregando '+(adminViewTitles[next]||'painel')+'…');
+        try {
+          var ok=await loadAdminDataPass(next);
+          if(next==='all'){
+            adminViewLoadedAt=Object.create(null);
+            adminViewFailed[adminCurrentView]=!ok;
+          }else{
+            adminViewFailed[next]=!ok;
+            if(ok)adminViewLoadedAt[next]=Date.now();
+            else delete adminViewLoadedAt[next];
+          }
+        }catch(error){
+          adminViewFailed[next==='all'?adminCurrentView:next]=true;
           console.error('Erro ao carregar painel:',error);
-          var updated=document.getElementById('admin-dashboard-updated');
-          if(updated) updated.textContent='Falha na atualização';
-          if(typeof showToast==='function') showToast('Não foi possível atualizar o painel. Tente novamente.','error');
+          if(typeof showToast==='function')showToast('Não foi possível atualizar o painel. Tente novamente.','error');
         }
-        adminInitialLoadComplete = true;
-      } while (adminLoadQueued);
-    } finally {
-      adminLoadPromise = null;
-      adminLoadingState(false,'');
+        adminInitialLoadComplete=true;
+      }
+    }finally{
+      adminRunningView=null;adminLoadPromise=null;
+      adminLoadingState(false,adminViewFailed[adminCurrentView]?'Atualização incompleta. Tente novamente.':'');
     }
   })();
   return adminLoadPromise;
 }
 
-async function loadAdminDataPass() {
-  var client = window.supabaseClient;
-  var failures = [];
-  var updated = document.getElementById('admin-dashboard-updated');
-  if (updated) updated.textContent = 'Atualizando…';
-  async function read(name, query, apply) {
-    try {
-      var result = await query;
-      if (result.error) throw result.error;
-      apply(result.data || []);
+async function loadAdminDataPass(view) {
+  view=view||'all';
+  var all=view==='all',home=view==='home',church=view==='church',courses=view==='courses',agenda=view==='agenda',cofres=view==='cofres';
+  var client=window.supabaseClient;
+  var failures=[];
+  var updated=document.getElementById('admin-dashboard-updated');
+  if(updated&&(all||home))updated.textContent='Atualizando…';
+  async function read(name,query,apply){
+    try{
+      var result=await query;
+      if(result.error)throw result.error;
+      apply(result.data||[]);
       return true;
-    } catch (error) {
-      failures.push(name);
-      console.warn('Admin: falha ao carregar ' + name, error);
-      return false;
+    }catch(error){
+      failures.push(name);console.warn('Admin: falha ao carregar '+name,error);return false;
     }
   }
-  function count(id, value) { var el = document.getElementById(id); if (el) el.textContent = value; }
-  function render(fn) { if (typeof fn === 'function') fn(); }
-  async function task(name, fn) { try { if (typeof fn === 'function') await fn(); } catch (error) { failures.push(name); console.warn('Admin: falha em '+name,error); } }
-
-  // Independent reads run in small parallel groups; renderers see their prerequisites.
-  var first = await Promise.all([
-    read('cursos',client.from('courses').select('*').order('created_at',{ascending:false}),function(rows){coursesData=rows;count('stat-courses',rows.length);render(typeof renderAdminCourses==='function'?renderAdminCourses:null);}),
-    read('biblioteca',client.from('library_books').select('*').order('created_at',{ascending:false}),function(rows){libraryData=rows;count('stat-library',rows.length);render(typeof renderAdminLibrary==='function'?renderAdminLibrary:null);}),
-    read('certificados',client.from('certificates').select('*').order('created_at',{ascending:false}),function(rows){certificatesData=rows;render(typeof renderAdminCertificates==='function'?renderAdminCertificates:null);}),
-    read('eventos',client.from('events').select('*').order('event_date',{ascending:true}),function(rows){agendaData=rows;}),
-    read('presenças',client.from('event_attendances').select('id,event_id,user_id,user_name,created_at'),function(rows){agendaAttendancesData=rows;})
-  ]);
-  render(typeof renderAdminAgenda==='function'?renderAdminAgenda:null);
-  await Promise.all([
-    read('atualizações',client.from('app_updates').select('*').order('created_at',{ascending:false}),function(rows){appUpdatesData=rows;count('stat-app-updates',rows.length);render(typeof renderAdminAppUpdates==='function'?renderAdminAppUpdates:null);}),
-    read('versículos',client.from('verse_of_day').select('*').order('id',{ascending:false}),function(rows){versesData=rows;render(typeof renderAdminVerses==='function'?renderAdminVerses:null);}),
-    read('cofres',client.from('fundraising_goals').select('*').order('created_at',{ascending:false}),function(rows){cofresData=rows;count('stat-cofres',rows.length);}),
-    read('indicadores dos cofres',client.from('fundraising_stats').select('*'),function(rows){cofresStatsData={};rows.forEach(function(row){if(row&&row.goal_id)cofresStatsData[row.goal_id]=row;});}),
-    task('solicitações de cursos',typeof loadCourseAccessRequests==='function'?loadCourseAccessRequests:null)
-  ]);
-  render(typeof renderAdminCofres==='function'?renderAdminCofres:null);
-  await task('gestão da igreja',typeof loadChurchManagementData==='function'?function(){return loadChurchManagementData(first[2]?certificatesData:undefined);}:null);
-  if (typeof loadAdminDashboardData === 'function') await task('visão geral',loadAdminDashboardData);
-  else { updateAdminDashboardStats(); updateRecentActivity(); }
-  if (failures.length) {
-    if (updated) updated.textContent = 'Atualização parcial';
-    if (typeof showToast === 'function') showToast('Algumas áreas não puderam ser atualizadas: '+failures.join(', ')+'. Tente atualizar novamente.','warning');
+  function count(id,value){var el=document.getElementById(id);if(el)el.textContent=value;}
+  function render(fn){if(typeof fn==='function')fn();}
+  async function task(name,fn){try{if(typeof fn==='function')await fn();}catch(error){failures.push(name);console.warn('Admin: falha em '+name,error);}}
+  var certOk=false;
+  var first=[];
+  if(all||home||courses)first.push(read('cursos',client.from('courses').select('*').order('created_at',{ascending:false}),function(rows){coursesData=rows;count('stat-courses',rows.length);if(all||courses)render(typeof renderAdminCourses==='function'?renderAdminCourses:null);}));
+  if(all||view==='library')first.push(read('biblioteca',client.from('library_books').select('*').order('created_at',{ascending:false}),function(rows){libraryData=rows;count('stat-library',rows.length);render(typeof renderAdminLibrary==='function'?renderAdminLibrary:null);}));
+  if(all||church||view==='certificates')first.push(read('certificados',client.from('certificates').select('*').order('created_at',{ascending:false}),function(rows){certificatesData=rows;certOk=true;if(all||view==='certificates')render(typeof renderAdminCertificates==='function'?renderAdminCertificates:null);}));
+  if(all||home||agenda)first.push(read('eventos',client.from('events').select('*').order('event_date',{ascending:true}),function(rows){agendaData=rows;}));
+  if(all||agenda)first.push(read('presenças',client.from('event_attendances').select('id,event_id,user_id,user_name,created_at'),function(rows){agendaAttendancesData=rows;}));
+  if(home)first.push(read('membros',client.from('members').select('*').order('full_name',{ascending:true}),function(rows){membersData=rows;}));
+  await Promise.all(first);
+  if(all||agenda)render(typeof renderAdminAgenda==='function'?renderAdminAgenda:null);
+  var second=[];
+  if(all||view==='app-updates')second.push(read('atualizações',client.from('app_updates').select('*').order('created_at',{ascending:false}),function(rows){appUpdatesData=rows;count('stat-app-updates',rows.length);render(typeof renderAdminAppUpdates==='function'?renderAdminAppUpdates:null);}));
+  if(all||view==='verses')second.push(read('versículos',client.from('verse_of_day').select('*').order('id',{ascending:false}),function(rows){versesData=rows;render(typeof renderAdminVerses==='function'?renderAdminVerses:null);}));
+  if(all||cofres){
+    second.push(read('cofres',client.from('fundraising_goals').select('*').order('created_at',{ascending:false}),function(rows){cofresData=rows;count('stat-cofres',rows.length);}));
+    second.push(read('indicadores dos cofres',client.from('fundraising_stats').select('*'),function(rows){cofresStatsData={};rows.forEach(function(row){if(row&&row.goal_id)cofresStatsData[row.goal_id]=row;});}));
   }
+  if(all||home||courses)second.push(task('solicitações de cursos',typeof loadCourseAccessRequests==='function'?loadCourseAccessRequests:null));
+  await Promise.all(second);
+  if(all||cofres)render(typeof renderAdminCofres==='function'?renderAdminCofres:null);
+  if(all||church)await task('gestão da igreja',typeof loadChurchManagementData==='function'?function(){return loadChurchManagementData(certOk?certificatesData:undefined);}:null);
+  if(all||home){
+    if(typeof loadAdminDashboardData==='function')await task('visão geral',loadAdminDashboardData);
+    else {updateAdminDashboardStats();updateRecentActivity();}
+  }
+  if(agenda)await task('Google Agenda',typeof loadGoogleCalendarStatus==='function'?loadGoogleCalendarStatus:null);
+  if(view==='notifications'){
+    await Promise.all([task('estatísticas de notificações',typeof loadNotificationStats==='function'?loadNotificationStats:null),task('automações',typeof loadAdminAutomationStatus==='function'?loadAdminAutomationStatus:null)]);
+  }
+  if(view==='community')await task('comunidade',typeof loadAdminCommunity==='function'?loadAdminCommunity:null);
+  if(view==='bible-study')await task('estudo bíblico',typeof loadAdminBibleStudy==='function'?loadAdminBibleStudy:null);
+  if(failures.length){
+    if(updated&&(all||home))updated.textContent='Atualização parcial';
+    if(typeof showToast==='function')showToast('Algumas áreas não puderam ser atualizadas: '+failures.join(', ')+'. Tente atualizar novamente.','warning');
+  }
+  return failures.length===0;
 }
 
 function updateAdminDashboardStats() {
