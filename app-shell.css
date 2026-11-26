@@ -545,3 +545,13 @@
     font-size: 1.12rem;
   }
 }
+
+/* Shared navigation refinement, including Bible and Harpa pages. */
+.app-bottom-nav { background:#0b1425; box-shadow:0 -4px 16px rgba(0,0,0,.2); backdrop-filter:none !important; -webkit-backdrop-filter:none !important; }
+.app-bottom-nav__item { color:#b1bfd1 !important; gap:.35rem; font-size:.71rem; font-weight:650; transition:color 120ms ease,background-color 120ms ease; }
+.app-bottom-nav__item i { font-size:1.14rem; }
+.app-bottom-nav__item.is-active { color:#eff6ff !important; background:#1c3557; }
+.app-bottom-nav__item.is-active::after { top:.23rem; bottom:auto; width:1.3rem; height:.16rem; background:#93c5fd; }
+.app-bottom-nav__item:focus-visible { outline-offset:-2px; }
+@media(max-width:350px) { .app-bottom-nav__item { font-size:.63rem; gap:.28rem; } }
+@media(prefers-reduced-motion:reduce) { .app-bottom-nav__item { transition:none; } }
