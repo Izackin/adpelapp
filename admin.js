@@ -133,14 +133,14 @@ function adminLoadingState(active, message) {
   var button = document.getElementById('admin-refresh-button');
   if (button) button.disabled = active;
   var target=document.getElementById('admin-view-'+adminCurrentView);
-  if(target)target.inert=active && (adminRunningView==='all'||adminRunningView===adminCurrentView||adminPendingViews.has('all')||adminPendingViews.has(adminCurrentView));
+  if(target)target.inert=(active && (adminRunningView==='all'||adminRunningView===adminCurrentView||adminPendingViews.has('all')||adminPendingViews.has(adminCurrentView))) || (!active && adminCurrentView==='church' && !!adminViewFailed.church);
   var retry=document.getElementById('admin-view-retry');
   if(retry)retry.hidden=active||!adminViewFailed[adminCurrentView];
 }
 
 function loadAdminView(view) {
   if (!adminAccessReady || !window.supabaseClient) return Promise.resolve();
-  if (adminLoadPromise && (adminRunningView===view||adminRunningView==='all'||adminPendingViews.has(view)||adminPendingViews.has('all'))) {
+  if (adminLoadPromise && (adminRunningView===view||adminPendingViews.has(view))) {
     adminLoadingState(true,'Carregando '+(adminViewTitles[view]||'painel')+'…');
     return adminLoadPromise;
   }
@@ -171,7 +171,7 @@ function queueAdminView(view) {
     try {
       while(adminPendingViews.size) {
         var next=adminPendingViews.has('all')?'all':adminPendingViews.values().next().value;
-        if(next==='all')adminPendingViews.clear();else adminPendingViews.delete(next);
+        adminPendingViews.delete(next);
         adminRunningView=next;
         adminLoadQueued=false;
         adminLoadingState(true,'Carregando '+(adminViewTitles[next]||'painel')+'…');
@@ -219,7 +219,7 @@ async function loadAdminDataPass(view) {
   }
   function count(id,value){var el=document.getElementById(id);if(el)el.textContent=value;}
   function render(fn){if(typeof fn==='function')fn();}
-  async function task(name,fn){try{if(typeof fn==='function')await fn();}catch(error){failures.push(name);console.warn('Admin: falha em '+name,error);}}
+  async function task(name,fn){try{if(typeof fn==='function' && await fn()===false)throw new Error('Atualização incompleta');}catch(error){failures.push(name);console.warn('Admin: falha em '+name,error);}}
   var certOk=false;
   var first=[];
   if(all||home||courses)first.push(read('cursos',client.from('courses').select('*').order('created_at',{ascending:false}),function(rows){coursesData=rows;count('stat-courses',rows.length);if(all||courses)render(typeof renderAdminCourses==='function'?renderAdminCourses:null);}));
