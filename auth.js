@@ -204,9 +204,10 @@ function updateAuthUI(isLoggedIn, options) {
   const adminLinkMobile = document.getElementById('admin-link-mobile');
   
   // Restrito ao perfil com role master.
+  const sessionProfile=currentProfile?.id===currentUser?.id?currentProfile:null;
   const isMaster = typeof isUserMaster === 'function'
-    ? isUserMaster({ user: currentUser, profile: currentProfile })
-    : currentProfile?.role === 'master';
+    ? isUserMaster({ user: currentUser, profile: sessionProfile })
+    : sessionProfile?.role === 'master';
   if (typeof adpelDebugLog === 'function') adpelDebugLog('updateAuthUI', { isLoggedIn: !!isLoggedIn, isMaster: !!isMaster });
   
   if (isLoggedIn && currentUser) {
@@ -215,7 +216,7 @@ function updateAuthUI(isLoggedIn, options) {
     if (userMenu) {
       userMenu.classList.remove('hidden');
       const userNameEl = document.getElementById('user-name');
-      if (userNameEl) userNameEl.textContent = currentProfile?.full_name || currentUser?.email || 'Usuário';
+      if (userNameEl) userNameEl.textContent = sessionProfile?.full_name || currentUser?.email || 'Usuário';
     }
     if (adminLink) adminLink.classList.toggle('hidden', !isMaster);
     if (adminLinkMobile) adminLinkMobile.classList.toggle('hidden', !isMaster);
