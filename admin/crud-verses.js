@@ -58,7 +58,7 @@ async function handleVerseSubmit(e) {
     if (result.error) { throw result.error; }
     if (typeof showToast === 'function') { showToast(id ? 'Versículo atualizado!' : 'Versículo criado!', 'success'); }
     hideVerseForm();
-    await loadAllData();
+    await loadAllData('verses');
   } catch (error) {
     console.error('Erro ao salvar versículo:', error);
     if (typeof showToast === 'function') { showToast('Erro: ' + error.message, 'error'); }
@@ -71,7 +71,7 @@ async function deleteVerse(id) {
     var result = await window.supabaseClient.from('verse_of_day').delete().eq('id', id);
     if (result.error) { throw result.error; }
     if (typeof showToast === 'function') { showToast('Versículo excluído!', 'success'); }
-    await loadAllData();
+    await loadAllData('verses');
   } catch (error) {
     console.error('Erro ao excluir versículo:', error);
     if (typeof showToast === 'function') { showToast('Erro: ' + error.message, 'error'); }
