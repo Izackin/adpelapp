@@ -291,6 +291,7 @@
     challengeTableUnavailable = false;
     currentProgressCache = applyJourneyProfile(normalizeProgress(progress),profile);
     state.loadedAt=Date.now();
+    state.snapshotDay=String(payload.mission_date||'');
     return currentProgressCache;
   }
 
@@ -335,6 +336,7 @@
   async function recordJourneyAction(activityType, sourceKey, options) {
     var userInfo = await resolveUserInfo();
     if (!userInfo.isLoggedIn || !userInfo.user || !window.supabaseClient) return null;
+    if (typeof getCurrentUserInfo === 'function' && getUserInfo().user?.id !== userInfo.user.id) return null;
     var state=getJourneySession(userInfo.user.id);
     return enqueueJourney(state,function(){
       return executeJourneyAction(activityType,sourceKey,options,userInfo,state);
@@ -764,6 +766,7 @@
 
   async function initJourney() {
     var info=await resolveUserInfo();
+    if (typeof getCurrentUserInfo === 'function' && (getUserInfo().user?.id || null) !== (info.user?.id || null)) return null;
     if (!info.isLoggedIn || !info.user || !window.supabaseClient) {
       resetJourneySession();
       renderJourneyWidgets(null);
@@ -772,7 +775,7 @@
     var state=getJourneySession(info.user.id);
     if (state.initPending) return state.initPending;
     var day=journeyDay();
-    if (state.visitDay===day && currentProgressCache && Date.now()-state.loadedAt<JOURNEY_REFRESH_MS) {
+    if (state.visitDay===day && state.snapshotDay===day && currentProgressCache && Date.now()-state.loadedAt<JOURNEY_REFRESH_MS) {
       renderJourneyWidgets(currentProgressCache);
       return currentProgressCache;
     }
@@ -782,7 +785,7 @@
       if (state.visitDay!==currentDay) {
         // record_journey_action already prepares and returns today's mission snapshot.
         progress=await executeJourneyAction('daily_visit',null,{silent:true},info,state);
-        if (progress && journeyDay()===currentDay) state.visitDay=currentDay;
+        if (progress && state.snapshotDay===currentDay) state.visitDay=currentDay;
       } else {
         progress=await getOrCreateProgressInternal(info,state);
         if (progress && isCurrentJourneySession(state)) renderJourneyWidgets(progress);
