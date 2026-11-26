@@ -518,7 +518,7 @@
     var container = document.getElementById('daily-challenges-content');
     if (!container) return;
     if (dailyChallengesLoadError) {
-      container.innerHTML = '<div class="journey-empty-note">Não foi possível carregar suas missões agora. Tente novamente.</div>';
+      container.innerHTML = '<div class="journey-empty-note">Não foi possível carregar suas missões agora.<button type="button" onclick="ADPELJourney.init()" class="journey-secondary-action mt-3">Tentar novamente</button></div>';
       return;
     }
     if (challengeTableUnavailable) {
@@ -536,7 +536,7 @@
     }
 
     container.innerHTML = list.map(function (challenge) {
-      var percent = Math.min(100, Math.round((challenge.current_count / challenge.target_count) * 100));
+      var percent = challenge.target_count > 0 ? Math.max(0, Math.min(100, Math.round((challenge.current_count / challenge.target_count) * 100))) : 0;
       var meta = getChallengeMeta(challenge.activity_type);
       var button = challenge.completed
         ? '<button disabled class="journey-challenge-action is-done"><i class="fas fa-check"></i> Concluída</button>'
@@ -552,7 +552,7 @@
               '</div>',
               button,
             '</div>',
-            '<div class="journey-challenge-progress">',
+            '<div class="journey-challenge-progress" role="progressbar" aria-label="Progresso da missão" aria-valuemin="0" aria-valuemax="100" aria-valuenow="' + percent + '">',
               '<div class="journey-progress-track"><div class="journey-progress-fill" style="width:' + percent + '%"></div></div>',
               '<span>' + challenge.current_count + '/' + challenge.target_count + '</span>',
             '</div>',
@@ -575,10 +575,12 @@
     var safeProgress = normalizeProgress(progress || currentProgressCache);
     var level = getLevelInfo(safeProgress.xp);
     var nextMedal = getNextMedal(safeProgress);
+    var medals = getEarnedMedals(safeProgress);
+    var earnedCount = medals.filter(function(medal){return medal.earned;}).length;
     var avatar = safeImageUrl(safeProgress.avatar || '');
     var initials = String(safeProgress.user_name || 'M').trim().charAt(0).toUpperCase();
     var currentXp = Number(safeProgress.xp) || 0;
-    var progressPoints = level.next ? currentXp + ' de ' + level.next.minXp + ' pontos' : currentXp + ' pontos';
+    var progressPoints = level.next ? currentXp + ' de ' + level.next.minXp + ' XP' : currentXp + ' XP';
     var progressStatus = level.next ? level.progressPercent + '% para o próximo nível' : 'Nível máximo alcançado';
     var completedCount = Number(dailySummaryCache.completed_count) || 0;
     var totalCount = Number(dailySummaryCache.total_count) || dailyChallengesCache.length;
@@ -607,7 +609,7 @@
             '<div><p class="app-eyebrow">Hoje</p><h3>Sua caminhada de hoje</h3></div>',
             '<strong class="journey-today-count">' + completedCount + ' de ' + totalCount + '</strong>',
           '</div>',
-          '<div class="journey-today-progress" aria-label="' + dailyPercent + '% das missões concluídas">',
+          '<div class="journey-today-progress" role="progressbar" aria-label="Missões concluídas" aria-valuemin="0" aria-valuemax="100" aria-valuenow="' + dailyPercent + '">',
             '<div class="journey-progress-track"><div class="journey-progress-fill" style="width:' + dailyPercent + '%"></div></div>',
             '<span>' + dailyPercent + '%</span>',
           '</div>',
@@ -642,7 +644,8 @@
           '<div class="journey-progress-track"><div class="journey-progress-fill" style="width:' + level.progressPercent + '%"></div></div>',
           '<div class="journey-next-medal"><span>Próxima medalha</span><strong>' + escapeHtml(nextMedal ? nextMedal.title : 'Todas conquistadas') + '</strong></div>',
         '</section>',
-        '<button onclick="navigateTo(&quot;ranking&quot;)" class="journey-secondary-action"><i class="fas fa-ranking-star"></i> Ver ranking e conquistas</button>',
+        '<details class="journey-medal-details"><summary><span>Medalhas</span><strong>' + earnedCount + ' de ' + medals.length + '</strong></summary><div class="journey-medal-summary-grid">' + medals.map(function(medal){return '<div class="journey-medal-summary ' + (medal.earned ? 'is-earned' : '') + '"><i class="fas ' + escapeHtml(medal.icon) + '" aria-hidden="true"></i><div><strong>' + escapeHtml(medal.title) + '</strong><small>' + (medal.earned ? 'Conquistada' : 'Em andamento') + '</small></div></div>';}).join('') + '</div></details>',
+        '<button onclick="navigateTo(&quot;ranking&quot;)" class="journey-secondary-action"><i class="fas fa-ranking-star"></i> Ver ranking geral</button>',
       '</div>'
     ].join('');
   }
