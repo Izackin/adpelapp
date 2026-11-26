@@ -4,7 +4,6 @@ async function loadProfileData() {
   if (window.ADPELJourney && typeof window.ADPELJourney.init === 'function') {
     await window.ADPELJourney.init();
   }
-  renderProfileTabContent(currentProfileTab || 'summary');
 }
 
 let selectedAvatarFile = null;
@@ -37,6 +36,7 @@ function isProfileSchemaError(error) {
 function renderProfile(userInfo) {
   const container = document.getElementById('profile-content');
   if (!container) return;
+  if ((currentProfileUserInfo?.user?.id || null) !== (userInfo?.user?.id || null)) currentProfileTab = 'summary';
   currentProfileUserInfo = userInfo;
   const oldJourney = document.getElementById('profile-journey-content');
   if (oldJourney && oldJourney.parentElement) oldJourney.parentElement.classList.add('hidden');
@@ -64,7 +64,7 @@ function renderProfile(userInfo) {
   const rawName = profile.public_name || profile.full_name || user.email || 'Usuario';
   const displayName = escapeHtml(rawName);
   const displayEmail = escapeHtml(user.email || '');
-  const roleLabel = userInfo.isMaster ? 'Administrador' : 'Membro';
+  const roleLabel = userInfo.isMaster ? 'Administrador' : 'Minha conta';
   const avatar = safeImageUrl(profile.avatar_url || profile.photo_url || profile.avatar || '');
   const initials = String(rawName || 'M').trim().charAt(0).toUpperCase();
 
@@ -78,7 +78,7 @@ function renderProfile(userInfo) {
           '<div class="profile-cover-info">',
             '<span class="profile-role-badge">' + escapeHtml(roleLabel) + '</span>',
             '<h3>' + displayName + '</h3>',
-            profile.ministry ? '<p class="profile-ministry"><i class="fas fa-hands-praying"></i> ' + escapeHtml(profile.ministry) + '</p>' : '<p class="profile-ministry">Membro ADPEL</p>',
+            profile.ministry ? '<p class="profile-ministry"><i class="fas fa-hands-praying"></i> ' + escapeHtml(profile.ministry) + '</p>' : '<p class="profile-ministry">ADPEL Digital</p>',
             '<p id="profile-cover-level" class="profile-cover-level hidden"></p>',
             '<p class="profile-owner-email"><i class="fas fa-envelope"></i> ' + displayEmail + '</p>',
           '</div>',
@@ -111,7 +111,7 @@ async function renderProfileCoverJourney(userId) {
       .select('xp')
       .eq('user_id', userId)
       .maybeSingle();
-    if (result.error || !result.data) return;
+    if (result.error || !result.data || document.getElementById('profile-cover-level') !== levelEl || getCurrentUserInfo().user?.id !== userId) return;
     const level = publicProfileLevelInfo(result.data.xp || 0);
     levelEl.classList.remove('hidden');
     levelEl.innerHTML = '<i class="fas fa-seedling"></i> Nível ' + escapeHtml(level.level) + ' · ' + escapeHtml(level.title);
@@ -122,19 +122,31 @@ async function renderProfileCoverJourney(userId) {
 
 function profileTabButton(tab, label, icon) {
   const active = currentProfileTab === tab;
-  return '<button onclick="setProfileTab(&quot;' + tab + '&quot;)" class="profile-tab-btn ' + (active ? 'is-active' : '') + '"><i class="fas ' + icon + '"></i><span>' + escapeHtml(label) + '</span></button>';
+  return '<button type="button" data-profile-tab="' + tab + '" aria-pressed="' + active + '" onclick="setProfileTab(&quot;' + tab + '&quot;)" class="profile-tab-btn ' + (active ? 'is-active' : '') + '"><i class="fas ' + icon + '"></i><span>' + escapeHtml(label) + '</span></button>';
 }
 
 function setProfileTab(tabName) {
-  currentProfileTab = tabName || 'summary';
-  const userInfo = currentProfileUserInfo || getCurrentUserInfo();
-  renderProfile(userInfo);
+  if (!['summary','journey','offerings','certificates','privacy'].includes(tabName)) return;
+  const userInfo = getCurrentUserInfo();
+  if (!userInfo.isLoggedIn || !userInfo.user || userInfo.user.id !== currentProfileUserInfo?.user?.id) { renderProfile(userInfo); return; }
+  if (currentProfileTab === tabName) return;
+  currentProfileTab = tabName;
+  document.querySelectorAll('#profile-content [data-profile-tab]').forEach(button => {
+    const active = button.dataset.profileTab === tabName;
+    button.classList.toggle('is-active',active);
+    button.setAttribute('aria-pressed',String(active));
+  });
+  renderProfileTabContent(tabName);
 }
 
 function renderProfileTabContent(tabName) {
-  const container = document.getElementById('profile-tab-content');
+  const previous = document.getElementById('profile-tab-content');
   const userInfo = currentProfileUserInfo || getCurrentUserInfo();
-  if (!container || !userInfo || !userInfo.isLoggedIn) return;
+  if (!previous || !userInfo || !userInfo.isLoggedIn) return;
+  // Detach the old panel so outstanding tab reads cannot overwrite a newer tab.
+  const container = document.createElement('section');
+  container.id = 'profile-tab-content';
+  previous.replaceWith(container);
   const tab = tabName || currentProfileTab || 'summary';
   if (tab === 'journey') { renderProfileJourneyTab(container, userInfo); return; }
   if (tab === 'offerings') {
@@ -530,7 +542,6 @@ async function handleProfileSubmit(event) {
     closeEditProfileModal();
     selectedAvatarFile = null;
     renderProfile(userInfo);
-    renderProfileTabContent(currentProfileTab || 'summary');
     showToast('Perfil atualizado com sucesso!', 'success');
   } catch (error) {
     console.error('Erro ao salvar perfil:', error);

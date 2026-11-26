@@ -35,21 +35,51 @@ function paidCourseActionLabel(course, fallback) {
   return 'Conhecer curso';
 }
 
+var paidCatalog = [];
+var paidCatalogOwner = null;
+var paidCatalogRequest = 0;
+var paidCatalogPending = false;
+function catalogSearchText(value) { return String(value || '').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().trim(); }
+function filterCourseCatalog() {
+  var info = getCurrentUserInfo();
+  if (paidCatalogOwner !== (info.isLoggedIn && info.user ? info.user.id : null) || paidCatalogPending) return;
+  var search = catalogSearchText((document.getElementById('course-catalog-search') || {}).value);
+  var filter = (document.getElementById('course-catalog-filter') || {}).value || '';
+  var rows = paidCatalog.filter(function(course) {
+    var matches = !search || catalogSearchText([course.title,course.category,course.teacher_name].join(' ')).includes(search);
+    var group = course.status === 'locked' ? 'not-started' : course.status;
+    return matches && (!filter || group === filter);
+  });
+  var count = document.getElementById('course-catalog-count');
+  if (count) count.textContent = rows.length + (rows.length === 1 ? ' curso' : ' cursos');
+  var title = document.getElementById('course-catalog-empty-title'), description = document.getElementById('course-catalog-empty-description');
+  if(title)title.textContent=search||filter?'Nenhum curso encontrado':'Nenhum curso disponível';
+  if(description)description.textContent=search||filter?'Experimente outro termo ou filtro.':'Não há cursos publicados no momento.';
+  paidRenderCoursesList(rows);
+}
 async function paidLoadCoursesData() {
+  var userInfo = getCurrentUserInfo();
+  var owner = userInfo.isLoggedIn && userInfo.user ? userInfo.user.id : null;
+  var request = ++paidCatalogRequest;
+  var loading = document.getElementById('course-catalog-loading');
+  var count = document.getElementById('course-catalog-count');
+  paidCatalogPending=true;
+  if(paidCatalogOwner!==owner){paidCatalog=[];paidCatalogOwner=owner;}
+  if(loading){loading.textContent='Carregando cursos…';loading.classList.remove('hidden');}
+  if(count)count.textContent='';
+  var list=document.getElementById('courses-carousels'),empty=document.getElementById('courses-empty');
+  if(list)list.classList.add('hidden');if(empty)empty.classList.add('hidden');
   try {
-    var courses = await ADPEL.fetch.courses();
-    var published = (courses || []).filter(function(course) { return course.is_published; });
-    var userInfo = getCurrentUserInfo();
+    var results = await Promise.all([ADPEL.fetch.courses(), owner ? getAllLessonProgress() : Promise.resolve([]), owner ? paidCoursesAccessMap() : Promise.resolve({})]);
+    var latest=getCurrentUserInfo();
+    if(request!==paidCatalogRequest || owner!==(latest.isLoggedIn&&latest.user?latest.user.id:null))return;
+    var published = (results[0] || []).filter(function(course) { return course.is_published; });
     var progressMap = {};
     var accessMap = {};
 
     if (userInfo.isLoggedIn) {
-      var results = await Promise.all([
-        getAllLessonProgress(),
-        paidCoursesAccessMap()
-      ]);
-      var allProgress = results[0] || [];
-      accessMap = results[1] || {};
+      var allProgress = results[1] || [];
+      accessMap = results[2] || {};
 
       allProgress.forEach(function(progress) {
         if (!progressMap[progress.course_id]) progressMap[progress.course_id] = new Set();
@@ -84,9 +114,13 @@ async function paidLoadCoursesData() {
       });
     });
 
-    paidRenderCoursesList(coursesWithStatus);
+    paidCatalog=coursesWithStatus;
+    paidCatalogPending=false;
+    if(loading)loading.classList.add('hidden');
+    filterCourseCatalog();
   } catch (error) {
     console.error('Erro ao carregar cursos:', error);
+    if(request===paidCatalogRequest){paidCatalogPending=false;if(loading)loading.textContent='Não foi possível carregar os cursos. Volte à tela para tentar novamente.';}
   }
 }
 
@@ -106,7 +140,7 @@ function paidCourseCarouselCard(course, actionLabel) {
     : '<span class="course-free-badge">Gratuito</span>';
 
   var media = thumbnailUrl
-    ? '<img src="' + escapeHtml(thumbnailUrl) + '" class="w-full h-full object-cover" alt="' + escapeHtml(course.title) + '">'
+    ? '<img src="' + escapeHtml(thumbnailUrl) + '" class="w-full h-full object-cover" loading="lazy" decoding="async" alt="' + escapeHtml(course.title) + '">'
     : '<div class="w-full h-full flex items-center justify-center text-white/50"><i class="fas fa-graduation-cap text-5xl"></i></div>';
 
   var progressBlock = '';
