@@ -76,3 +76,6 @@
   .bible-sheet-actions { grid-template-columns: repeat(4, 1fr); }
 }
 @media (prefers-reduced-motion: reduce) { .bible-sheet, .bible-toast { transition: none; } }
+
+/* Linked devotional/resume passage: temporary visual focus, not a saved highlight. */
+.bible-verse.reference-target { outline: 2px solid #2563eb; outline-offset: 1px; background-color: rgba(37,99,235,.12); }
