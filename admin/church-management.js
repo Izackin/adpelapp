@@ -56,13 +56,18 @@ async function churchFetchTable(tableName, orderColumn, ascending) {
   }
 }
 
-async function loadChurchManagementData() {
+async function loadChurchManagementData(certificateSnapshot) {
   churchModuleWarnings = [];
-  membersData = await churchFetchTable('members', 'full_name', true);
-  memberMovementsData = await churchFetchTable('member_movements', 'movement_date', false);
-  cashMovementsData = await churchFetchTable('cash_movements', 'movement_date', false);
-
-  var allCertificates = await churchFetchTable('certificates', 'created_at', false);
+  var results = await Promise.all([
+    churchFetchTable('members', 'full_name', true),
+    churchFetchTable('member_movements', 'movement_date', false),
+    churchFetchTable('cash_movements', 'movement_date', false),
+    Array.isArray(certificateSnapshot) ? Promise.resolve(certificateSnapshot) : churchFetchTable('certificates', 'created_at', false)
+  ]);
+  membersData = results[0];
+  memberMovementsData = results[1];
+  cashMovementsData = results[2];
+  var allCertificates = results[3];
   churchCertificatesData = allCertificates.filter(function(cert) {
     return !!(cert && cert.certificate_type);
   });
@@ -298,6 +303,14 @@ async function handleMemberSubmit(event) {
   }
 }
 
+var memberDirectoryPage = 1;
+var memberDirectoryPageSize = 24;
+var memberDirectoryFilterKey = '';
+function changeMemberDirectoryPage(delta) {
+  if (delta !== 1 && delta !== -1) return;
+  memberDirectoryPage = Math.max(1, memberDirectoryPage + delta);
+  renderChurchMembers();
+}
 function renderChurchMembers(onlyBirthdays) {
   var container = document.getElementById('admin-members-list');
   if (!container) return;
@@ -318,7 +331,13 @@ function renderChurchMembers(onlyBirthdays) {
     return matchesSearch && matchesStatus && matchesRole;
   });
 
-  if (list.length === 0) {
+  var filterKey = [search,status,roleFilter,Boolean(onlyBirthdays || search === 'aniversariantes')].join('|');
+  if (filterKey !== memberDirectoryFilterKey) { memberDirectoryPage = 1; memberDirectoryFilterKey = filterKey; }
+  var total = list.length;
+  var pageCount = Math.max(1, Math.ceil(total / memberDirectoryPageSize));
+  memberDirectoryPage = Math.min(memberDirectoryPage,pageCount);
+  list = list.slice((memberDirectoryPage-1)*memberDirectoryPageSize,memberDirectoryPage*memberDirectoryPageSize);
+  if (total === 0) {
     container.innerHTML = '<div class="empty-state"><div class="empty-state-icon"><i class="fas fa-users text-2xl"></i></div><h3>Nenhum membro encontrado</h3><p>Cadastre membros ou ajuste os filtros.</p></div>';
     return;
   }
@@ -329,23 +348,28 @@ function renderChurchMembers(onlyBirthdays) {
     var memberJson = encodeInlineJson(member);
     var phone = String(member.phone || '').replace(/\D/g, '');
     var photoUrl = safeImageUrl(member.photo_url || '');
-    html += '<div class="p-4 bg-gray-50 rounded-lg border border-gray-100">' +
+    html += '<div class="admin-person-card p-4 bg-gray-50 rounded-lg border border-gray-100">' +
       '<div class="flex flex-col md:flex-row md:items-start justify-between gap-3">' +
       '<div class="flex gap-3 min-w-0">' +
       '<div class="w-12 h-12 rounded-xl bg-adpel-600 text-white flex items-center justify-center overflow-hidden shrink-0">' +
       (photoUrl ? '<img src="' + escapeHtml(photoUrl) + '" alt="" class="w-full h-full object-cover">' : '<i class="fas fa-user"></i>') +
       '</div><div class="min-w-0">' +
-      '<h4 class="font-semibold text-gray-800 truncate">' + escapeHtml(member.full_name) + '</h4>' +
+      '<h4 class="font-semibold text-gray-800 break-words">' + escapeHtml(member.full_name) + '</h4>' +
       '<p class="text-sm text-gray-500 mt-1">' + escapeHtml(member.phone || 'Sem telefone') + (member.email ? ' &bull; ' + escapeHtml(member.email) : '') + '</p>' +
       '<div class="flex flex-wrap gap-2 mt-2"><span class="text-xs bg-adpel-100 text-adpel-700 px-2 py-0.5 rounded">' + escapeHtml(churchLabel(member.status || 'ativo')) + '</span><span class="text-xs bg-gray-100 text-gray-700 px-2 py-0.5 rounded">' + escapeHtml(churchLabel(member.role || 'membro')) + '</span>' + (member.baptized ? '<span class="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded">Batizado</span>' : '') + '</div>' +
       '</div></div>' +
-      '<div class="flex flex-wrap md:justify-end gap-2">' +
+      '<div class="admin-person-actions flex flex-wrap gap-2">' +
       (phone ? '<a href="https://wa.me/55' + escapeHtml(phone) + '" target="_blank" rel="noopener" class="p-2 text-green-500 hover:bg-green-50 rounded-lg min-w-[44px] min-h-[44px] flex items-center justify-center"><i class="fab fa-whatsapp"></i></a>' : '') +
       '<button type="button" onclick="openMemberAccountLink(\'' + escapeHtml(member.id) + '\')" class="px-3 py-2 text-cyan-600 hover:bg-cyan-50 rounded-lg min-h-[44px] text-sm font-semibold" title="Vincular conta do aplicativo"><i class="fas fa-link mr-1"></i>Conta do app</button>' +
       '<button type="button" onclick="editMember(\'' + memberJson + '\')" class="px-3 py-2 text-adpel-500 hover:bg-adpel-50 rounded-lg min-h-[44px] text-sm font-semibold"><i class="fas fa-edit mr-1"></i>Editar ficha</button>' +
       '<button type="button" onclick="openMemberIntakeDialog(\'' + escapeHtml(member.id) + '\')" class="px-3 py-2 text-cyan-600 hover:bg-cyan-50 rounded-lg min-h-[44px] text-sm font-semibold"><i class="fas fa-hand-holding-heart mr-1"></i>Acolhimento</button>' +
       (member.status === 'removido' ? '<button type="button" onclick="openMemberReturn(\'' + escapeHtml(member.id) + '\')" class="px-3 py-2 text-green-700 border rounded-lg min-h-[44px] text-sm font-semibold">Registrar retorno</button>' : '<button type="button" onclick="openMemberExit(\'' + escapeHtml(member.id) + '\')" class="px-3 py-2 text-orange-600 border rounded-lg min-h-[44px] text-sm font-semibold"><i class="fas fa-archive mr-1"></i>Arquivar</button>') +
       '</div></div></div>';
+  }
+  if (pageCount > 1) {
+    html += '<div class="admin-directory-pagination"><span>' + total + ' fichas · Página ' + memberDirectoryPage + ' de ' + pageCount + '</span><div>' +
+      '<button type="button" onclick="changeMemberDirectoryPage(-1)"' + (memberDirectoryPage<=1?' disabled':'') + '>Anterior</button>' +
+      '<button type="button" onclick="changeMemberDirectoryPage(1)"' + (memberDirectoryPage>=pageCount?' disabled':'') + '>Próxima</button></div></div>';
   }
   container.innerHTML = html;
 }

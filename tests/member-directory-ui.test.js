@@ -1,6 +1,6 @@
 const assert=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path'),vm=require('node:vm');
 const source=fs.readFileSync(path.resolve(__dirname,'../admin/church-management.js'),'utf8');
-const start=source.indexOf('function renderChurchMembers('),end=source.indexOf('function editMember(',start);
+const start=source.indexOf('var memberDirectoryPage = 1;'),end=source.indexOf('function editMember(',start);
 const directory=source.slice(start,end);
 const elements={'admin-members-list':{innerHTML:''},'member-directory-summary':{textContent:''},'member-search':{value:''},'member-status-filter':{value:''},'member-kind-filter':{value:''}};
 const ctx={document:{getElementById:id=>elements[id]},membersData:[{id:'m1',full_name:'Membro atual',role:'membro',status:'pendente'},{id:'m2',full_name:'Visitante atual',role:'visitante',status:'ativo'},{id:'m3',full_name:'Registro arquivado',role:'membro',status:'removido'}],churchText:x=>String(x||''),escapeHtml:x=>String(x||''),encodeInlineJson:x=>encodeURIComponent(JSON.stringify(x)),safeImageUrl:()=>'',churchLabel:x=>x};
@@ -16,4 +16,15 @@ elements['member-kind-filter'].value='';elements['member-status-filter'].value='
 assert.ok(elements['admin-members-list'].innerHTML.includes('Registro arquivado'));
 assert.ok(elements['admin-members-list'].innerHTML.includes('Registrar retorno'));
 assert.ok(!elements['admin-members-list'].innerHTML.includes('openMemberExit('));
+elements['member-status-filter'].value='';
+ctx.membersData=Array.from({length:50},(_,i)=>({id:'p'+i,full_name:'Pessoa '+String(i+1).padStart(2,'0'),role:'membro',status:'ativo'}));
+ctx.renderChurchMembers();
+assert.ok(elements['admin-members-list'].innerHTML.includes('Página 1 de 3'));
+assert.ok(!elements['admin-members-list'].innerHTML.includes('Pessoa 25'));
+ctx.changeMemberDirectoryPage(1);
+assert.ok(elements['admin-members-list'].innerHTML.includes('Página 2 de 3'));
+assert.ok(elements['admin-members-list'].innerHTML.includes('Pessoa 25'));
+elements['member-search'].value='Pessoa 50';ctx.renderChurchMembers();
+assert.ok(elements['admin-members-list'].innerHTML.includes('Pessoa 50'));
+assert.ok(!elements['admin-members-list'].innerHTML.includes('Página 2'));
 console.log('member directory: PASS');

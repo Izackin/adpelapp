@@ -341,7 +341,7 @@ O painel fica em `admin.html`. Ele possui:
 - Relatorios consolidados de membros e PDFs administrativos sem observacoes internas.
 - View antiga/retirada de avisos.
 
-`admin.js` carrega dados com `loadAllData()` e preenche arrays globais:
+`admin.js` carrega dados com `loadAllData()` uma vez apos o gate master, em grupos de consultas paralelas independentes. Refreshes concorrentes sao serializados, com uma nova passagem pendente para preservar atualizacoes apos gravacao. O snapshot de certificados e reaproveitado na gestao da igreja. A lista de pessoas tem paginacao de renderizacao de 24 fichas, sem limitar os dados usados em importacao, exportacao e relatorios. A navegacao indica a view ativa. O loader preenche arrays globais:
 
 - `coursesData`
 - `libraryData`
