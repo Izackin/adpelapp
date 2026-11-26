@@ -114,52 +114,50 @@
         <span class="font-bold text-xl tracking-tight">ADPEL Admin</span>
       </div>
 
-      <nav class="space-y-5">
-        <div>
-          <div class="text-xs font-semibold text-gray-500 uppercase tracking-wider px-3 mb-2">Dashboard</div>
-          <button onclick="adminNavigateTo('home')" class="w-full flex items-center px-3 py-3 rounded-lg hover:bg-gray-800 active:bg-gray-700 transition group text-gray-300 hover:text-white min-h-[44px]">
-            <i class="fas fa-chart-line w-5 text-center text-lg transition group-hover:text-adpel-400"></i><span class="ml-3 font-medium">Visão Geral</span>
+      <nav class="admin-nav" aria-label="Menu administrativo">
+        <div class="admin-nav-group"><div class="admin-nav-label">Painel</div>
+          <button type="button" data-admin-view="home" aria-current="page" onclick="adminNavigateTo('home')" class="w-full flex items-center px-3 py-3 rounded-lg hover:bg-gray-800 active:bg-gray-700 transition group text-gray-300 hover:text-white min-h-[44px]">
+            <i class="fas fa-chart-line w-5 text-center text-lg transition group-hover:text-adpel-400"></i><span class="ml-3 font-medium">Visão geral</span>
           </button>
         </div>
-        <div>
-          <div class="text-xs font-semibold text-gray-500 uppercase tracking-wider px-3 mb-2">Pastor</div>
-          <button onclick="adminNavigateTo('church')" class="w-full flex items-center px-3 py-3 rounded-lg hover:bg-gray-800 active:bg-gray-700 transition group text-gray-300 hover:text-white min-h-[44px]">
-            <i class="fas fa-church w-5 text-center text-lg transition group-hover:text-cyan-400"></i><span class="ml-3 font-medium">Gestão da Igreja</span>
+        <div class="admin-nav-group"><div class="admin-nav-label">Igreja e comunidade</div>
+          <button type="button" data-admin-view="church" onclick="adminNavigateTo('church')" class="w-full flex items-center px-3 py-3 rounded-lg hover:bg-gray-800 active:bg-gray-700 transition group text-gray-300 hover:text-white min-h-[44px]">
+            <i class="fas fa-church w-5 text-center text-lg transition group-hover:text-cyan-400"></i><span class="ml-3 font-medium">Gestão da igreja</span>
           </button>
-        </div>
-        <div>
-          <div class="text-xs font-semibold text-gray-500 uppercase tracking-wider px-3 mb-2">Staff</div>
-          <button onclick="adminNavigateTo('verses')" class="w-full flex items-center px-3 py-2.5 rounded-lg hover:bg-gray-800 active:bg-gray-700 transition group text-gray-300 hover:text-white min-h-[44px]">
-            <i class="fas fa-book-bible w-5 text-center transition group-hover:text-adpel-400"></i><span class="ml-3 font-medium">Versículo do Dia</span>
+          <button type="button" data-admin-view="agenda" onclick="adminNavigateTo('agenda')" class="w-full flex items-center px-3 py-2.5 rounded-lg hover:bg-gray-800 active:bg-gray-700 transition group text-gray-300 hover:text-white min-h-[44px]">
+            <i class="fas fa-calendar-alt w-5 text-center transition group-hover:text-purple-400"></i><span class="ml-3 font-medium">Agenda e eventos</span>
           </button>
-          <button onclick="adminNavigateTo('courses')" class="w-full flex items-center px-3 py-2.5 rounded-lg hover:bg-gray-800 active:bg-gray-700 transition group text-gray-300 hover:text-white min-h-[44px]">
-            <i class="fas fa-graduation-cap w-5 text-center transition group-hover:text-blue-400"></i><span class="ml-3 font-medium">Cursos</span>
-          </button>
-          <button onclick="adminNavigateTo('library')" class="w-full flex items-center px-3 py-2.5 rounded-lg hover:bg-gray-800 active:bg-gray-700 transition group text-gray-300 hover:text-white min-h-[44px]">
-            <i class="fas fa-book w-5 text-center transition group-hover:text-cyan-400"></i><span class="ml-3 font-medium">Biblioteca</span>
-          </button>
-          <button onclick="adminNavigateTo('agenda')" class="w-full flex items-center px-3 py-2.5 rounded-lg hover:bg-gray-800 active:bg-gray-700 transition group text-gray-300 hover:text-white min-h-[44px]">
-            <i class="fas fa-calendar-alt w-5 text-center transition group-hover:text-purple-400"></i><span class="ml-3 font-medium">Agenda/Eventos</span>
-          </button>
-          <button onclick="adminNavigateTo('cofres')" class="w-full flex items-center px-3 py-2.5 rounded-lg hover:bg-gray-800 active:bg-gray-700 transition group text-gray-300 hover:text-white min-h-[44px]">
-            <i class="fas fa-piggy-bank w-5 text-center transition group-hover:text-green-400"></i><span class="ml-3 font-medium">Cofres</span>
-          </button>
-          <button onclick="adminNavigateTo('app-updates')" class="w-full flex items-center px-3 py-2.5 rounded-lg hover:bg-gray-800 active:bg-gray-700 transition group text-gray-300 hover:text-white min-h-[44px]">
-            <i class="fas fa-bullhorn w-5 text-center transition group-hover:text-emerald-400"></i><span class="ml-3 font-medium">Atualizações do App</span>
-          </button>
-          <button onclick="adminNavigateTo('notifications')" class="w-full flex items-center px-3 py-2.5 rounded-lg hover:bg-gray-800 active:bg-gray-700 transition group text-gray-300 hover:text-white min-h-[44px]">
-            <i class="fas fa-bell w-5 text-center transition group-hover:text-red-400"></i><span class="ml-3 font-medium">Notificações Push</span>
-          </button>
-          <button onclick="adminNavigateTo('certificates')" class="w-full flex items-center px-3 py-2.5 rounded-lg hover:bg-gray-800 active:bg-gray-700 transition group text-gray-300 hover:text-white min-h-[44px]">
-            <i class="fas fa-certificate w-5 text-center transition group-hover:text-yellow-400"></i><span class="ml-3 font-medium">Certificados de Curso</span>
-          </button>
-          <button onclick="adminNavigateTo('community')" class="w-full flex items-center px-3 py-2.5 rounded-lg hover:bg-gray-800 active:bg-gray-700 transition group text-gray-300 hover:text-white min-h-[44px]">
+          <button type="button" data-admin-view="community" onclick="adminNavigateTo('community')" class="w-full flex items-center px-3 py-2.5 rounded-lg hover:bg-gray-800 active:bg-gray-700 transition group text-gray-300 hover:text-white min-h-[44px]">
             <i class="fas fa-users w-5 text-center transition group-hover:text-emerald-400"></i><span class="ml-3 font-medium">Comunidade</span>
           </button>
         </div>
-        <div>
-          <div class="text-xs font-semibold text-gray-500 uppercase tracking-wider px-3 mb-2">Sistema</div>
-          <button onclick="adminNavigateTo('system')" class="w-full flex items-center px-3 py-3 rounded-lg hover:bg-gray-800 active:bg-gray-700 transition group text-gray-300 hover:text-white min-h-[44px]">
+        <div class="admin-nav-group"><div class="admin-nav-label">Ensino e conteúdo</div>
+          <button type="button" data-admin-view="courses" onclick="adminNavigateTo('courses')" class="w-full flex items-center px-3 py-2.5 rounded-lg hover:bg-gray-800 active:bg-gray-700 transition group text-gray-300 hover:text-white min-h-[44px]">
+            <i class="fas fa-graduation-cap w-5 text-center transition group-hover:text-blue-400"></i><span class="ml-3 font-medium">Cursos</span>
+          </button>
+          <button type="button" data-admin-view="library" onclick="adminNavigateTo('library')" class="w-full flex items-center px-3 py-2.5 rounded-lg hover:bg-gray-800 active:bg-gray-700 transition group text-gray-300 hover:text-white min-h-[44px]">
+            <i class="fas fa-book w-5 text-center transition group-hover:text-cyan-400"></i><span class="ml-3 font-medium">Biblioteca</span>
+          </button>
+          <button type="button" data-admin-view="verses" onclick="adminNavigateTo('verses')" class="w-full flex items-center px-3 py-2.5 rounded-lg hover:bg-gray-800 active:bg-gray-700 transition group text-gray-300 hover:text-white min-h-[44px]">
+            <i class="fas fa-book-bible w-5 text-center transition group-hover:text-adpel-400"></i><span class="ml-3 font-medium">Versículo do Dia</span>
+          </button>
+          <button type="button" data-admin-view="certificates" onclick="adminNavigateTo('certificates')" class="w-full flex items-center px-3 py-2.5 rounded-lg hover:bg-gray-800 active:bg-gray-700 transition group text-gray-300 hover:text-white min-h-[44px]">
+            <i class="fas fa-certificate w-5 text-center transition group-hover:text-yellow-400"></i><span class="ml-3 font-medium">Certificados de curso</span>
+          </button>
+        </div>
+        <div class="admin-nav-group"><div class="admin-nav-label">Comunicação</div>
+          <button type="button" data-admin-view="notifications" onclick="adminNavigateTo('notifications')" class="w-full flex items-center px-3 py-2.5 rounded-lg hover:bg-gray-800 active:bg-gray-700 transition group text-gray-300 hover:text-white min-h-[44px]">
+            <i class="fas fa-bell w-5 text-center transition group-hover:text-red-400"></i><span class="ml-3 font-medium">Notificações</span>
+          </button>
+          <button type="button" data-admin-view="app-updates" onclick="adminNavigateTo('app-updates')" class="w-full flex items-center px-3 py-2.5 rounded-lg hover:bg-gray-800 active:bg-gray-700 transition group text-gray-300 hover:text-white min-h-[44px]">
+            <i class="fas fa-bullhorn w-5 text-center transition group-hover:text-emerald-400"></i><span class="ml-3 font-medium">Atualizações do app</span>
+          </button>
+        </div>
+        <div class="admin-nav-group"><div class="admin-nav-label">Administração</div>
+          <button type="button" data-admin-view="cofres" onclick="adminNavigateTo('cofres')" class="w-full flex items-center px-3 py-2.5 rounded-lg hover:bg-gray-800 active:bg-gray-700 transition group text-gray-300 hover:text-white min-h-[44px]">
+            <i class="fas fa-piggy-bank w-5 text-center transition group-hover:text-green-400"></i><span class="ml-3 font-medium">Cofres</span>
+          </button>
+          <button type="button" data-admin-view="system" onclick="adminNavigateTo('system')" class="w-full flex items-center px-3 py-3 rounded-lg hover:bg-gray-800 active:bg-gray-700 transition group text-gray-300 hover:text-white min-h-[44px]">
             <i class="fas fa-gear w-5 text-center text-lg transition group-hover:text-slate-300"></i><span class="ml-3 font-medium">Sistema</span>
           </button>
         </div>
@@ -208,17 +206,18 @@
         <div class="w-8 h-8 rounded-lg flex items-center justify-center overflow-hidden bg-white">
           <img src="images/adpel.logo.png" alt="ADPEL Logo" class="w-full h-full object-cover">
         </div>
-        <h1 class="font-bold text-lg">ADPEL Admin</h1>
+        <div class="min-w-0"><p class="text-xs text-gray-400 font-medium">ADPEL Admin</p><h1 id="admin-current-view" class="font-bold text-base truncate">Visão geral</h1></div>
       </div>
-      <button onclick="toggleSidebar()" class="p-2.5 rounded-lg hover:bg-gray-800 active:bg-gray-700 transition min-w-[44px] min-h-[44px] flex items-center justify-center">
+      <button id="admin-menu-toggle" type="button" aria-label="Abrir ou fechar menu" aria-controls="sidebar" aria-expanded="false" onclick="toggleSidebar()" class="p-2.5 rounded-lg hover:bg-gray-800 active:bg-gray-700 transition min-w-[44px] min-h-[44px] flex items-center justify-center">
         <i class="fas fa-bars text-lg"></i>
       </button>
     </header>
 
     <!-- MAIN CONTENT -->
     <!-- Backdrop Mobile -->
-    <div id="admin-backdrop" onclick="toggleSidebar()" class="hidden fixed inset-0 bg-transparent z-30 md:hidden transition-opacity duration-300"></div>
+    <div id="admin-backdrop" onclick="toggleSidebar()" class="hidden fixed inset-0 bg-slate-950/70 z-30 md:hidden transition-opacity duration-300"></div>
     <main class="flex-1 md:ml-64 p-4 md:p-6 pt-20 md:pt-6 pb-24 md:pb-6 overflow-y-auto touch-pan-y min-h-0">
+      <div id="admin-load-status" class="admin-load-status" role="status" aria-live="polite" aria-busy="true">Carregando painel…</div>
       <!-- DASHBOARD HOME -->
       <div id="admin-view-home" class="space-y-6 animate-fade-in">
         <section class="admin-v2-hero">
@@ -229,7 +228,7 @@
           </div>
           <div class="admin-v2-hero__actions">
             <span id="admin-dashboard-updated">Carregando dados...</span>
-            <button type="button" onclick="loadAllData()" class="admin-v2-refresh">
+            <button id="admin-refresh-button" type="button" onclick="loadAllData()" class="admin-v2-refresh" disabled>
               <i class="fas fa-rotate"></i> Atualizar
             </button>
           </div>
@@ -928,12 +927,12 @@
         </section>
 
         <section id="church-tab-members" class="church-tab-panel hidden space-y-4">
-          <div class="bg-white rounded-xl border border-gray-200 p-4 flex flex-wrap items-center justify-between gap-3">
+          <div class="admin-people-header bg-white rounded-xl border border-gray-200 p-4 flex flex-wrap items-center justify-between gap-3">
             <div><h3 class="text-lg font-bold text-gray-800">Pessoas da igreja</h3><p id="member-directory-summary" class="text-sm text-gray-500"></p><p class="text-xs text-gray-500 mt-1">Uma ficha por pessoa. Arquivados ficam fora da lista principal.</p></div>
             <button type="button" onclick="openMemberIntakeDialog(null)" class="px-4 py-3 border border-amber-500 text-amber-600 rounded-lg font-semibold min-h-[44px]"><i class="fas fa-user-check mr-2"></i>Revisões de cadastro</button>
           </div>
-          <div class="flex flex-col md:flex-row md:items-center justify-between gap-3">
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 flex-1">
+          <div class="admin-people-toolbar flex flex-col gap-3">
+            <div class="admin-people-filters grid grid-cols-1 sm:grid-cols-2 gap-3 flex-1">
               <input type="search" id="member-search" oninput="renderChurchMembers()" placeholder="Buscar nome, telefone ou e-mail" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-adpel-500 outline-none">
               <select id="member-status-filter" onchange="renderChurchMembers()" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-adpel-500 outline-none">
                 <option value="">Cadastros não arquivados</option>
@@ -945,7 +944,7 @@
               </select>
               <select id="member-kind-filter" onchange="renderChurchMembers()" aria-label="Tipo de pessoa" class="w-full px-3 py-2 border border-gray-300 rounded-lg min-h-[44px]"><option value="">Membros e visitantes</option><option value="membro">Somente membros</option><option value="visitante">Somente visitantes</option></select>
             </div>
-            <div class="flex flex-col sm:flex-row gap-2">
+            <div class="admin-people-actions flex flex-wrap gap-2">
               <button onclick="showMemberImport()" class="px-4 py-2.5 border border-cyan-500 text-cyan-500 rounded-lg text-sm font-medium hover:bg-cyan-500/10 min-h-[44px]"><i class="fas fa-file-import mr-2"></i>Importar</button>
               <button onclick="showMemberExport()" class="px-4 py-2.5 border border-green-500 text-green-500 rounded-lg text-sm font-medium hover:bg-green-500/10 min-h-[44px]"><i class="fas fa-file-export mr-2"></i>Exportar</button>
               <button onclick="showBirthdayMembers()" class="px-4 py-2.5 bg-purple-600 text-white rounded-lg text-sm font-medium hover:bg-purple-700 min-h-[44px]"><i class="fas fa-birthday-cake mr-2"></i>Aniversariantes</button>
@@ -1329,19 +1328,6 @@
       }
     }, 3000);
     
-    // Carregar dados do Supabase ao iniciar
-    document.addEventListener('DOMContentLoaded', () => {
-      setTimeout(() => {
-        if (typeof loadAllData === 'function') {
-          loadAllData();
-        } else {
-          console.warn('loadAllData ainda não disponível, tentando novamente em 1s...');
-          setTimeout(() => {
-            if (typeof loadAllData === 'function') loadAllData();
-          }, 1000);
-        }
-      }, 500);
-    });
   </script>
 
   <!-- PROTEÇÃO DE ACESSO ADMIN -->
@@ -1351,6 +1337,7 @@
       const app = document.getElementById('admin-app');
       
       function showGate() {
+        adminAccessReady = false;
         if (gate) gate.classList.remove('hidden');
         if (app) app.classList.add('hidden');
       }
@@ -1394,6 +1381,8 @@
         }
         
         showApp();
+        adminAccessReady = true;
+        loadAllData();
       } catch (e) {
         console.error('Erro na verificação de acesso admin:', e);
         showGate();
