@@ -22,6 +22,7 @@ function churchText(value) {
 }
 
 function churchLabel(value) {
+  if (value === 'pendente') return 'Pendente de validação';
   return churchText(value).replace(/_/g, ' ').replace(/\b\w/g, function(letter) { return letter.toUpperCase(); });
 }
 
@@ -101,6 +102,7 @@ function setChurchTab(tab) {
   }
   var active = document.getElementById('church-tab-' + tab);
   if (active) active.classList.remove('hidden');
+  if (tab === 'members' && typeof loadMemberIntakes === 'function') loadMemberIntakes();
 
   var buttons = document.querySelectorAll('.church-tab-btn');
   for (var b = 0; b < buttons.length; b++) {
