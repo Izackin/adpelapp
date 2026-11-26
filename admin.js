@@ -47,8 +47,21 @@ if (typeof window.formatDate !== 'function') {
 // NAVIGATION
 // ============================================================
 
+var adminCurrentView = 'home';
+var adminViewTitles = {home:'Visão geral',church:'Gestão da igreja',agenda:'Agenda e eventos',courses:'Cursos',library:'Biblioteca',verses:'Versículo do dia',certificates:'Certificados de curso',cofres:'Cofres',community:'Comunidade',notifications:'Notificações', 'app-updates':'Atualizações do app',system:'Sistema','bible-study':'Estudo bíblico'};
 function adminNavigateTo(view) {
   if (view === 'avisos') view = 'agenda';
+  if (!document.getElementById('admin-view-' + view)) return;
+  adminCurrentView = view;
+  var label = document.getElementById('admin-current-view');
+  if (label) label.textContent = adminViewTitles[view] || 'Administração';
+  var links = document.querySelectorAll('#sidebar button[data-admin-view]');
+  for (var n = 0; n < links.length; n++) {
+    if (links[n].dataset.adminView === view) links[n].setAttribute('aria-current','page');
+    else links[n].removeAttribute('aria-current');
+  }
+  var main = document.querySelector('#admin-app main');
+  if (main) main.scrollTop = 0;
   var views = document.querySelectorAll('[id^="admin-view-"]');
   for (var i = 0; i < views.length; i++) {
     views[i].classList.add('hidden');
@@ -64,7 +77,7 @@ function adminNavigateTo(view) {
   if (view === 'community' && typeof loadAdminCommunity === 'function') {
     loadAdminCommunity();
   }
-  if (view === 'home' && typeof renderAdminDashboardV2 === 'function') {
+  if (view === 'home' && !adminLoadPromise && adminInitialLoadComplete && typeof renderAdminDashboardV2 === 'function') {
     renderAdminDashboardV2();
   }
   if (view === 'bible-study' && typeof loadAdminBibleStudy === 'function') {
@@ -82,6 +95,8 @@ function adminNavigateTo(view) {
     if (backdrop) {
       backdrop.classList.add('hidden');
     }
+    var menuButton = document.getElementById('admin-menu-toggle');
+    if (menuButton) menuButton.setAttribute('aria-expanded','false');
   }
 }
 
@@ -94,11 +109,14 @@ function toggleSidebar() {
   var backdrop = document.getElementById('admin-backdrop');
   if (!sidebar) { return; }
 
+  var menuButton = document.getElementById('admin-menu-toggle');
   if (sidebar.classList.contains('hidden')) {
+    if (menuButton) menuButton.setAttribute('aria-expanded','true');
     sidebar.classList.remove('hidden');
     sidebar.classList.add('fixed');
     if (backdrop) { backdrop.classList.remove('hidden'); }
   } else {
+    if (menuButton) menuButton.setAttribute('aria-expanded','false');
     sidebar.classList.add('hidden');
     sidebar.classList.remove('fixed');
     if (backdrop) { backdrop.classList.add('hidden'); }
@@ -109,108 +127,87 @@ function toggleSidebar() {
 // LOAD ALL DATA
 // ============================================================
 
-async function loadAllData() {
-  if (!window.supabaseClient) {
-    console.error('❌ Supabase client não disponível');
-    return;
-  }
+var adminLoadPromise = null;
+var adminLoadQueued = false;
+var adminInitialLoadComplete = false;
+var adminAccessReady = false;
 
-  try {
-    // Courses
-    var cResult = await window.supabaseClient
-      .from('courses').select('*').order('created_at', { ascending: false });
-    coursesData = cResult.data || [];
-    var statCourses = document.getElementById('stat-courses');
-    if (statCourses) { statCourses.textContent = coursesData.length; }
-    if (typeof renderAdminCourses === 'function') renderAdminCourses();
-    if (typeof loadCourseAccessRequests === 'function') {
-      await loadCourseAccessRequests();
-    }
+function adminLoadingState(active, message) {
+  var el = document.getElementById('admin-load-status');
+  if (el) { el.textContent = message || ''; el.setAttribute('aria-busy',String(active)); }
+  var button = document.getElementById('admin-refresh-button');
+  if (button) button.disabled = active;
+}
 
-    // Library
-    var lResult = await window.supabaseClient
-      .from('library_books').select('*').order('created_at', { ascending: false });
-    libraryData = lResult.data || [];
-    var statLibrary = document.getElementById('stat-library');
-    if (statLibrary) { statLibrary.textContent = libraryData.length; }
-    if (typeof renderAdminLibrary === 'function') renderAdminLibrary();
-
-    // Certificates
-    var certResult = await window.supabaseClient
-      .from('certificates').select('*').order('created_at', { ascending: false });
-    certificatesData = certResult.data || [];
-    if (typeof renderAdminCertificates === 'function') renderAdminCertificates();
-
-    // Agenda (tabela: events)
-    var agendaResults = await Promise.all([
-      window.supabaseClient.from('events').select('*').order('event_date', { ascending: true }),
-      window.supabaseClient.from('event_attendances').select('id,event_id,user_id,user_name,created_at')
-    ]);
-    var agResult = agendaResults[0];
-    var attendanceResult = agendaResults[1];
-    agendaData = agResult.data || [];
-    agendaAttendancesData = attendanceResult.error ? [] : (attendanceResult.data || []);
-    if (attendanceResult.error) {
-      console.warn('Não foi possível carregar confirmações da agenda:', attendanceResult.error);
-    }
-    if (typeof renderAdminAgenda === 'function') renderAdminAgenda();
-
-    // Atualizacoes do App
-    var updatesResult = await window.supabaseClient
-      .from('app_updates').select('*').order('created_at', { ascending: false });
-    if (!updatesResult.error) {
-      appUpdatesData = updatesResult.data || [];
-      var statUpdates = document.getElementById('stat-app-updates');
-      if (statUpdates) { statUpdates.textContent = appUpdatesData.length; }
-      if (typeof renderAdminAppUpdates === 'function') renderAdminAppUpdates();
-    } else {
-      console.warn('Nao foi possivel carregar atualizacoes do app:', updatesResult.error);
-    }
-
-    // Verses
-    var vResult = await window.supabaseClient
-      .from('verse_of_day').select('*').order('id', { ascending: false });
-    versesData = vResult.data || [];
-    if (typeof renderAdminVerses === 'function') renderAdminVerses();
-
-    // Cofres
-    var cofResult = await window.supabaseClient
-      .from('fundraising_goals').select('*').order('created_at', { ascending: false });
-    cofresData = cofResult.data || [];
-    var statCofres = document.getElementById('stat-cofres');
-    if (statCofres) { statCofres.textContent = cofresData.length; }
-
-    // Cofres Stats
-    var statsResult = await window.supabaseClient
-      .from('fundraising_stats').select('*');
-    if (statsResult.data) {
-      cofresStatsData = {};
-      for (var si = 0; si < statsResult.data.length; si++) {
-        var s = statsResult.data[si];
-        if (s && s.goal_id) {
-          cofresStatsData[s.goal_id] = s;
+function loadAllData() {
+  if (!adminAccessReady || !window.supabaseClient) return Promise.resolve();
+  // Serialize refreshes. A refresh requested after a write must not reuse stale data.
+  if (adminLoadPromise) { adminLoadQueued = true; return adminLoadPromise; }
+  adminLoadPromise = (async function() {
+    try {
+      do {
+        adminLoadQueued = false;
+        adminLoadingState(true, adminInitialLoadComplete ? 'Atualizando dados…' : 'Carregando painel…');
+        try { await loadAdminDataPass(); } catch (error) {
+          console.error('Erro ao carregar painel:',error);
+          var updated=document.getElementById('admin-dashboard-updated');
+          if(updated) updated.textContent='Falha na atualização';
+          if(typeof showToast==='function') showToast('Não foi possível atualizar o painel. Tente novamente.','error');
         }
-      }
+        adminInitialLoadComplete = true;
+      } while (adminLoadQueued);
+    } finally {
+      adminLoadPromise = null;
+      adminLoadingState(false,'');
     }
-    if (typeof renderAdminCofres === 'function') renderAdminCofres();
+  })();
+  return adminLoadPromise;
+}
 
-    // Church Management (optional module)
-    if (typeof loadChurchManagementData === 'function') {
-      await loadChurchManagementData();
+async function loadAdminDataPass() {
+  var client = window.supabaseClient;
+  var failures = [];
+  var updated = document.getElementById('admin-dashboard-updated');
+  if (updated) updated.textContent = 'Atualizando…';
+  async function read(name, query, apply) {
+    try {
+      var result = await query;
+      if (result.error) throw result.error;
+      apply(result.data || []);
+      return true;
+    } catch (error) {
+      failures.push(name);
+      console.warn('Admin: falha ao carregar ' + name, error);
+      return false;
     }
+  }
+  function count(id, value) { var el = document.getElementById(id); if (el) el.textContent = value; }
+  function render(fn) { if (typeof fn === 'function') fn(); }
+  async function task(name, fn) { try { if (typeof fn === 'function') await fn(); } catch (error) { failures.push(name); console.warn('Admin: falha em '+name,error); } }
 
-    // Dashboard V2 reuses the data loaded above and fetches only lightweight
-    // operational context (audit/import/calendar status).
-    if (typeof loadAdminDashboardData === 'function') {
-      await loadAdminDashboardData();
-    } else {
-      updateAdminDashboardStats();
-      updateRecentActivity();
-    }
-
-  } catch (error) {
-    console.error('❌ Erro ao carregar dados:', error);
-    if (typeof showToast === 'function') showToast('Erro ao carregar dados', 'error');
+  // Independent reads run in small parallel groups; renderers see their prerequisites.
+  var first = await Promise.all([
+    read('cursos',client.from('courses').select('*').order('created_at',{ascending:false}),function(rows){coursesData=rows;count('stat-courses',rows.length);render(typeof renderAdminCourses==='function'?renderAdminCourses:null);}),
+    read('biblioteca',client.from('library_books').select('*').order('created_at',{ascending:false}),function(rows){libraryData=rows;count('stat-library',rows.length);render(typeof renderAdminLibrary==='function'?renderAdminLibrary:null);}),
+    read('certificados',client.from('certificates').select('*').order('created_at',{ascending:false}),function(rows){certificatesData=rows;render(typeof renderAdminCertificates==='function'?renderAdminCertificates:null);}),
+    read('eventos',client.from('events').select('*').order('event_date',{ascending:true}),function(rows){agendaData=rows;}),
+    read('presenças',client.from('event_attendances').select('id,event_id,user_id,user_name,created_at'),function(rows){agendaAttendancesData=rows;})
+  ]);
+  render(typeof renderAdminAgenda==='function'?renderAdminAgenda:null);
+  await Promise.all([
+    read('atualizações',client.from('app_updates').select('*').order('created_at',{ascending:false}),function(rows){appUpdatesData=rows;count('stat-app-updates',rows.length);render(typeof renderAdminAppUpdates==='function'?renderAdminAppUpdates:null);}),
+    read('versículos',client.from('verse_of_day').select('*').order('id',{ascending:false}),function(rows){versesData=rows;render(typeof renderAdminVerses==='function'?renderAdminVerses:null);}),
+    read('cofres',client.from('fundraising_goals').select('*').order('created_at',{ascending:false}),function(rows){cofresData=rows;count('stat-cofres',rows.length);}),
+    read('indicadores dos cofres',client.from('fundraising_stats').select('*'),function(rows){cofresStatsData={};rows.forEach(function(row){if(row&&row.goal_id)cofresStatsData[row.goal_id]=row;});}),
+    task('solicitações de cursos',typeof loadCourseAccessRequests==='function'?loadCourseAccessRequests:null)
+  ]);
+  render(typeof renderAdminCofres==='function'?renderAdminCofres:null);
+  await task('gestão da igreja',typeof loadChurchManagementData==='function'?function(){return loadChurchManagementData(first[2]?certificatesData:undefined);}:null);
+  if (typeof loadAdminDashboardData === 'function') await task('visão geral',loadAdminDashboardData);
+  else { updateAdminDashboardStats(); updateRecentActivity(); }
+  if (failures.length) {
+    if (updated) updated.textContent = 'Atualização parcial';
+    if (typeof showToast === 'function') showToast('Algumas áreas não puderam ser atualizadas: '+failures.join(', ')+'. Tente atualizar novamente.','warning');
   }
 }
 
@@ -346,12 +343,7 @@ document.addEventListener('DOMContentLoaded', function() {
   var appUpdateForm = document.getElementById('app-update-form');
   if (appUpdateForm) { appUpdateForm.addEventListener('submit', handleAppUpdateSubmit); }
 
-  // Load data after DOM is ready and Supabase is initialized
-  setTimeout(function() {
-    if (typeof loadAllData === 'function') {
-      loadAllData();
-    }
-  }, 500);
+  // The access gate starts the initial load once, after master verification.
 });
 
 console.log('✅ admin.js carregado (core + recent activity + init)');
