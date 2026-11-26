@@ -225,9 +225,7 @@ function loadHomeData(force) {
     const futureEvents = events.filter(isHomeEventVisible);
     const publishedAnnouncements = announcements.filter(a => a.is_published).filter(isContentVisibleNow);
     const homeAgenda = buildUnifiedAgenda(futureEvents, publishedAnnouncements);
-    // Show dates immediately; enrich attendance when the separate request resolves.
-    renderHomeEvents(futureEvents.slice(0, 1), {});
-    if (typeof renderCommunityAgenda === 'function') renderCommunityAgenda(homeAgenda, {});
+    // Preserve real attendance counts; the agenda block is independent of courses.
     const attendances = typeof fetchAttendancesForEvents === 'function'
       ? await fetchAttendancesForEvents(homeAgenda) : await fetchAllAttendances();
     if (!current()) return false;
