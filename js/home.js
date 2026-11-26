@@ -71,7 +71,19 @@ async function loadDeterministicBibleVerse(dayIndex) {
   };
 }
 
-async function carregarVersiculoDoDia() {
+var homeVerseRequest = null;
+var homeVerseDate = '';
+function carregarVersiculoDoDia() {
+  const today = new Date().toDateString();
+  if (homeVerseRequest) return homeVerseRequest;
+  if (homeVerseDate === today) return Promise.resolve(true);
+  homeVerseRequest = fetchDailyVerse().then(ok => {
+    if (ok) homeVerseDate = today;
+    return ok;
+  }).finally(() => { homeVerseRequest = null; });
+  return homeVerseRequest;
+}
+async function fetchDailyVerse() {
   try {
     const diaAno = Math.floor(
       (Date.now() - new Date(new Date().getFullYear(), 0, 0)) / 86400000
@@ -92,12 +104,14 @@ async function carregarVersiculoDoDia() {
     if (textEl) textEl.textContent = versiculo.text || '';
     if (refEl) refEl.textContent = versiculo.reference ? '— ' + versiculo.reference : '';
     trackVerseOfDayEngagement();
+    return true;
   } catch (e) {
     console.error('Erro em carregarVersiculoDoDia:', e);
     const textEl = document.getElementById('verse-text');
     const refEl = document.getElementById('verse-ref');
     if (textEl) textEl.textContent = 'Não foi possível carregar o versículo agora.';
     if (refEl) refEl.textContent = '';
+    return false;
   }
 }
 
@@ -139,71 +153,84 @@ function trackVerseOfDayEngagement() {
   });
 }
 
-async function loadHomeData() {
-  const now = Date.now();
-  if (now - _lastHomeLoad < SECTION_LOAD_DEBOUNCE) {
-    console.log('⏭️ loadHomeData debounce');
-    return;
+// A single in-flight load per session; older responses cannot overwrite a newer session.
+var homeLoadState = { owner: undefined, request: 0, pending: null, loadedAt: 0 };
+function homeSessionId() {
+  const info = getCurrentUserInfo();
+  return info.isLoggedIn && info.user ? info.user.id : null;
+}
+function homeStatus(message, retry) {
+  const status = document.getElementById('home-content-status');
+  const text = document.getElementById('home-content-status-text');
+  const button = document.getElementById('home-retry-button');
+  if (status) status.hidden = !message;
+  if (text) text.textContent = message || '';
+  if (button) button.hidden = !retry;
+}
+function loadHomeData(force) {
+  const owner = homeSessionId();
+  const changed = homeLoadState.owner !== owner;
+  if (!changed && homeLoadState.pending) return homeLoadState.pending;
+  if (!force && !changed && Date.now() - homeLoadState.loadedAt < SECTION_LOAD_DEBOUNCE) return Promise.resolve();
+  const request = ++homeLoadState.request;
+  homeLoadState.owner = owner;
+  if (changed) {
+    homeLoadState.loadedAt = 0;
+    // Clear session-specific progress and attendance immediately.
+    renderContinueSection([]);
+    renderHomeEvents([]);
+    if (typeof renderCommunityAgenda === 'function') renderCommunityAgenda([]);
   }
-  _lastHomeLoad = now;
-
-  carregarVersiculoDoDia();
-
-  try {
-    const userInfo = getCurrentUserInfo();
-    const initialUserId = userInfo.isLoggedIn ? userInfo.user?.id : null;
-    const results = await Promise.allSettled([
-      ADPEL.fetch.courses(),
-      ADPEL.fetch.events(),
-      ADPEL.fetch.announcements(),
-      userInfo.isLoggedIn ? getAllLessonProgress() : Promise.resolve([])
-    ]);
-    const courses = results[0].status === 'fulfilled' ? results[0].value : [];
-    const events = results[1].status === 'fulfilled' ? results[1].value : [];
-    const announcements = results[2].status === 'fulfilled' ? results[2].value : [];
-
-    // Cursos em andamento
-    const currentUserInfo = getCurrentUserInfo();
-    const currentUserId = currentUserInfo.isLoggedIn ? currentUserInfo.user?.id : null;
-    // Never apply a previous session's progress after an authentication change.
-    const allProgress = initialUserId === currentUserId && initialUserId &&
-      results[3].status === 'fulfilled' ? results[3].value : [];
-    let progressMap = {};
-    if (Array.isArray(allProgress)) {
-      allProgress.forEach(p => {
-        if (!progressMap[p.course_id]) progressMap[p.course_id] = new Set();
-        progressMap[p.course_id].add(p.lesson_index);
-      });
-    }
-
-    const publishedCourses = (courses || [])
-      .filter(c => c.is_published)
-      .filter(isContentVisibleNow);
+  homeStatus('Atualizando conteúdo…',false);
+  _lastHomeLoad = Date.now();
+  const current = () => homeLoadState.request === request && homeSessionId() === owner;
+  const settle = fn => Promise.resolve().then(fn);
+  const publicVerse = settle(carregarVersiculoDoDia);
+  const courseTask = Promise.allSettled([
+    settle(() => ADPEL.fetch.courses()),
+    owner ? settle(getAllLessonProgress) : Promise.resolve([])
+  ]).then(results => {
+    if (!current()) return false;
+    if (results[0].status !== 'fulfilled') return false;
+    const courses = results[0].value || [];
+    const allProgress = results[1].status === 'fulfilled' ? results[1].value : [];
+    const progressMap = {};
+    if (Array.isArray(allProgress)) allProgress.forEach(p => {
+      if (!progressMap[p.course_id]) progressMap[p.course_id] = new Set();
+      progressMap[p.course_id].add(p.lesson_index);
+    });
+    const publishedCourses = courses.filter(c => c.is_published).filter(isContentVisibleNow);
     const homeCourses = publishedCourses.map(course => {
-      const lessons = normalizeLessons(course.lessons);
-      const total = lessons.length;
-      const completedSet = progressMap[course.id] || new Set();
-      const completed = completedSet.size;
-      let status = 'not-started';
-      if (total === 0) status = 'completed';
-      else if (completed >= total) status = 'completed';
-      else if (completed > 0) status = 'in-progress';
+      const count = course.lesson_count;
+      const total = count != null && Number.isInteger(Number(count)) && Number(count) >= 0
+        ? Number(count) : normalizeLessons(course.lessons).length;
+      const completed = Math.min(total, (progressMap[course.id] || new Set()).size);
+      const status = total === 0 || completed >= total ? 'completed' : completed > 0 ? 'in-progress' : 'not-started';
       return { ...course, totalLessons: total, completedLessons: completed, status };
     });
     const inProgressCourses = homeCourses.filter(c => c.status === 'in-progress');
-    const featuredCourses = homeCourses.filter(c => c.is_featured).slice(0, 8);
-
+    const featuredCourses = homeCourses.filter(c => c.is_featured);
     renderContinueSection(inProgressCourses.slice(0, 1));
     renderFeaturedCourses(featuredCourses.slice(0, 1));
-
-    const futureEvents = (events || []).filter(isHomeEventVisible);
-    const publishedAnnouncements = (announcements || [])
-      .filter(a => a.is_published)
-      .filter(isContentVisibleNow);
+    return results[1].status === 'fulfilled';
+  });
+  const agendaTask = Promise.allSettled([
+    settle(() => ADPEL.fetch.events()),
+    settle(() => ADPEL.fetch.announcements())
+  ]).then(async results => {
+    if (!current()) return false;
+    if (results.every(result => result.status !== 'fulfilled')) return false;
+    const events = results[0].status === 'fulfilled' ? results[0].value || [] : [];
+    const announcements = results[1].status === 'fulfilled' ? results[1].value || [] : [];
+    const futureEvents = events.filter(isHomeEventVisible);
+    const publishedAnnouncements = announcements.filter(a => a.is_published).filter(isContentVisibleNow);
     const homeAgenda = buildUnifiedAgenda(futureEvents, publishedAnnouncements);
+    // Show dates immediately; enrich attendance when the separate request resolves.
+    renderHomeEvents(futureEvents.slice(0, 1), {});
+    if (typeof renderCommunityAgenda === 'function') renderCommunityAgenda(homeAgenda, {});
     const attendances = typeof fetchAttendancesForEvents === 'function'
-      ? await fetchAttendancesForEvents(homeAgenda)
-      : await fetchAllAttendances();
+      ? await fetchAttendancesForEvents(homeAgenda) : await fetchAllAttendances();
+    if (!current()) return false;
     const attendancesByEvent = {};
     (attendances || []).forEach(a => {
       if (!attendancesByEvent[a.event_id]) attendancesByEvent[a.event_id] = [];
@@ -211,19 +238,18 @@ async function loadHomeData() {
     });
     renderHomeEvents(futureEvents.slice(0, 1), attendancesByEvent);
     if (typeof renderCommunityAgenda === 'function') renderCommunityAgenda(homeAgenda, attendancesByEvent);
-
-    const announcementsSection = document.getElementById('home-announcements-section');
-    if (announcementsSection) {
-      announcementsSection.classList.add('hidden');
-    }
-
-  } catch (error) {
-    console.error('Erro ao carregar dados da home:', error);
-    renderContinueSection([]);
-    renderFeaturedCourses([]);
-    renderHomeEvents([]);
-    if (typeof renderCommunityAgenda === 'function') renderCommunityAgenda([]);
-  }
+    return results.every(result => result.status === 'fulfilled');
+  });
+  const pending = Promise.allSettled([courseTask, agendaTask, publicVerse]).then(results => {
+    if (!current()) return;
+    const partial = results.some(result => result.status === 'rejected' || result.value === false);
+    homeLoadState.loadedAt = partial ? 0 : Date.now();
+    homeStatus(partial ? 'Alguns conteúdos não puderam ser atualizados.' : '',partial);
+  }).finally(() => {
+    if (homeLoadState.request === request) homeLoadState.pending = null;
+  });
+  homeLoadState.pending = pending;
+  return pending;
 }
 
 Object.assign(window, {
