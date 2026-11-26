@@ -1149,6 +1149,17 @@
   </div>
 
   <!-- MEMBER IMPORT -->
+  <div id="member-account-modal" class="hidden fixed inset-0 z-[180] bg-slate-950/80 p-3 overflow-y-auto" role="dialog" aria-modal="true" aria-labelledby="member-account-title">
+    <div class="max-w-lg mx-auto mt-8 bg-white rounded-xl shadow-xl border border-gray-200">
+      <header class="flex items-center justify-between gap-3 p-4 border-b border-gray-200">
+        <div><h3 id="member-account-title" class="text-lg font-bold text-gray-800">Conta do aplicativo</h3><p class="text-sm text-gray-500">Vínculo administrativo de membro</p></div>
+        <button type="button" onclick="closeMemberAccountLink()" aria-label="Fechar" class="w-11 h-11 rounded-lg bg-gray-100 text-gray-600"><i class="fas fa-times"></i></button>
+      </header>
+      <div id="member-account-body" class="p-4 space-y-4"></div>
+      <footer class="p-4 border-t border-gray-200"><button type="button" onclick="closeMemberAccountLink()" class="w-full min-h-[44px] rounded-lg border border-gray-300 text-gray-700 font-semibold">Voltar aos membros</button></footer>
+    </div>
+  </div>
+
   <div id="member-import-modal" class="hidden fixed inset-0 z-[180] bg-slate-950/80 backdrop-blur-sm p-2 sm:p-4 overflow-y-auto" role="dialog" aria-modal="true" aria-labelledby="member-import-title">
     <div class="bg-white w-full max-w-6xl mx-auto my-2 sm:my-8 rounded-2xl shadow-2xl border border-gray-200 overflow-hidden">
       <div class="flex items-center justify-between gap-3 p-4 md:p-5 border-b border-gray-200">
@@ -1267,6 +1278,7 @@
   <script src="admin/member-export.js"></script>
   <script src="admin/member-reports.js"></script>
   <script src="admin/church-management.js"></script>
+  <script src="admin/member-account-links.js"></script>
   <script src="admin/community-management.js"></script>
   <script src="admin-notifications.js"></script>
   
