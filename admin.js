@@ -134,7 +134,7 @@ function adminLoadingState(active, message) {
   if (button) button.disabled = active;
   var target=document.getElementById('admin-view-'+adminCurrentView);
   if(target)target.inert=(active && (adminRunningView==='all'||adminRunningView===adminCurrentView||adminPendingViews.has('all')||adminPendingViews.has(adminCurrentView))) || (!active && adminCurrentView==='church' && !!adminViewFailed.church);
-  var retry=document.getElementById('admin-view-retry');
+  var retry=document.getElementById('admin-retry-view');
   if(retry)retry.hidden=active||!adminViewFailed[adminCurrentView];
 }
 
@@ -157,6 +157,7 @@ function loadAllData(view) {
   // full refresh for legacy callers (including unchanged financial flows).
   if (!adminAccessReady || !window.supabaseClient) return Promise.resolve();
   adminViewLoadedAt=Object.create(null);
+  if (view && view!==adminCurrentView && adminCurrentView==='home') adminPendingViews.add('home');
   return queueAdminView(view || 'all');
 }
 
