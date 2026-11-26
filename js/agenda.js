@@ -58,7 +58,7 @@ async function fetchAllAttendances() {
   }
 }
 
-async function fetchAttendancesForEvents(events) {
+async function fetchAttendancesForEvents(events,options) {
   const eventIds = [...new Set((events || [])
     .filter(event => event && event.agenda_type !== 'announcement' && event.id)
     .map(event => event.id))];
@@ -70,6 +70,7 @@ async function fetchAttendancesForEvents(events) {
     return data || [];
   } catch (e) {
     console.warn('Não foi possível buscar o resumo de presenças:', e);
+    if(options?.strict)throw e;
     return [];
   }
 }
