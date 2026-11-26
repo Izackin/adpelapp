@@ -768,6 +768,8 @@ Nao altere sem necessidade e sem entender impacto:
 
 ## Motor de estudo biblico
 
+`js/bible-references.js` fornece o catalogo canonico dos 66 livros derivado da migration 20260924140312 (sem nova consulta), nomes em portugues, validacao de referencias e URLs de leitura `bible.html?book=JHN&chapter=3&verse=16` (intervalo opcional `end`, traducao opcional `translation`). O devocional e os cartoes de retomada usam a mesma camada. A referencia explicita tem prioridade sobre preferencias salvas; referencia invalida nao gera link ativo. O leitor destaca temporariamente e posiciona o versiculo/intervalo solicitado sem criar nota ou destaque persistente. Falhas de sincronizacao privada nao devem impedir leitura publica. Atualize o catalogo e os testes se os metadados canonicos mudarem.
+
 `js/bible.js` emite `adpel:bible-chapter` e expoe `getContext()` e `noteForVerse()` na facade `ADPELBible`. `js/bible-study.js` carrega dados somente ao ativar Estudo, descarta respostas antigas, reutiliza notas privadas e usa dialog nativo para palavras. Os atributos de navegacao do estudo usam `data-study-*` para nao conflitar com os eventos da leitura.
 
 Fontes linguisticas sao globais e somente leitura no navegador. Comentarios locais usam `source_code = adpel-editorial`; somente `is_admin_master()` pode escrever e ler rascunhos. O projeto atual e de uma igreja: adicionar escopo de tenant aos comentarios e policies antes da oferta multi-igrejas. Nao liberar escrita global a pastores/lideres sem um modelo de autorizacao por igreja.

@@ -24,18 +24,9 @@
   const makeReferenceLabel = (bookName, chapter, start, end = start) =>
     `${bookName} ${chapter}:${start}${end > start ? `–${end}` : ''}`;
 
+  const references=window.ADPELBibleReferences || (typeof module!=='undefined' && module.exports ? require('./bible-references.js') : null);
   function parseReference(term, books = state.books) {
-    const match = String(term || '').trim().match(/^(.+?)\s+(\d+)(?::(\d+)(?:\s*[-–]\s*(\d+))?)?$/u);
-    if (!match) return null;
-    const requested = normalize(match[1]);
-    const book = books.find((item) => [item.id, item.name_pt, ...(item.aliases || [])]
-      .some((alias) => normalize(alias) === requested));
-    if (!book) return null;
-    const chapter = Number(match[2]);
-    const verseStart = match[3] ? Number(match[3]) : null;
-    const verseEnd = match[4] ? Number(match[4]) : verseStart;
-    if (chapter < 1 || chapter > book.chapter_count || (verseStart !== null && verseStart < 1)) return null;
-    return { book, chapter, verseStart, verseEnd };
+    return references?.parseReference(term,books)||null;
   }
 
   function buildSelectionPayload(selection = state.selection, verses = state.verses, translationCode = state.translation?.code || 'acf') {
@@ -105,20 +96,24 @@
   async function loadPreferences() {
     state.preferences = localPreferences();
     if (!state.user) return;
-    const { data, error } = await client().from('user_bible_preferences').select('*').eq('user_id', state.user.id).maybeSingle();
-    if (!error && data) state.preferences = { ...state.preferences, ...data };
+    try {
+      const { data, error } = await client().from('user_bible_preferences').select('*').eq('user_id', state.user.id).maybeSingle();
+      if(error)throw error;
+      if(data)state.preferences={...state.preferences,...data};
+    }catch(error){console.warn('Preferências sincronizadas indisponíveis; usando leitura local.',error);}
   }
 
   async function savePreferences(patch) {
     state.preferences = { ...state.preferences, ...patch, font_size: clampFontSize(patch.font_size ?? state.preferences.font_size) };
-    localStorage.setItem(STORAGE_KEY, JSON.stringify({
+    try { localStorage.setItem(STORAGE_KEY, JSON.stringify({
       translation_code: state.preferences.translation_code,
       font_size: state.preferences.font_size,
       last_book: state.preferences.last_book,
       last_chapter: state.preferences.last_chapter,
       last_verse: state.preferences.last_verse
-    }));
+    })); } catch(error) { console.warn('Preferência local indisponível.',error); }
     applyFontSize();
+    renderContinueCard();
     if (!state.user) return;
     const payload = {
       user_id: state.user.id,
@@ -128,8 +123,10 @@
       last_chapter: state.preferences.last_chapter,
       last_verse: state.preferences.last_verse
     };
-    const { error } = await client().from('user_bible_preferences').upsert(payload, { onConflict: 'user_id' });
-    if (error) console.error('Não foi possível sincronizar preferências bíblicas:', error.message);
+    try {
+      const {error}=await client().from('user_bible_preferences').upsert(payload,{onConflict:'user_id'});
+      if(error)throw error;
+    }catch(error){console.warn('Não foi possível sincronizar preferências bíblicas:',error);}
   }
 
   function applyFontSize() {
@@ -207,8 +204,10 @@
     state.translations = translations || [];
     state.translation = state.translations.find((item) => item.code === state.preferences.translation_code)
       || state.translations.find((item) => item.code === 'acf') || state.translations[0];
-    state.book = state.books.find((item) => item.id === state.preferences.last_book) || state.books[0];
-    state.chapter = Math.min(Number(state.preferences.last_chapter) || 1, state.book?.chapter_count || 1);
+    const saved=references?.validate(state.preferences.last_book,state.preferences.last_chapter,null,null,state.books);
+    state.book=saved?.book||state.books[0];
+    state.chapter=saved?.chapter||1;
+    if(!state.book||!state.translation)throw new Error('Catálogo bíblico indisponível.');
     renderCatalog();
   }
 
@@ -240,14 +239,15 @@
   }
 
   function renderContinueCard() {
-    const card = $('bible-continue-card');
-    if (!card || !state.preferences.last_book || !state.preferences.last_chapter) return;
-    const book = state.books.find((item) => item.id === state.preferences.last_book);
-    if (!book) return;
-    card.textContent = `Continuar em ${book.name_pt} ${state.preferences.last_chapter}`;
-    card.classList.remove('hidden');
-    card.dataset.book = book.id;
-    card.dataset.chapter = String(state.preferences.last_chapter);
+    const card=$('bible-continue-card');
+    if(!card)return;
+    const ref=references?.resume(state.preferences);
+    card.classList.toggle('hidden',!ref);
+    if(!ref)return;
+    card.textContent='Continuar em '+references.label(ref);
+    card.dataset.book=ref.book.id;
+    card.dataset.chapter=String(ref.chapter);
+    card.dataset.verse=ref.verseStart?String(ref.verseStart):'';
   }
 
   async function fetchLocalChapter() {
@@ -278,9 +278,9 @@
     return { data: await adapter.getChapter({ translation: state.translation, book: state.book, chapter: state.chapter }), error: null };
   }
 
-  async function loadChapter(bookRef = state.book?.id, chapter = state.chapter, verseToFocus = null) {
+  async function loadChapter(bookRef = state.book?.id, chapter = state.chapter, verseToFocus = null, options = {}) {
     const book = state.books.find((item) => item.id === bookRef || item.name_pt === bookRef);
-    if (!book) return;
+    if (!book || !state.translation) return;
     const request = ++state.chapterRequest;
     state.book = book;
     state.chapter = Math.min(Math.max(1, Number(chapter) || 1), book.chapter_count);
@@ -297,10 +297,16 @@
       state.notes = [];
       state.bookmarks = [];
       renderChapter();
-      await loadPersonalChapterData();
-      if (request !== state.chapterRequest) return;
-      await savePreferences({ translation_code: state.translation.code, last_book: book.id, last_chapter: state.chapter, last_verse: verseToFocus });
-      if (verseToFocus) focusVerse(verseToFocus);
+      if(!state.verses.length)return;
+      const hasVerse=!verseToFocus||state.verses.some(v=>Number(v.verse)===Number(verseToFocus));
+      // Public reading and passage focus do not depend on private annotation or preference requests.
+      if(verseToFocus&&!hasVerse)showMessage('O versículo solicitado não está disponível nesta tradução.','warning');
+      else if(verseToFocus&&options.linked)focusLinkedPassage(verseToFocus,options.verseEnd||verseToFocus);
+      else if(verseToFocus)focusVerse(verseToFocus);
+      await Promise.allSettled([
+        savePreferences({translation_code:state.translation.code,last_book:book.id,last_chapter:state.chapter,last_verse:hasVerse?verseToFocus:null}),
+        loadPersonalChapterData()
+      ]);
     } catch (error) {
       if (request !== state.chapterRequest) return;
       console.error('Erro ao carregar capítulo:', error);
@@ -608,6 +614,14 @@
 
   function openModal(id) { $('bible-modal-backdrop')?.classList.remove('hidden'); $(id)?.classList.remove('hidden'); }
   function closeModals() { $('bible-modal-backdrop')?.classList.add('hidden'); document.querySelectorAll('.bible-modal').forEach((modal) => modal.classList.add('hidden')); }
+  function focusLinkedPassage(start,end=start) {
+    const nodes=[...document.querySelectorAll('.bible-verse')];
+    nodes.forEach(node=>node.classList.toggle('reference-target',Number(node.dataset.verse)>=start&&Number(node.dataset.verse)<=end));
+    const first=nodes.find(node=>Number(node.dataset.verse)===Number(start));
+    first?.scrollIntoView({behavior:'auto',block:'center'});
+    if(end>start&&!nodes.some(node=>Number(node.dataset.verse)===Number(end)))showMessage('O fim do intervalo não está disponível nesta tradução.','warning');
+  }
+
   function focusVerse(number) { const element = document.querySelector(`.bible-verse[data-verse="${Number(number)}"]`); element?.scrollIntoView({ behavior: 'smooth', block: 'center' }); if (element) selectVerse(Number(number)); }
 
   async function navigatePersonal(item, edit = false) {
@@ -647,7 +661,7 @@
     });
     $('bible-search-input')?.addEventListener('keydown', (event) => { if (event.key === 'Enter') searchBible(); });
     $('bible-read-toggle')?.addEventListener('click', toggleRead);
-    $('bible-continue-card')?.addEventListener('click', (event) => loadChapter(event.currentTarget.dataset.book, Number(event.currentTarget.dataset.chapter)));
+    $('bible-continue-card')?.addEventListener('click', (event) => loadChapter(event.currentTarget.dataset.book, Number(event.currentTarget.dataset.chapter), Number(event.currentTarget.dataset.verse)||null,{linked:true}));
     $('bible-modal-backdrop')?.addEventListener('click', closeModals);
     $('bible-library-search')?.addEventListener('input', () => renderLibrary($('bible-library-modal')._items || [], $('bible-library-modal').dataset.type === 'notes'));
     $('bible-library-list')?.addEventListener('click', (event) => {
@@ -663,14 +677,25 @@
   async function init() {
     if (!$('bible-book-select')) return;
     ensureExperienceUI();
-    await resolveUser();
-    await loadPreferences();
     try {
+      await resolveUser();
+      await loadPreferences();
       await loadCatalog();
       bindEvents();
-      await loadPersonalData();
+      try{await loadPersonalData();}catch(error){console.warn('Progresso pessoal indisponível.',error);}
       if (!$('bible-cover')) {
-        await loadChapter(state.book.id, state.chapter);
+        const link=references?.readLink(window.location.search,state.books);
+        if(link?.requested&&!link.reference)showMessage('Referência bíblica inválida. Abrindo sua leitura anterior.','warning');
+        if(link?.reference){
+          const chosen=link.translation&&state.translations.find(t=>t.code===link.translation);
+          if(chosen){state.translation=chosen;renderCatalog();}
+          else if(link.translation)showMessage('Tradução solicitada indisponível. Mantendo a versão atual.','warning');
+          const ref=link.reference;
+          await loadChapter(ref.book.id,ref.chapter,ref.verseStart,{linked:true,verseEnd:ref.verseEnd});
+        }else{
+          const saved=references?.resume(state.preferences);
+          await loadChapter(state.book.id,state.chapter,saved?.verseStart||null,{linked:true});
+        }
         registerBibleOpen();
       }
     } catch (error) {
@@ -688,7 +713,9 @@
     $('bible-cover')?.classList.add('hidden');
     $('bible-reader')?.classList.remove('hidden');
     $('bible-page')?.classList.remove('hidden');
-    await loadChapter(state.book.id, state.chapter);
+    if(!state.book){showMessage('A Bíblia ainda está carregando. Tente novamente.','info');return;}
+    const saved=references?.resume(state.preferences);
+    await loadChapter(state.book.id,state.chapter,saved?.book.id===state.book.id&&saved.chapter===state.chapter?saved.verseStart:null,{linked:true});
     registerBibleOpen();
   }
   function voltarCapaBiblia() { $('bible-reader')?.classList.add('hidden'); $('bible-cover')?.classList.remove('hidden'); }
