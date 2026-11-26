@@ -50,7 +50,7 @@ async function loadDeterministicBibleVerse(dayIndex) {
   const selected = references[dayIndex % references.length];
   const translationResult = await window.supabaseClient
     .from('bible_translations')
-    .select('id, short_name')
+    .select('id, code, short_name')
     .eq('is_default', true)
     .eq('is_active', true)
     .maybeSingle();
@@ -67,6 +67,7 @@ async function loadDeterministicBibleVerse(dayIndex) {
   if (verseResult.error || !verseResult.data) return null;
   return {
     text: verseResult.data.text,
+    translation_code: translationResult.data.code,
     reference: `${verseResult.data.book} ${verseResult.data.chapter}:${verseResult.data.verse} · ${translationResult.data.short_name}`
   };
 }
@@ -103,6 +104,7 @@ async function fetchDailyVerse() {
 
     if (textEl) textEl.textContent = versiculo.text || '';
     if (refEl) refEl.textContent = versiculo.reference ? '— ' + versiculo.reference : '';
+    updateVerseBibleLink(versiculo);
     trackVerseOfDayEngagement();
     return true;
   } catch (e) {
@@ -111,7 +113,25 @@ async function fetchDailyVerse() {
     const refEl = document.getElementById('verse-ref');
     if (textEl) textEl.textContent = 'Não foi possível carregar o versículo agora.';
     if (refEl) refEl.textContent = '';
+    updateVerseBibleLink(null);
     return false;
+  }
+}
+
+function updateVerseBibleLink(verse) {
+  const link=document.getElementById('verse-open-bible');
+  if(!link)return;
+  const api=window.ADPELBibleReferences;
+  const reference=api?.parseReference(verse?.reference);
+  const href=api?.href(reference,verse?.translation_code);
+  if(href){
+    link.href=href;
+    link.removeAttribute('aria-disabled');
+    link.removeAttribute('title');
+  }else{
+    link.removeAttribute('href');
+    link.setAttribute('aria-disabled','true');
+    link.title='Referência indisponível para abertura direta.';
   }
 }
 
@@ -137,8 +157,8 @@ function trackVerseOfDayEngagement() {
     readingTimer = window.setTimeout(recordReading, 4000);
   };
 
-  const bibleLink = card.querySelector('a[href="bible.html"]');
-  if (bibleLink) bibleLink.addEventListener('click', recordReading, { once: true });
+  const bibleLink = document.getElementById('verse-open-bible');
+  if (bibleLink) bibleLink.addEventListener('click', () => { if (bibleLink.hasAttribute('href')) recordReading(); });
 
   if (!('IntersectionObserver' in window)) return;
   const observer = new IntersectionObserver((entries) => {
@@ -297,10 +317,10 @@ function renderContinueSection(courses) {
 function getReadingPreferences() {
   try {
     const preferences = JSON.parse(localStorage.getItem('adpel_bible_preferences_v2') || '{}');
-    const book = /^[A-Z0-9]{3}$/.test(String(preferences.last_book || '')) ? preferences.last_book : '';
-    const chapter = Number(preferences.last_chapter);
-    if (!book || !Number.isInteger(chapter) || chapter < 1 || chapter > 150) return null;
-    return { book, chapter };
+    const api=window.ADPELBibleReferences;
+    const reference=api?.resume(preferences);
+    if(!reference)return null;
+    return {label:api.label(reference),href:api.href(reference,preferences.translation_code)};
   } catch (error) {
     return null;
   }
@@ -319,9 +339,9 @@ function renderReadingContinuation(useHomeFallback) {
       label.className = 'app-context-card__label';
       label.textContent = 'Continue sua leitura';
       const title = document.createElement('h3');
-      title.textContent = `Última leitura: ${preferences.book} ${preferences.chapter}`;
+      title.textContent = 'Última leitura: '+preferences.label;
       const link = document.createElement('a');
-      link.href = 'bible.html';
+      link.href = preferences.href;
       link.className = 'app-secondary-action';
       link.textContent = 'Abrir Bíblia';
       card.append(label, title, link);
@@ -342,7 +362,7 @@ function renderReadingContinuation(useHomeFallback) {
   label.className = 'app-context-card__label';
   label.textContent = 'Sua última leitura';
   const title = document.createElement('h3');
-  title.textContent = `${preferences.book} ${preferences.chapter}`;
+  title.textContent = preferences.label;
   const description = document.createElement('p');
   description.textContent = 'Retome o capítulo salvo na Bíblia ADPEL.';
   card.append(label, title, description);
@@ -350,7 +370,7 @@ function renderReadingContinuation(useHomeFallback) {
   const action = document.getElementById('continue-all-action');
   if (action) {
     action.textContent = 'Abrir Bíblia';
-    action.onclick = function () { window.location.href = 'bible.html'; };
+    action.onclick = function () { window.location.href = preferences.href; };
   }
 }
 
