@@ -58,7 +58,7 @@ function renderCertificatesList(certificates) {
   `}).join('');
 }
 
-function buildCertificateHTML({ userName, certTitle, courseTitle, description, duration, completedDate, logoUrl }) {
+function buildCertificateHTML({ userName, certTitle, courseTitle, description, duration, completedDate, logoUrl, certificateId }) {
   // Fallbacks seguros para evitar undefined/null no certificado
   const safeUserName = userName || 'Estudante';
   const safeCertTitle = certTitle || 'Certificado de Conclusão';
@@ -295,7 +295,7 @@ async function viewCertificate(encodedCert) {
   const completedDate = certDateRaw
     ? new Date(certDateRaw).toLocaleDateString('pt-BR', { day: 'numeric', month: 'long', year: 'numeric' })
     : new Date().toLocaleDateString('pt-BR', { day: 'numeric', month: 'long', year: 'numeric' });
-  const logoUrl = 'https://huggingface.co/spaces/IzaqueE/deepsite-project-6tv0m/resolve/main/images/adpel.logo.png';
+  const logoUrl = new URL('images/adpel.logo.png', window.location.href).href;
 
   const html = buildCertificateHTML({
     userName,
