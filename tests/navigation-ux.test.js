@@ -51,7 +51,10 @@ assert.match(agenda, /COMMUNITY_AGENDA_BATCH = 5/);
 assert.match(agenda, /communityAgendaYearLabel/);
 assert.match(agenda, /communityAgendaCompactLocation/);
 assert.match(agenda, /agenda-v2-counter--events/);
-assert.match(agenda, /agenda-v2-attendee-chip/);
+// Presence is now aggregated; do not require the old named-attendee chips.
+assert.match(agenda, /attendanceCountLabel/);
+assert.match(agenda, /public_event_attendance_summary/);
+assert.doesNotMatch(agenda, /agenda-v2-attendee-chip/);
 assert.match(agenda, /home-next-event-card/);
 assert.match(agenda, /setCommunityAgendaMonth/);
 assert.match(agenda, /showMoreCommunityAgenda/);
