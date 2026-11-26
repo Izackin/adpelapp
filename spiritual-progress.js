@@ -53,8 +53,10 @@
 
   function getJourneySession(uid) {
     if (!journeySession || journeySession.uid !== uid) {
+      var hadPreviousSession=!!journeySession;
       resetJourneySession();
       journeySession = {uid:uid,tail:Promise.resolve(),initPending:null,visitDay:'',loadedAt:0,profile:null,profileAt:0};
+      if (hadPreviousSession) renderJourneyWidgets(null);
     }
     return journeySession;
   }
