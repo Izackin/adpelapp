@@ -67,6 +67,38 @@ let currentProfile = null;
 let _profileCache = null;
 let _profileCacheTime = 0;
 const PROFILE_CACHE_TTL = 30000; // 30 segundos
+let authSessionGeneration=0;
+function setAuthSessionUser(user){
+  const next=user||null;
+  if((currentUser?.id||null)!==(next?.id||null)){
+    ++authSessionGeneration;
+    currentProfile=null;
+    _profileCache=null;
+    _profileCacheTime=0;
+  }
+  currentUser=next;
+  return authSessionGeneration;
+}
+function isAuthSessionCurrent(uid,generation){
+  return currentUser?.id===uid && authSessionGeneration===generation;
+}
+async function refreshAuthProfile(uid,generation,allowCache=false){
+  if(!isAuthSessionCurrent(uid,generation))return false;
+  let profile=null;
+  try{
+    profile=allowCache&&_profileCache?.id===uid&&Date.now()-_profileCacheTime<PROFILE_CACHE_TTL
+      ?_profileCache:await ADPEL.profile.getProfile();
+    if(profile&&profile.id!==uid)throw new Error('Perfil não corresponde à sessão atual.');
+  }catch(error){
+    console.warn('Não foi possível carregar o perfil:',error);
+    profile=null;
+  }
+  if(!isAuthSessionCurrent(uid,generation))return false;
+  currentProfile=profile;
+  _profileCache=profile;
+  _profileCacheTime=Date.now();
+  return true;
+}
 
 async function initAuth() {
   // Forçar botão visível imediatamente (será corrigido pela updateAuthUI se necessário)
@@ -77,19 +109,9 @@ async function initAuth() {
   try {
     const session = await ADPEL.auth.getSession();
     if (session && session.user) {
-      currentUser = session.user;
-      try {
-        if (_profileCache && (Date.now() - _profileCacheTime < PROFILE_CACHE_TTL)) {
-          currentProfile = _profileCache;
-        } else {
-          currentProfile = await ADPEL.profile.getProfile();
-          _profileCache = currentProfile;
-          _profileCacheTime = Date.now();
-        }
-      } catch (e) {
-        console.warn('Perfil não encontrado ou erro ao carregar:', e);
-        currentProfile = null;
-      }
+      const uid=session.user.id;
+      const generation=setAuthSessionUser(session.user);
+      if(!await refreshAuthProfile(uid,generation,true))return;
       updateAuthUI(true,{skipSectionLoad:true});
     } else {
       updateAuthUI(false);
@@ -104,18 +126,13 @@ async function initAuth() {
   ADPEL.auth.onAuthStateChange(async (event, session) => {
     if (event === 'SIGNED_IN' && session) {
       const previousUserId = currentUser && currentUser.id;
-      currentUser = session.user;
+      const uid=session.user.id;
+      const generation=setAuthSessionUser(session.user);
+      if(previousUserId!==uid)updateAuthUI(true,{skipSectionLoad:true,skipJourneyInit:true});
       if (previousUserId !== currentUser.id && typeof resetAppNotificationSession === 'function') {
         resetAppNotificationSession(currentUser.id);
       }
-      try {
-        currentProfile = await ADPEL.profile.getProfile();
-        _profileCache = currentProfile;
-        _profileCacheTime = Date.now();
-      } catch (e) {
-        console.warn('Perfil não encontrado após login:', e);
-        currentProfile = null;
-      }
+      if(!await refreshAuthProfile(uid,generation))return;
       updateAuthUI(true);
       // Atualizar banner de boas-vindas
       if (typeof updateBannerWelcome === 'function') {
@@ -143,13 +160,15 @@ async function initAuth() {
         showToast('Login realizado com sucesso!', 'success');
       }
     } else if (event === 'SIGNED_OUT') {
-      currentUser = null;
-      currentProfile = null;
+      setAuthSessionUser(null);
+      if(typeof closeCourseModal==='function')closeCourseModal();
       if (window.ADPELJourney?.resetSession) window.ADPELJourney.resetSession();
       if (typeof hidePushPermissionPrompt === 'function') {
         hidePushPermissionPrompt(false);
       }
       updateAuthUI(false);
+      if(typeof navigateTo==='function' && typeof currentSection!=='undefined' && ['courses','library','certificate','profile','community','tutor'].includes(currentSection))navigateTo('home');
+      else if(typeof loadHomeData==='function' && typeof currentSection!=='undefined' && ['home','community-hub'].includes(currentSection))loadHomeData(true);
       // Atualizar banner de boas-vindas
       if (typeof updateBannerWelcome === 'function') {
         updateBannerWelcome();
@@ -172,7 +191,7 @@ function updateAuthUI(isLoggedIn, options) {
   if (typeof updateBannerWelcome === 'function') {
     setTimeout(() => updateBannerWelcome(), 100);
   }
-  if (window.ADPELJourney && typeof window.ADPELJourney.init === 'function') {
+  if (!options?.skipJourneyInit && window.ADPELJourney && typeof window.ADPELJourney.init === 'function') {
     setTimeout(() => window.ADPELJourney.init(), 150);
   }
   const authButtons = document.getElementById('auth-buttons');
@@ -323,25 +342,11 @@ function bindAuthForms() {
         registerForm.reset();
 
         if (data.session) {
-          currentUser = data.user;
-          let profileError = null;
-
-          try {
-            currentProfile = await ADPEL.profile.getProfile();
-            if (!currentProfile) {
-              profileError = new Error('Perfil não encontrado após cadastro com sessão ativa.');
-            }
-          } catch (error) {
-            profileError = error;
-            currentProfile = null;
-          }
-
-          if (profileError) {
-            console.error('Falha técnica ao carregar o perfil após o cadastro:', profileError);
-          }
-
-          _profileCache = currentProfile;
-          _profileCacheTime = Date.now();
+          const activeSession=await ADPEL.auth.getSession();
+          if(activeSession?.user?.id!==data.user.id)return;
+          const generation=setAuthSessionUser(activeSession.user);
+          if(!await refreshAuthProfile(data.user.id,generation))return;
+          const profileError=!currentProfile;
           updateAuthUI(true);
 
           if (profileError) {
@@ -403,7 +408,7 @@ function showLoading(show, formId) {
 // Get current user info
 function getCurrentUserInfo() {
   const user = currentUser || null;
-  const profile = currentProfile || null;
+  const profile = currentProfile?.id===user?.id ? currentProfile : null;
   const role = typeof getUserRole === 'function' ? getUserRole({ user, profile }) : String(profile && profile.role ? profile.role : '').toLowerCase();
   const isMaster = typeof isUserMaster === 'function' ? isUserMaster({ user, profile }) : role === 'master';
   return {
