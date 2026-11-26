@@ -14,14 +14,15 @@
 // AUTH FUNCTIONS
 // ==========================
 
-async function signUp(email, password, fullName) {
+async function signUp(email, password, fullName, registration) {
   try {
     const { data, error } = await supabase.auth.signUp({
       email: email,
       password: password,
       options: {
         data: {
-          full_name: fullName
+          full_name: fullName,
+          ...(registration || {})
         }
       }
     });
