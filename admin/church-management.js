@@ -77,7 +77,9 @@ async function loadChurchManagementData(certificateSnapshot) {
 
   if (churchModuleWarnings.length > 0) {
     renderChurchSetupWarning();
+    return false;
   }
+  return true;
 }
 
 function renderChurchSetupWarning() {
