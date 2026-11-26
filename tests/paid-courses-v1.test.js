@@ -60,10 +60,11 @@ assert.ok(adminCourses.includes(".from('course_content')"));
 assert.ok(adminCourses.includes('saveCourseContentForAdmin'));
 
 assert.ok(adminAccess.includes(".from('course_access')"));
-assert.ok(adminAccess.includes("status: 'active'"));
+assert.match(adminAccess, /nextStatus === 'active'/);
+assert.match(adminAccess, /updateCourseAccessStatus\([^)]*nextStatus\)/);
 assert.ok(adminAccess.includes("status: nextStatus"));
 assert.ok(adminAccess.includes('course_access_approved'));
-assert.ok(adminCore.includes('await loadCourseAccessRequests()'));
+assert.match(adminCore, /task\('solicitações de cursos',typeof loadCourseAccessRequests==='function'\?loadCourseAccessRequests:null\)/);
 assert.ok(dashboard.includes('acessos a cursos aguardando'));
 
 assert.ok(css.includes('.course-paid-badge'));

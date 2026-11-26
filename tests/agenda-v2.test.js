@@ -8,7 +8,7 @@ const read = (file) => fs.readFileSync(path.join(root, file), 'utf8');
 const source = read('admin/crud-agenda.js');
 const html = read('admin.html');
 const admin = read('admin.js');
-const migration = read('supabase/migrations/20260928160000_agenda_v2.sql');
+const migration = read('supabase/migrations/20260928163343_agenda_v2.sql');
 
 const fields = {};
 function field(value = '', checked = false) {

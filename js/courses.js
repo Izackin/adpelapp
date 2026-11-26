@@ -274,6 +274,7 @@ async function getLessonProgress(courseId) {
     const { data, error } = await window.supabaseClient
       .from('user_lesson_progress')
       .select('lesson_index')
+      .eq('completed', true)
       .eq('user_id', userInfo.user.id)
       .eq('course_id', courseId);
     if (error) throw error;
@@ -295,6 +296,7 @@ async function getAllLessonProgress() {
     const { data, error } = await window.supabaseClient
       .from('user_lesson_progress')
       .select('course_id, lesson_index')
+      .eq('completed', true)
       .eq('user_id', userInfo.user.id);
     if (error) throw error;
     return data || [];
@@ -528,7 +530,9 @@ async function updateCertificateButton(courseId, totalLessons) {
   if (!btn) return;
 
   const completedIndexes = await getLessonProgress(courseId);
-  const allCompleted = totalLessons > 0 && completedIndexes.length >= totalLessons;
+  if (currentOpenCourse?.id !== courseId) return;
+  const validCompleted = new Set(completedIndexes.filter(index => Number.isInteger(index) && index >= 0 && index < totalLessons));
+  const allCompleted = totalLessons > 0 && validCompleted.size === totalLessons;
 
   if (allCompleted) {
     btn.classList.remove('hidden', 'opacity-50', 'cursor-not-allowed');
@@ -539,94 +543,63 @@ async function updateCertificateButton(courseId, totalLessons) {
     btn.classList.remove('hidden', 'flex');
     btn.classList.add('flex', 'opacity-50', 'cursor-not-allowed');
     btn.disabled = true;
-    const remaining = totalLessons - completedIndexes.length;
+    const remaining = totalLessons - validCompleted.size;
     btn.innerHTML = `<i class="fas fa-lock"></i> <span>Certificado (${remaining} aula${remaining !== 1 ? 's' : ''} rest.)</span>`;
   }
 }
 
+let certificateIssueBusy = false;
 async function downloadCertificate() {
-  if (!currentOpenCourse) return;
-  const lessons = normalizeLessons(currentOpenCourse.lessons);
-  const completedIndexes = await getLessonProgress(currentOpenCourse.id);
-  if (completedIndexes.length < lessons.length) {
-    showToast('Complete todas as aulas para baixar o certificado.', 'warning');
+  if (!currentOpenCourse || certificateIssueBusy) return;
+  const courseId = currentOpenCourse.id;
+  const userInfo = getCurrentUserInfo();
+  if (!userInfo.isLoggedIn || !userInfo.user || !window.supabaseClient) {
+    showToast('Entre na sua conta para emitir o certificado.', 'warning');
     return;
   }
-
-  const userInfo = getCurrentUserInfo();
-  const userName = userInfo.profile?.full_name || userInfo.user?.email || 'Estudante';
-  const today = new Date();
-  const certTitle = currentOpenCourse.certificate_title || currentOpenCourse.title || 'Certificado de Conclusão';
-  const certDesc = currentOpenCourse.certificate_description || `Concluiu o curso "${currentOpenCourse.title}" com êxito.`;
-
-  const certificateData = {
-    user_name: userName,
-    course_title: currentOpenCourse.title,
-    course_duration: currentOpenCourse.duration,
-    description: certDesc,
-    completed_at: today
-  };
-
-  // Salvar certificado no histórico do usuário
+  const uid = userInfo.user.id;
+  const button = document.getElementById('course-cert-btn');
+  certificateIssueBusy = true;
+  if (button) button.disabled = true;
   try {
-    if (userInfo.user) {
-      // Verifica se certificado já foi emitido para não duplicar
-      const { data: existingCert, error: checkError } = await window.supabaseClient
-        .from('certificates')
-        .select('id')
-        .eq('user_id', userInfo.user.id)
-        .eq('title', certTitle)
-        .maybeSingle();
-
-      if (checkError) {
-        console.error('Erro ao verificar certificado existente:', checkError);
+    const client = window.supabaseClient;
+    const readIssued = () => client.from('certificates').select('*').eq('user_id',uid).eq('course_id',courseId).order('created_at',{ascending:true}).limit(1).maybeSingle();
+    let result = await readIssued();
+    if (result.error) throw result.error;
+    if (!result.data) {
+      // Keep master users' own learning flow consistent with ordinary users.
+      const course = currentOpenCourse;
+      if (course?.id !== courseId || getCurrentUserInfo().user?.id !== uid) return;
+      const total = normalizeLessons(course.lessons).length;
+      const done = new Set((await getLessonProgress(courseId)).filter(i => Number.isInteger(i) && i >= 0 && i < total));
+      if (getCurrentUserInfo().user?.id !== uid || currentOpenCourse?.id !== courseId) return;
+      if (total < 1 || done.size !== total) {
+        showToast('Complete todas as aulas para baixar o certificado.','warning');
+        return;
       }
-
-      if (existingCert) {
-        showToast('Certificado já foi emitido anteriormente.', 'info');
-      } else {
-        const { error } = await window.supabaseClient
-          .from('certificates')
-          .insert([{
-            user_id: userInfo.user.id,
-            course_id: currentOpenCourse.id,
-            title: certTitle,
-            description: certDesc,
-            completed_at: today,
-            certificate_data: certificateData
-          }]);
-
-        if (error) {
-          console.error('Erro ao salvar certificado no histórico:', error);
-          showToast('Erro ao salvar certificado no histórico.', 'error');
-        } else {
-          showToast('Certificado adicionado ao seu histórico!', 'success');
-          if (currentSection === 'certificate') {
-            await loadCertificatesData();
-          }
-        }
-      }
+      const title = course.certificate_title || course.title || 'Certificado de conclusão';
+      const description = course.certificate_description || 'Concluiu o curso "' + course.title + '" com êxito.';
+      const issued = await client.from('certificates').insert({
+        user_id:uid, course_id:courseId, title, description, certificate_type:'curso',
+        certificate_data:{user_name:userInfo.profile?.full_name || userInfo.user.email || 'Estudante',course_title:course.title,course_duration:course.duration,description}
+      }).select('*').single();
+      if (issued.error && issued.error.code === '23505') result = await readIssued();
+      else result = issued;
     }
-  } catch (e) {
-    console.error('Erro ao salvar certificado no histórico:', e);
+    if (result.error || !result.data || !result.data.id) throw result.error || new Error('Emissão não confirmada.');
+    if (getCurrentUserInfo().user?.id !== uid || currentOpenCourse?.id !== courseId) return;
+    // Render exclusively from the persisted certificate; never print a client-generated fallback.
+    renderIssuedCertificate(result.data);
+    showToast('Certificado disponível no seu histórico.', 'success');
+  } catch (error) {
+    console.warn('Emissão do certificado não confirmada:',error);
+    showToast(error && error.code === '42501' ? 'Conclua todas as aulas e confira seu acesso e nome no perfil.' : 'Não foi possível emitir o certificado. Tente novamente.','warning');
+  } finally {
+    certificateIssueBusy=false;
+    if (button && currentOpenCourse?.id === courseId) {
+      try { await updateCertificateButton(courseId,normalizeLessons(currentOpenCourse.lessons).length); } catch (error) { button.disabled=false; }
+    }
   }
-
-  const logoUrl = 'https://huggingface.co/spaces/IzaqueE/deepsite-project-6tv0m/resolve/main/images/adpel.logo.png';
-  const completedDate = today.toLocaleDateString('pt-BR', { day: 'numeric', month: 'long', year: 'numeric' });
-
-  const html = buildCertificateHTML({
-    userName,
-    certTitle,
-    courseTitle: currentOpenCourse.title,
-    description: certDesc,
-    duration: currentOpenCourse.duration,
-    completedDate,
-    logoUrl
-  });
-
-  const certWindow = window.open('', '_blank');
-  certWindow.document.write(html);
-  certWindow.document.close();
 }
 
 // Bloquear orientação para landscape quando vídeo entrar em tela cheia

@@ -66,9 +66,9 @@ async function handleLibrarySubmit(e) {
       if (!validation.ok) { throw new Error(validation.message); }
       var fileExt = file.name.split('.').pop().toLowerCase();
       var fileName = 'library/' + Date.now() + '_' + Math.random().toString(36).substr(2, 9) + '.' + fileExt;
-      var uploadResult = await window.supabaseClient.storage.from('uploads').upload(fileName, file);
+      var uploadResult = await window.supabaseClient.storage.from('library-files').upload(fileName, file);
       if (uploadResult.error) { throw uploadResult.error; }
-      var urlResult = window.supabaseClient.storage.from('uploads').getPublicUrl(fileName);
+      var urlResult = window.supabaseClient.storage.from('library-files').getPublicUrl(fileName);
       data.file_url = urlResult.data.publicUrl;
     } else if (existingFile) {
       data.file_url = existingFile;

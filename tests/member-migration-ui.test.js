@@ -9,7 +9,7 @@ const html = read('admin.html');
 const importer = read('admin/member-import.js');
 const exporter = read('admin/member-export.js');
 const reports = read('admin/member-reports.js');
-const migration = read('supabase/migrations/20260928155013_member_import_history.sql');
+const migration = read('supabase/migrations/20260928160714_member_import_history.sql');
 
 assert.match(html, /xlsx-0\.20\.3\/package\/dist\/xlsx\.full\.min\.js/);
 assert.match(html, /jspdf@4\.2\.1\/dist\/jspdf\.umd\.min\.js/);

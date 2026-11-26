@@ -8,8 +8,8 @@ const read = (file) => fs.readFileSync(path.join(root, file), 'utf8');
 const journey = read('spiritual-progress.js');
 const home = read('js/home.js');
 const bible = read('js/bible.js');
-const migration = read('supabase/migrations/20260928010000_secure_daily_missions.sql');
-const grantsMigration = read('supabase/migrations/20260928020000_tighten_daily_mission_grants.sql');
+const migration = read('supabase/migrations/20260928114737_secure_daily_missions.sql');
+const grantsMigration = read('supabase/migrations/20260928115305_tighten_daily_mission_grants.sql');
 
 assert.match(journey, /rpc\('get_daily_missions'\)/);
 assert.match(journey, /rpc\('record_journey_action'/);

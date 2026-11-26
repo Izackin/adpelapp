@@ -23,11 +23,14 @@ assert.ok(html.includes("adminDashboardQuickAction('notification')"));
 assert.ok(html.includes('id="admin-view-verses"'));
 assert.ok(html.includes("adminNavigateTo('verses')"));
 assert.ok(html.includes('id="admin-verses-editor"'));
-assert.ok(html.includes('Gestão da Igreja'));
-assert.ok(html.includes('Atualizações do App'));
-assert.ok(html.includes('Notificações Push'));
+assert.match(html, /data-admin-view="church"[^>]*onclick="adminNavigateTo\('church'\)"/);
+assert.ok(html.includes('id="admin-view-church"'));
+assert.match(html, /data-admin-view="app-updates"[^>]*onclick="adminNavigateTo\('app-updates'\)"/);
+assert.ok(html.includes('id="admin-view-app-updates"'));
+assert.match(html, /data-admin-view="notifications"[^>]*onclick="adminNavigateTo\('notifications'\)"/);
+assert.ok(html.includes('id="admin-view-notifications"'));
 
-assert.ok(core.includes('await loadAdminDashboardData()'));
+assert.match(core, /await task\('visão geral',loadAdminDashboardData\)/);
 assert.ok(core.includes("view === 'home'"));
 assert.ok(core.includes('renderAdminDashboardV2()'));
 

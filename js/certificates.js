@@ -58,7 +58,7 @@ function renderCertificatesList(certificates) {
   `}).join('');
 }
 
-function buildCertificateHTML({ userName, certTitle, courseTitle, description, duration, completedDate, logoUrl }) {
+function buildCertificateHTML({ userName, certTitle, courseTitle, description, duration, completedDate, logoUrl, certificateId }) {
   // Fallbacks seguros para evitar undefined/null no certificado
   const safeUserName = userName || 'Estudante';
   const safeCertTitle = certTitle || 'Certificado de Conclusão';
@@ -221,9 +221,10 @@ function buildCertificateHTML({ userName, certTitle, courseTitle, description, d
         <div class="recipient">${escapeHtml(safeUserName)}</div>
         <p>${escapeHtml(safeDescription)}</p>
         <div class="course-name">${escapeHtml(safeCourseTitle)}</div>
-        <p class="details">Carga horária de ${safeDuration ? safeDuration + ' horas' : 'não especificada'} &bull; Concluído em ${safeCompletedDate}</p>
+        <p class="details">Carga horária de ${safeDuration ? escapeHtml(safeDuration) + ' horas' : 'não especificada'} &bull; Concluído em ${escapeHtml(safeCompletedDate)}</p>
       </div>
-      <div class="date">Goiânia, ${safeCompletedDate}</div>
+      <div class="date">Goiânia, ${escapeHtml(safeCompletedDate)}</div>
+      ${certificateId ? `<p style="position:relative;text-align:center;font-size:9pt;overflow-wrap:anywhere;color:#475569">Registro ADPEL: ${escapeHtml(certificateId)}</p>` : ''}
       <div class="footer">
         <div class="signature">
           <div class="signature-line"></div>
@@ -285,7 +286,22 @@ async function viewCertificate(encodedCert) {
     return;
   }
 
+  const info = getCurrentUserInfo();
+  if (!info.isLoggedIn || !info.user || !cert?.id || !window.supabaseClient) return;
+  try {
+    const result = await window.supabaseClient.from('certificates').select('*').eq('id',cert.id).eq('user_id',info.user.id).single();
+    if (result.error || !result.data) throw result.error || new Error('Registro não encontrado');
+    if (getCurrentUserInfo().user?.id !== info.user.id) return;
+    renderIssuedCertificate(result.data);
+  } catch (error) {
+    showToast('Não foi possível consultar o certificado registrado.','warning');
+  }
+}
+
+function renderIssuedCertificate(cert) {
+  if (!cert || !cert.id) return;
   const userInfo = getCurrentUserInfo();
+  if (!userInfo.isLoggedIn || cert.user_id !== userInfo.user?.id) return;
   const userName = cert.certificate_data?.user_name || userInfo.profile?.full_name || userInfo.user?.email || 'Estudante';
   const certTitle = cert.title || 'Certificado de Conclusão';
   const courseTitle = cert.certificate_data?.course_title || cert.title || 'Curso';
@@ -295,7 +311,7 @@ async function viewCertificate(encodedCert) {
   const completedDate = certDateRaw
     ? new Date(certDateRaw).toLocaleDateString('pt-BR', { day: 'numeric', month: 'long', year: 'numeric' })
     : new Date().toLocaleDateString('pt-BR', { day: 'numeric', month: 'long', year: 'numeric' });
-  const logoUrl = 'https://huggingface.co/spaces/IzaqueE/deepsite-project-6tv0m/resolve/main/images/adpel.logo.png';
+  const logoUrl = new URL('images/adpel.logo.png', window.location.href).href;
 
   const html = buildCertificateHTML({
     userName,
@@ -304,7 +320,8 @@ async function viewCertificate(encodedCert) {
     description,
     duration,
     completedDate,
-    logoUrl
+    logoUrl,
+    certificateId: cert.id
   });
 
   const iframe = document.getElementById('certificate-iframe');
