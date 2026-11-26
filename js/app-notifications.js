@@ -12,6 +12,8 @@ var appNotificationsHasMore = false;
 var appNotificationsLoading = false;
 var appNotificationsError = false;
 var appNotificationsRefreshTimer = null;
+var appNotificationsView = 'inbox';
+var appNotificationsDismissBusy = false;
 var APP_NOTIFICATIONS_MAX_VISIBLE = 100;
 var eventReminderEnabled = null;
 var eventReminderBusy = false;
@@ -83,6 +85,8 @@ function resetAppNotificationSession(userId) {
   appNotificationsHasMore = false;
   appNotificationsLoading = false;
   appNotificationsError = false;
+  appNotificationsView = 'inbox';
+  appNotificationsDismissBusy = false;
   closeNotificationsPanel();
   updateNotificationBadge();
 }
@@ -109,12 +113,12 @@ async function loadUserNotifications() {
   try {
     var listQuery = window.supabaseClient.from('app_notifications')
       .select('id, recipient_id, actor_id, type, title, body, entity_type, entity_id, url, read_at, created_at')
-      .eq('recipient_id', userId);
+      .eq('recipient_id', userId).is('dismissed_at', null);
     if (filter === 'unread') listQuery = listQuery.is('read_at', null);
     var results = await Promise.all([
       listQuery.order('created_at', { ascending: false }).order('id', { ascending: false }).limit(limit + 1),
       window.supabaseClient.from('app_notifications').select('id', { count: 'exact', head: true })
-        .eq('recipient_id', userId).is('read_at', null)
+        .eq('recipient_id', userId).is('dismissed_at', null).is('read_at', null)
     ]);
     if (!isCurrentNotificationSession(userId) || request !== appNotificationsRequest) return;
     if (results[0].error || results[1].error) throw results[0].error || results[1].error;
@@ -373,6 +377,7 @@ function ensureNotificationsPanel() {
 }
 
 function openNotificationsPanel() {
+  if (appNotificationsPanelOpen) { closeNotificationsPanel(); return; }
   var user = getAppNotificationUser();
   if (!user) {
     if (typeof showToast === 'function') showToast('Faça login para ver suas notificações.', 'warning');
@@ -381,8 +386,11 @@ function openNotificationsPanel() {
   }
   if (appNotificationsOwnerId !== user.id) resetAppNotificationSession(user.id);
   appNotificationsPanelOpen = true;
+  appNotificationsView = 'inbox';
   var panel = ensureNotificationsPanel();
   panel.classList.remove('hidden');
+  var bell = document.getElementById('notification-bell');
+  if (bell && bell.setAttribute) bell.setAttribute('aria-expanded','true');
   renderNotificationsPanel();
   loadUserNotifications();
   loadEventReminderPreference();
@@ -392,7 +400,9 @@ function openNotificationsPanel() {
 function closeNotificationsPanel() {
   appNotificationsPanelOpen = false;
   var panel = document.getElementById('notifications-panel');
-  if (panel) panel.classList.add('hidden');
+  if (panel) { panel.classList.add('hidden'); panel.innerHTML = ''; }
+  var bell = document.getElementById('notification-bell');
+  if (bell && bell.setAttribute) bell.setAttribute('aria-expanded','false');
 }
 
 async function checkCurrentPushDevice() {
@@ -444,35 +454,58 @@ function renderPushDeviceDiagnostic() {
   ].join('');
 }
 
+function setNotificationsView(view) {
+  if (!appNotificationsPanelOpen || (view !== 'inbox' && view !== 'settings')) return;
+  appNotificationsView = view;
+  renderNotificationsPanel();
+  var panel = document.getElementById('notifications-panel');
+  var scroll = panel && panel.querySelector && panel.querySelector('.notifications-scroll');
+  if (scroll) scroll.scrollTop = 0;
+}
+
 function renderNotificationsPanel() {
   var panel = document.getElementById('notifications-panel');
   if (!panel || !appNotificationsPanelOpen) return;
   if (!isCurrentNotificationSession(appNotificationsOwnerId)) { panel.innerHTML = ''; return; }
   var unread = appNotificationsUnread;
+  var settings = appNotificationsView === 'settings';
+  var oldScroll = panel.querySelector && panel.querySelector('.notifications-scroll');
+  var top = oldScroll ? oldScroll.scrollTop : 0;
+  var busy = appNotificationsDismissBusy ? ' disabled' : '';
   panel.innerHTML = [
-    '<div class="notifications-panel-inner">',
-      '<div class="notifications-panel-head">',
-        '<div><p class="app-eyebrow">Sino</p><h3>Notificações</h3></div>',
-        '<button onclick="closeNotificationsPanel()" class="notifications-close" aria-label="Fechar notificações"><i class="fas fa-times"></i></button>',
+    '<div class="notifications-backdrop" onclick="closeNotificationsPanel()" aria-hidden="true"></div>',
+    '<section class="notifications-panel-inner" role="dialog" aria-label="Notificações">',
+      '<header class="notifications-panel-head">',
+        '<div><p class="app-eyebrow">Central de mensagens</p><h3>Notificações</h3><p class="notifications-subtitle">' + (unread === null ? 'Acompanhe seus avisos' : unread === 0 ? 'Você está em dia' : unread + ' não lida(s)') + '</p></div>',
+        '<button type="button" onclick="closeNotificationsPanel()" class="notifications-close" aria-label="Fechar notificações"><i class="fas fa-times" aria-hidden="true"></i></button>',
+      '</header>',
+      '<div class="notifications-tabs" aria-label="Seções do sino">',
+        '<button type="button" aria-pressed="' + String(!settings) + '" onclick="setNotificationsView(&quot;inbox&quot;)"><i class="fas fa-inbox"></i> Mensagens</button>',
+        '<button type="button" aria-pressed="' + String(settings) + '" onclick="setNotificationsView(&quot;settings&quot;)"><i class="fas fa-sliders-h"></i> Ajustes</button>',
       '</div>',
-      '<div class="notifications-panel-actions">',
-        unread ? '<button onclick="markAllNotificationsAsRead()"><i class="fas fa-check-double"></i> Marcar todas como lidas</button>' : '',
+      !settings ? '<div class="notifications-toolbar"><div class="notifications-panel-actions" aria-label="Filtrar notificações">' +
+        '<button type="button" aria-pressed="' + String(appNotificationsFilter === 'all') + '" onclick="setAppNotificationsFilter(&quot;all&quot;)">Todas</button>' +
+        '<button type="button" aria-pressed="' + String(appNotificationsFilter === 'unread') + '" onclick="setAppNotificationsFilter(&quot;unread&quot;)">Não lidas' + (unread !== null ? ' (' + unread + ')' : '') + '</button></div>' +
+        '<div class="notifications-panel-actions notifications-management">' +
+        (unread ? '<button type="button" onclick="markAllNotificationsAsRead()"' + busy + '><i class="fas fa-check-double"></i> Marcar lidas</button>' : '') +
+        '<button type="button" onclick="loadUserNotifications()" aria-label="Atualizar notificações"' + (appNotificationsLoading ? ' disabled' : '') + '><i class="fas fa-sync-alt"></i> Atualizar</button>' +
+        (appNotificationsCache.length || unread ? '<button type="button" class="notifications-danger" onclick="dismissAppNotifications(null)"' + busy + '><i class="fas fa-trash-alt"></i> Limpar tudo</button>' : '') +
+        '</div></div>' : '',
+      '<div class="notifications-scroll">',
+        settings ? renderEventReminderPreference() + renderBirthdayPreference() + renderPushDeviceDiagnostic() : [
+          appNotificationsError ? '<div class="notification-empty" role="status"><p>Não foi possível atualizar.</p><button type="button" onclick="loadUserNotifications()">Tentar novamente</button></div>' : '',
+          '<div class="notifications-list" aria-busy="' + String(appNotificationsLoading) + '">',
+          appNotificationsCache.length ? appNotificationsCache.map(renderNotificationItem).join('') : appNotificationsLoading ? '<div class="notification-empty" role="status"><p>Carregando notificações...</p></div>' : appNotificationsError ? '' : '<div class="notification-empty"><i class="fas fa-bell-slash"></i><p>' + (appNotificationsFilter === 'unread' ? 'Tudo em dia! Nenhuma notificação não lida.' : 'Nenhuma notificação ainda.') + '</p></div>',
+          '</div>',
+          appNotificationsHasMore && appNotificationsLimit < APP_NOTIFICATIONS_MAX_VISIBLE ? '<div class="notifications-panel-actions"><button type="button" onclick="loadMoreAppNotifications()"' + (appNotificationsLoading ? ' disabled' : '') + '>Carregar mais</button></div>' : '',
+          appNotificationsHasMore && appNotificationsLimit >= APP_NOTIFICATIONS_MAX_VISIBLE ? '<div class="notification-empty"><p>Exibindo as 100 notificações mais recentes deste filtro.</p></div>' : ''
+        ].join(''),
       '</div>',
-      '<div class="notifications-panel-actions" aria-label="Filtrar notificações">',
-        '<button type="button" aria-pressed="' + String(appNotificationsFilter === 'all') + '" onclick="setAppNotificationsFilter(&quot;all&quot;)">Todas</button>',
-        '<button type="button" aria-pressed="' + String(appNotificationsFilter === 'unread') + '" onclick="setAppNotificationsFilter(&quot;unread&quot;)">Não lidas' + (unread !== null ? ' (' + unread + ')' : '') + '</button>',
-      '</div>',
-      appNotificationsError ? '<div class="notification-empty" role="status"><p>Não foi possível atualizar. </p><button onclick="loadUserNotifications()">Tentar novamente</button></div>' : '',
-      renderEventReminderPreference(),
-      renderBirthdayPreference(),
-      renderPushDeviceDiagnostic(),
-      '<div class="notifications-list" aria-busy="' + String(appNotificationsLoading) + '">',
-        appNotificationsCache.length ? appNotificationsCache.map(renderNotificationItem).join('') : appNotificationsLoading ? '<div class="notification-empty" role="status"><p>Carregando notificações...</p></div>' : appNotificationsError ? '' : '<div class="notification-empty"><i class="fas fa-bell-slash"></i><p>' + (appNotificationsFilter === 'unread' ? 'Tudo em dia! Nenhuma notificação não lida.' : 'Nenhuma notificação ainda.') + '</p></div>',
-      '</div>',
-      appNotificationsHasMore && appNotificationsLimit < APP_NOTIFICATIONS_MAX_VISIBLE ? '<div class="notifications-panel-actions"><button onclick="loadMoreAppNotifications()"' + (appNotificationsLoading ? ' disabled' : '') + '>Carregar mais</button></div>' : '',
-      appNotificationsHasMore && appNotificationsLimit >= APP_NOTIFICATIONS_MAX_VISIBLE ? '<div class="notification-empty"><p>Exibindo as 100 notificações mais recentes deste filtro.</p></div>' : '',
-    '</div>'
+      '<footer class="notifications-footer"><button type="button" onclick="closeNotificationsPanel()"><i class="fas fa-arrow-left"></i> Voltar ao aplicativo</button></footer>',
+    '</section>'
   ].join('');
+  var scroll = panel.querySelector && panel.querySelector('.notifications-scroll');
+  if (scroll) scroll.scrollTop = top;
 }
 
 function getNotificationIcon(type) {
@@ -492,17 +525,46 @@ function getNotificationIcon(type) {
 function renderNotificationItem(notification) {
   var isUnread = !notification.read_at;
   var icon = getNotificationIcon(notification.type);
+  var id = escapeHtml(notification.id);
   return [
-    '<button onclick="markNotificationAsRead(&quot;' + escapeHtml(notification.id) + '&quot;)" class="notification-item ' + escapeHtml(icon.className) + ' ' + (isUnread ? 'is-unread' : '') + '">',
-      '<span class="notification-unread-dot"></span>',
-      '<span class="notification-icon"><i class="fas ' + escapeHtml(icon.icon) + '"></i></span>',
-      '<span class="notification-copy">',
-        '<strong>' + escapeHtml(notification.title || 'Nova notificação') + '</strong>',
-        '<span>' + escapeHtml(notification.body || '') + '</span>',
-      '</span>',
-      '<time>' + escapeHtml(formatNotificationDate(notification.created_at)) + '</time>',
-    '</button>'
+    '<article class="notification-item ' + escapeHtml(icon.className) + ' ' + (isUnread ? 'is-unread' : '') + '">',
+      '<button type="button" class="notification-open" onclick="markNotificationAsRead(&quot;' + id + '&quot;)">',
+        '<span class="notification-unread-dot"></span>',
+        '<span class="notification-icon"><i class="fas ' + escapeHtml(icon.icon) + '"></i></span>',
+        '<span class="notification-copy">',
+          '<strong>' + escapeHtml(notification.title || 'Nova notificação') + '</strong>',
+          '<span>' + escapeHtml(notification.body || '') + '</span>',
+          '<time>' + escapeHtml(formatNotificationDate(notification.created_at)) + '</time>',
+        '</span>',
+      '</button>',
+      '<button type="button" class="notification-remove" aria-label="Remover notificação" title="Remover notificação" onclick="dismissAppNotifications(&quot;' + id + '&quot;)"' + (appNotificationsDismissBusy ? ' disabled' : '') + '><i class="fas fa-trash-alt" aria-hidden="true"></i></button>',
+    '</article>'
   ].join('');
+}
+
+async function dismissAppNotifications(notificationId) {
+  var user = getAppNotificationUser();
+  if (!user || !isCurrentNotificationSession(user.id) || !window.supabaseClient || appNotificationsDismissBusy) return;
+  if (notificationId !== null && !appNotificationsCache.some(function(n){return n.id === notificationId;})) return;
+  if (notificationId === null && !window.confirm('Remover todas as notificações da sua caixa de entrada, inclusive as não lidas?')) return;
+  var cutoff = new Date().toISOString();
+  appNotificationsDismissBusy = true;
+  renderNotificationsPanel();
+  try {
+    var query = window.supabaseClient.from('app_notifications').update({dismissed_at:cutoff})
+      .eq('recipient_id',user.id).is('dismissed_at',null);
+    if (notificationId !== null) query = query.eq('id',notificationId);
+    else query = query.lte('created_at',cutoff);
+    var result = await query;
+    if (result.error) throw result.error;
+    if (!isCurrentNotificationSession(user.id)) return;
+    await loadUserNotifications();
+    if (typeof showToast === 'function') showToast(notificationId === null ? 'Caixa de entrada limpa.' : 'Notificação removida.','success');
+  } catch (_) {
+    if (isCurrentNotificationSession(user.id) && typeof showToast === 'function') showToast('Não foi possível remover. Tente novamente.','error');
+  } finally {
+    if (isCurrentNotificationSession(user.id)) { appNotificationsDismissBusy = false; renderNotificationsPanel(); }
+  }
 }
 
 async function markNotificationAsRead(notificationId) {
@@ -539,6 +601,7 @@ async function markAllNotificationsAsRead() {
       .from('app_notifications')
       .update({ read_at: readAt })
       .eq('recipient_id', user.id)
+      .is('dismissed_at', null)
       .is('read_at', null);
     if (result.error) throw result.error;
     if (!isCurrentNotificationSession(user.id)) return;
@@ -636,6 +699,8 @@ Object.assign(window, {
   setBirthdayDraft: setBirthdayDraft,
   saveBirthdayPreference: saveBirthdayPreference,
   checkCurrentPushDevice: checkCurrentPushDevice,
+  setNotificationsView: setNotificationsView,
+  dismissAppNotifications: dismissAppNotifications,
   updateNotificationBadge: updateNotificationBadge,
   openNotificationsPanel: openNotificationsPanel,
   closeNotificationsPanel: closeNotificationsPanel,
