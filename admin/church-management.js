@@ -22,6 +22,7 @@ function churchText(value) {
 }
 
 function churchLabel(value) {
+  if (value === 'pendente') return 'Pendente de validação';
   return churchText(value).replace(/_/g, ' ').replace(/\b\w/g, function(letter) { return letter.toUpperCase(); });
 }
 
@@ -101,6 +102,7 @@ function setChurchTab(tab) {
   }
   var active = document.getElementById('church-tab-' + tab);
   if (active) active.classList.remove('hidden');
+  if (tab === 'members' && typeof loadMemberIntakes === 'function') loadMemberIntakes();
 
   var buttons = document.querySelectorAll('.church-tab-btn');
   for (var b = 0; b < buttons.length; b++) {
@@ -335,6 +337,7 @@ function renderChurchMembers(onlyBirthdays) {
       '</div></div>' +
       '<div class="flex flex-wrap md:justify-end gap-2">' +
       (phone ? '<a href="https://wa.me/55' + escapeHtml(phone) + '" target="_blank" rel="noopener" class="p-2 text-green-500 hover:bg-green-50 rounded-lg min-w-[44px] min-h-[44px] flex items-center justify-center"><i class="fab fa-whatsapp"></i></a>' : '') +
+      '<button type="button" onclick="openMemberAccountLink(\'' + escapeHtml(member.id) + '\')" class="px-3 py-2 text-cyan-600 hover:bg-cyan-50 rounded-lg min-h-[44px] text-sm font-semibold" title="Vincular conta do aplicativo"><i class="fas fa-link mr-1"></i>Conta do app</button>' +
       '<button onclick="editMember(\'' + memberJson + '\')" class="p-2 text-adpel-500 hover:bg-adpel-50 rounded-lg min-w-[44px] min-h-[44px]"><i class="fas fa-edit"></i></button>' +
       '<button onclick="openMemberExit(\'' + member.id + '\')" class="p-2 text-orange-500 hover:bg-orange-50 rounded-lg min-w-[44px] min-h-[44px]" title="Registrar saida"><i class="fas fa-user-minus"></i></button>' +
       '</div></div></div>';

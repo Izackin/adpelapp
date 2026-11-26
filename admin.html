@@ -933,7 +933,7 @@
               <input type="search" id="member-search" oninput="renderChurchMembers()" placeholder="Buscar por nome ou telefone" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-adpel-500 outline-none">
               <select id="member-status-filter" onchange="renderChurchMembers()" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-adpel-500 outline-none">
                 <option value="">Todos os status</option>
-                <option value="ativo">Ativo</option>
+                <option value="ativo">Ativo</option><option value="pendente">Pendente de validação</option>
                 <option value="afastado">Afastado</option>
                 <option value="transferido">Transferido</option>
                 <option value="falecido">Falecido</option>
@@ -948,6 +948,15 @@
             </div>
           </div>
 
+          <section class="bg-white rounded-xl border border-gray-200 p-4 space-y-3" aria-labelledby="member-intakes-title">
+            <div class="flex flex-wrap items-center justify-between gap-2"><div><h3 id="member-intakes-title" class="font-bold text-gray-800">Cadastros pelo aplicativo</h3><p class="text-sm text-gray-500">Novos membros declarados e visitantes para acolhimento.</p></div><button type="button" onclick="loadMemberIntakes()" class="px-4 py-2 border rounded-lg min-h-[44px] text-sm font-semibold">Atualizar</button></div>
+            <div class="grid sm:grid-cols-2 gap-2">
+              <select id="member-intake-kind" onchange="loadMemberIntakes()" aria-label="Tipo de cadastro" class="border rounded-lg p-2 min-h-[44px]"><option value="">Todos os cadastros</option><option value="membro">Membros declarados</option><option value="visitante">Visitantes</option></select>
+              <select id="member-intake-status" onchange="loadMemberIntakes()" aria-label="Acompanhamento" class="border rounded-lg p-2 min-h-[44px]"><option value="">Todos os acompanhamentos</option><option value="novo">Novos</option><option value="em_acompanhamento">Em acompanhamento</option><option value="concluido">Concluídos</option></select>
+            </div>
+            <div id="member-intake-list" class="space-y-3" aria-live="polite"><p class="text-sm text-gray-500">Clique em Atualizar para consultar.</p></div>
+          </section>
+
           <div id="member-form-container" class="hidden bg-white rounded-xl shadow-sm border border-gray-200 p-4 md:p-6">
             <h3 id="member-form-title" class="font-bold text-gray-800 mb-4">Novo Membro</h3>
             <form id="member-form">
@@ -961,7 +970,7 @@
                 <div><label class="block text-sm font-medium text-gray-700 mb-1">Telefone</label><input type="tel" id="member-phone" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-adpel-500 outline-none"></div>
                 <div><label class="block text-sm font-medium text-gray-700 mb-1">Email</label><input type="email" id="member-email" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-adpel-500 outline-none"></div>
                 <div><label class="block text-sm font-medium text-gray-700 mb-1">Data de entrada</label><input type="date" id="member-entry-date" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-adpel-500 outline-none"></div>
-                <div><label class="block text-sm font-medium text-gray-700 mb-1">Status</label><select id="member-status" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-adpel-500 outline-none"><option value="ativo">Ativo</option><option value="afastado">Afastado</option><option value="transferido">Transferido</option><option value="falecido">Falecido</option><option value="removido">Removido</option></select></div>
+                <div><label class="block text-sm font-medium text-gray-700 mb-1">Status</label><select id="member-status" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-adpel-500 outline-none"><option value="ativo">Ativo</option><option value="pendente">Pendente de validação</option><option value="afastado">Afastado</option><option value="transferido">Transferido</option><option value="falecido">Falecido</option><option value="removido">Removido</option></select></div>
                 <div><label class="block text-sm font-medium text-gray-700 mb-1">Funcao/Cargo</label><select id="member-role" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-adpel-500 outline-none"><option value="visitante">Visitante</option><option value="membro">Membro</option><option value="obreiro">Obreiro</option><option value="lider">Lider</option><option value="pastor">Pastor</option><option value="crianca">Crianca</option><option value="jovem">Jovem</option></select></div>
                 <div><label class="block text-sm font-medium text-gray-700 mb-1">Batizado</label><select id="member-baptized" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-adpel-500 outline-none"><option value="false">Nao</option><option value="true">Sim</option></select></div>
                 <div><label class="block text-sm font-medium text-gray-700 mb-1">Data do batismo</label><input type="date" id="member-baptism-date" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-adpel-500 outline-none"></div>
@@ -1039,7 +1048,7 @@
             <div class="flex flex-col lg:flex-row lg:items-end gap-3">
               <div class="flex-1 grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-5 gap-3">
                 <div><label class="block text-xs font-semibold text-gray-500 mb-1">Relatório PDF</label><select id="member-report-type" class="w-full px-3 py-2.5 border rounded-lg min-h-[44px]"><option value="general">Relatório geral</option><option value="list">Lista de membros</option><option value="birthdays">Aniversariantes</option></select></div>
-                <div><label class="block text-xs font-semibold text-gray-500 mb-1">Status</label><select id="member-report-status" class="w-full px-3 py-2.5 border rounded-lg min-h-[44px]"><option value="">Todos</option><option value="ativo">Ativo</option><option value="afastado">Afastado</option><option value="transferido">Transferido</option><option value="falecido">Falecido</option><option value="removido">Removido</option></select></div>
+                <div><label class="block text-xs font-semibold text-gray-500 mb-1">Status</label><select id="member-report-status" class="w-full px-3 py-2.5 border rounded-lg min-h-[44px]"><option value="">Todos</option><option value="ativo">Ativo</option><option value="pendente">Pendente de validação</option><option value="afastado">Afastado</option><option value="transferido">Transferido</option><option value="falecido">Falecido</option><option value="removido">Removido</option></select></div>
                 <div><label class="block text-xs font-semibold text-gray-500 mb-1">Função/Cargo</label><select id="member-report-role" class="w-full px-3 py-2.5 border rounded-lg min-h-[44px]"><option value="">Todas</option><option value="visitante">Visitante</option><option value="membro">Membro</option><option value="obreiro">Obreiro</option><option value="lider">Líder</option><option value="pastor">Pastor</option><option value="crianca">Criança</option><option value="jovem">Jovem</option></select></div>
                 <div><label class="block text-xs font-semibold text-gray-500 mb-1">Batismo</label><select id="member-report-baptized" class="w-full px-3 py-2.5 border rounded-lg min-h-[44px]"><option value="">Todos</option><option value="true">Batizados</option><option value="false">Não batizados</option></select></div>
                 <div><label class="block text-xs font-semibold text-gray-500 mb-1">Mês de aniversário</label><select id="member-report-birthday-month" class="w-full px-3 py-2.5 border rounded-lg min-h-[44px]"><option value="1">Janeiro</option><option value="2">Fevereiro</option><option value="3">Março</option><option value="4">Abril</option><option value="5">Maio</option><option value="6">Junho</option><option value="7">Julho</option><option value="8">Agosto</option><option value="9">Setembro</option><option value="10">Outubro</option><option value="11">Novembro</option><option value="12">Dezembro</option></select></div>
@@ -1149,6 +1158,17 @@
   </div>
 
   <!-- MEMBER IMPORT -->
+  <div id="member-account-modal" class="hidden fixed inset-0 z-[180] bg-slate-950/80 p-3 overflow-y-auto" role="dialog" aria-modal="true" aria-labelledby="member-account-title">
+    <div class="max-w-lg mx-auto mt-8 bg-white rounded-xl shadow-xl border border-gray-200">
+      <header class="flex items-center justify-between gap-3 p-4 border-b border-gray-200">
+        <div><h3 id="member-account-title" class="text-lg font-bold text-gray-800">Conta do aplicativo</h3><p class="text-sm text-gray-500">Vínculo administrativo de membro</p></div>
+        <button type="button" onclick="closeMemberAccountLink()" aria-label="Fechar" class="w-11 h-11 rounded-lg bg-gray-100 text-gray-600"><i class="fas fa-times"></i></button>
+      </header>
+      <div id="member-account-body" class="p-4 space-y-4"></div>
+      <footer class="p-4 border-t border-gray-200"><button type="button" onclick="closeMemberAccountLink()" class="w-full min-h-[44px] rounded-lg border border-gray-300 text-gray-700 font-semibold">Voltar aos membros</button></footer>
+    </div>
+  </div>
+
   <div id="member-import-modal" class="hidden fixed inset-0 z-[180] bg-slate-950/80 backdrop-blur-sm p-2 sm:p-4 overflow-y-auto" role="dialog" aria-modal="true" aria-labelledby="member-import-title">
     <div class="bg-white w-full max-w-6xl mx-auto my-2 sm:my-8 rounded-2xl shadow-2xl border border-gray-200 overflow-hidden">
       <div class="flex items-center justify-between gap-3 p-4 md:p-5 border-b border-gray-200">
@@ -1165,7 +1185,7 @@
       <div class="flex items-center justify-between p-4 md:p-5 border-b border-gray-200"><div><h3 id="member-export-title" class="text-lg font-bold text-gray-800">Exportar membros</h3><p class="text-xs text-gray-500 mt-1">Aplique filtros e escolha o formato</p></div><button onclick="hideMemberExport()" aria-label="Fechar" class="w-11 h-11 rounded-lg bg-gray-100 text-gray-600"><i class="fas fa-times"></i></button></div>
       <div class="p-4 md:p-6">
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div><label class="block text-sm font-medium text-gray-700 mb-1">Status</label><select id="member-export-status" onchange="updateMemberExportCount()" class="w-full px-3 py-2.5 border rounded-lg"><option value="">Todos</option><option value="ativo">Ativo</option><option value="afastado">Afastado</option><option value="transferido">Transferido</option><option value="falecido">Falecido</option><option value="removido">Removido</option></select></div>
+          <div><label class="block text-sm font-medium text-gray-700 mb-1">Status</label><select id="member-export-status" onchange="updateMemberExportCount()" class="w-full px-3 py-2.5 border rounded-lg"><option value="">Todos</option><option value="ativo">Ativo</option><option value="pendente">Pendente de validação</option><option value="afastado">Afastado</option><option value="transferido">Transferido</option><option value="falecido">Falecido</option><option value="removido">Removido</option></select></div>
           <div><label class="block text-sm font-medium text-gray-700 mb-1">Função/Cargo</label><select id="member-export-role" onchange="updateMemberExportCount()" class="w-full px-3 py-2.5 border rounded-lg"><option value="">Todas</option><option value="visitante">Visitante</option><option value="membro">Membro</option><option value="obreiro">Obreiro</option><option value="lider">Líder</option><option value="pastor">Pastor</option><option value="crianca">Criança</option><option value="jovem">Jovem</option></select></div>
           <div><label class="block text-sm font-medium text-gray-700 mb-1">Batismo</label><select id="member-export-baptized" onchange="updateMemberExportCount()" class="w-full px-3 py-2.5 border rounded-lg"><option value="">Todos</option><option value="true">Batizados</option><option value="false">Não batizados</option></select></div>
           <div class="grid grid-cols-2 gap-2"><div><label class="block text-sm font-medium text-gray-700 mb-1">Entrada inicial</label><input type="date" id="member-export-entry-start" onchange="updateMemberExportCount()" class="w-full px-3 py-2.5 border rounded-lg"></div><div><label class="block text-sm font-medium text-gray-700 mb-1">Entrada final</label><input type="date" id="member-export-entry-end" onchange="updateMemberExportCount()" class="w-full px-3 py-2.5 border rounded-lg"></div></div>
@@ -1267,6 +1287,8 @@
   <script src="admin/member-export.js"></script>
   <script src="admin/member-reports.js"></script>
   <script src="admin/church-management.js"></script>
+  <script src="admin/member-account-links.js"></script>
+  <script src="admin/member-intakes.js"></script>
   <script src="admin/community-management.js"></script>
   <script src="admin-notifications.js"></script>
   

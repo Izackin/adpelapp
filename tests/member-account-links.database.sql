@@ -1,0 +1,43 @@
+DO $test$
+DECLARE master_id uuid; member_a uuid; member_b uuid; user_a uuid; user_b uuid; n bigint; affected integer;
+BEGIN
+ IF has_table_privilege('anon','public.member_account_links','SELECT') OR has_column_privilege('authenticated','public.member_account_links','linked_by','INSERT') OR has_table_privilege('authenticated','public.member_account_links','UPDATE') THEN RAISE EXCEPTION 'Unsafe privileges'; END IF;
+ SELECT id INTO master_id FROM public.profiles WHERE role='master' LIMIT 1;
+ SELECT id INTO user_a FROM public.profiles WHERE role<>'master' ORDER BY id LIMIT 1;
+ SELECT id INTO user_b FROM public.profiles WHERE role<>'master' AND id<>user_a ORDER BY id LIMIT 1;
+ SELECT id INTO member_a FROM public.members LIMIT 1;
+ IF master_id IS NULL OR user_a IS NULL OR user_b IS NULL OR member_a IS NULL THEN RAISE EXCEPTION 'Missing test fixtures'; END IF;
+ IF EXISTS(SELECT 1 FROM public.member_account_links) THEN RAISE EXCEPTION 'Only run this initial test before first link'; END IF;
+ BEGIN
+  INSERT INTO public.members(full_name) VALUES('Teste transacional - não persistir') RETURNING id INTO member_b;
+  PERFORM set_config('request.jwt.claim.sub',master_id::text,true);
+  PERFORM set_config('request.jwt.claims',jsonb_build_object('sub',master_id,'role','authenticated')::text,true);
+  EXECUTE 'SET LOCAL ROLE authenticated';
+  INSERT INTO public.member_account_links(member_id,user_id) VALUES(member_a,user_a);
+  SELECT count(*) INTO n FROM public.member_account_links WHERE member_id=member_a AND user_id=user_a AND linked_by=master_id;
+  IF n<>1 THEN RAISE EXCEPTION 'Link not visible or missing attribution'; END IF;
+  BEGIN INSERT INTO public.member_account_links(member_id,user_id) VALUES(member_a,user_b); RAISE EXCEPTION 'Duplicate member allowed'; EXCEPTION WHEN unique_violation THEN NULL; END;
+  BEGIN INSERT INTO public.member_account_links(member_id,user_id) VALUES(member_b,user_a); RAISE EXCEPTION 'Duplicate account allowed'; EXCEPTION WHEN unique_violation THEN NULL; END;
+  EXECUTE 'RESET ROLE';
+  PERFORM set_config('request.jwt.claim.sub',user_a::text,true);
+  PERFORM set_config('request.jwt.claims',jsonb_build_object('sub',user_a,'role','authenticated')::text,true);
+  EXECUTE 'SET LOCAL ROLE authenticated';
+  SELECT count(*) INTO n FROM public.member_account_links;
+  IF n<>0 THEN RAISE EXCEPTION 'Nonmaster read allowed'; END IF;
+  BEGIN INSERT INTO public.member_account_links(member_id,user_id) VALUES(member_b,user_b); RAISE EXCEPTION 'Nonmaster insert allowed'; EXCEPTION WHEN insufficient_privilege THEN NULL; END;
+  DELETE FROM public.member_account_links WHERE member_id=member_a;
+  GET DIAGNOSTICS affected=ROW_COUNT;
+  IF affected<>0 THEN RAISE EXCEPTION 'Nonmaster delete allowed'; END IF;
+  EXECUTE 'RESET ROLE';
+  PERFORM set_config('request.jwt.claim.sub',master_id::text,true);
+  PERFORM set_config('request.jwt.claims',jsonb_build_object('sub',master_id,'role','authenticated')::text,true);
+  EXECUTE 'SET LOCAL ROLE authenticated';
+  DELETE FROM public.member_account_links WHERE member_id=member_a AND user_id=user_a;
+  GET DIAGNOSTICS affected=ROW_COUNT;
+  IF affected<>1 THEN RAISE EXCEPTION 'Master unlink failed'; END IF;
+  EXECUTE 'RESET ROLE';
+  RAISE SQLSTATE 'ZX001' USING MESSAGE='rollback';
+ EXCEPTION WHEN SQLSTATE 'ZX001' THEN NULL; END;
+ IF EXISTS(SELECT 1 FROM public.member_account_links) OR EXISTS(SELECT 1 FROM public.members WHERE id=member_b) THEN RAISE EXCEPTION 'Rollback failed'; END IF;
+END $test$;
+SELECT 'member account links: PASS; no committed link' AS result;

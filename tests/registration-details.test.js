@@ -1,0 +1,12 @@
+const assert=require('node:assert/strict');
+const fs=require('node:fs'),path=require('node:path');
+const source=fs.readFileSync(path.resolve(__dirname,'../auth.js'),'utf8');
+const start=source.indexOf('function buildRegistrationDetails'),end=source.indexOf('function bindAuthForms',start);
+assert.ok(start>=0&&end>start);
+const build=new Function(source.slice(start,end)+'\nreturn buildRegistrationDetails;')();
+const base={"whatsapp":"+55 (62) 99999-9999","congregation":"adpel-santo-andre","kind":"membro","privacyAck":true,"birthDate":"2000-02-29","contactAllowed":true};
+assert.equal(build(base).registration_whatsapp,'62999999999');
+assert.equal(build(base).declared_type,'membro');
+assert.equal(build({...base,kind:'visitante',birthDate:'',contactAllowed:false}).declared_type,'visitante');
+for(const change of [{kind:'master'},{congregation:'fake'},{whatsapp:'123'},{birthDate:'2001-02-29'},{privacyAck:false}])assert.throws(()=>build({...base,...change}));
+console.log('registration validation: PASS');

@@ -217,6 +217,21 @@ function updateAuthUI(isLoggedIn) {
   }
 }
 
+function buildRegistrationDetails(input) {
+  let phone = String(input.whatsapp || '').replace(/\D/g, '');
+  if ((phone.length === 12 || phone.length === 13) && phone.startsWith('55')) phone = phone.slice(2);
+  if (!/^[1-9]\d{9,10}$/.test(phone)) throw new Error('Informe um WhatsApp válido com DDD.');
+  if (input.congregation !== 'adpel-santo-andre' || !['membro','visitante'].includes(input.kind)) throw new Error('Selecione a congregação e sua participação.');
+  if (!input.privacyAck) throw new Error('Confirme a finalidade do cadastro.');
+  let birth = String(input.birthDate || '');
+  if (birth) {
+    const date = new Date(birth + 'T00:00:00Z');
+    const today = new Date();
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(birth) || isNaN(date.getTime()) || date.toISOString().slice(0,10) !== birth || date > today || date.getUTCFullYear() < today.getUTCFullYear()-120) throw new Error('Informe uma data de nascimento válida.');
+  }
+  return {registration_version:'1',congregation_slug:input.congregation,declared_type:input.kind,registration_whatsapp:phone,registration_birth_date:birth,registration_privacy_ack:true,registration_contact_allowed:input.contactAllowed===true};
+}
+
 function bindAuthForms() {
   // Login form
   const loginForm = document.getElementById('login-form');
@@ -350,11 +365,26 @@ function bindAuthForms() {
         return;
       }
 
+      let registration;
+      try {
+        if (name.length < 2 || name.length > 120) throw new Error('Informe um nome entre 2 e 120 caracteres.');
+        registration = buildRegistrationDetails({
+          congregation: document.getElementById('register-congregation').value,
+          kind: document.getElementById('register-kind').value,
+          whatsapp: document.getElementById('register-whatsapp').value,
+          birthDate: document.getElementById('register-birth-date').value,
+          privacyAck: document.getElementById('register-privacy-ack').checked,
+          contactAllowed: document.getElementById('register-contact-allowed').checked
+        });
+      } catch (error) {
+        showToast(error.message,'error');
+        return;
+      }
       registerForm.dataset.submitting = 'true';
       showLoading(true, 'register-form');
 
       try {
-        const { data, error } = await ADPEL.auth.signUp(email, password, name);
+        const { data, error } = await ADPEL.auth.signUp(email, password, name, registration);
 
         if (error) {
           console.error('Erro técnico ao cadastrar usuário:', error);
