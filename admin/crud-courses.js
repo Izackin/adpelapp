@@ -193,7 +193,7 @@ async function handleCourseSubmit(e) {
       showToast(id ? 'Curso atualizado!' : 'Curso criado!', 'success');
     }
     hideCourseForm();
-    await loadAllData();
+    await loadAllData('courses');
   } catch (error) {
     console.error('Erro ao salvar curso:', error);
     if (typeof showToast === 'function') showToast('Erro: ' + error.message, 'error');
@@ -206,7 +206,7 @@ async function deleteCourse(id) {
     var result = await window.supabaseClient.from('courses').delete().eq('id', id);
     if (result.error) { throw result.error; }
     if (typeof showToast === 'function') { showToast('Curso excluído!', 'success'); }
-    await loadAllData();
+    await loadAllData('courses');
   } catch (error) {
     console.error('Erro ao excluir curso:', error);
     if (typeof showToast === 'function') { showToast('Erro: ' + error.message, 'error'); }
