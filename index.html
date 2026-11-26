@@ -257,12 +257,12 @@
     <div id="app-content" class="md:ml-64 p-4 md:p-8 pb-24 md:pb-8 max-w-7xl mx-auto w-full">
       
       <!-- SECT: HOME -->
-      <div id="home" class="app-home space-y-5">
+      <div id="home" class="app-home app-home-refined space-y-5">
         <div class="app-home-greeting">
           <div>
-            <p class="app-eyebrow">ADPEL</p>
+            <p class="app-eyebrow">ADPEL DIGITAL</p>
             <h1 id="home-welcome-title">Bem-vindo à ADPEL</h1>
-            <p id="home-welcome-subtitle">Tudo o que você precisa para hoje.</p>
+            <p id="home-welcome-subtitle">Sua igreja, mais perto de você.</p>
           </div>
           <button id="home-profile-shortcut" onclick="navigateTo('profile')" class="app-home-avatar" aria-label="Abrir meu perfil">
             <span id="home-avatar-initials" aria-hidden="true">AD</span>
@@ -272,10 +272,20 @@
         <!-- Versículo do Dia -->
         <section class="app-verse-card" aria-labelledby="verse-day-title">
           <p id="verse-day-title" class="app-eyebrow">Versículo do dia</p>
-          <blockquote>“<span id="verse-text">Carregando...</span>”</blockquote>
+          <blockquote>“<span id="verse-text" aria-live="polite">Carregando versículo…</span>”</blockquote>
           <div class="app-verse-card__footer">
             <strong id="verse-ref">—</strong>
             <a href="bible.html" class="app-secondary-action"><i class="fas fa-book-open" aria-hidden="true"></i> Abrir na Bíblia</a>
+          </div>
+        </section>
+
+        <section aria-labelledby="quick-access-title">
+          <div class="app-home-section-heading"><h2 id="quick-access-title">Acessos rápidos</h2></div>
+          <div class="app-home-quick-grid">
+            <a href="bible.html" class="app-home-quick-link"><i class="fas fa-book-bible" aria-hidden="true"></i><span>Bíblia</span></a>
+            <a href="harpa.html" class="app-home-quick-link"><i class="fas fa-music" aria-hidden="true"></i><span>Harpa</span></a>
+            <button onclick="navigateTo('community-hub')" class="app-home-quick-link"><i class="fas fa-calendar-days" aria-hidden="true"></i><span>Agenda</span></button>
+            <button onclick="openOfertaModal()" class="app-home-quick-link"><i class="fas fa-hand-holding-heart" aria-hidden="true"></i><span>Ofertas</span></button>
           </div>
         </section>
 
@@ -300,22 +310,18 @@
         <!-- Um único destaque, quando houver conteúdo marcado -->
         <section id="featured-courses-section" class="hidden" aria-labelledby="featured-title">
           <div class="app-home-section-heading">
-            <div><p class="app-eyebrow">Destaque</p><h2 id="featured-title">Para você conhecer</h2></div>
+            <div><p class="app-eyebrow">Destaque</p><h2 id="featured-title">Curso em destaque</h2></div>
             <button onclick="navigateTo('learn')">Ver formação</button>
           </div>
           <div id="featured-courses"></div>
         </section>
 
-        <section aria-labelledby="quick-access-title">
-          <div class="app-home-section-heading"><h2 id="quick-access-title">Acessos rápidos</h2></div>
-          <div class="app-home-quick-grid">
-            <a href="bible.html" class="app-home-quick-link"><i class="fas fa-book-bible" aria-hidden="true"></i><span>Bíblia</span></a>
-            <a href="harpa.html" class="app-home-quick-link"><i class="fas fa-music" aria-hidden="true"></i><span>Harpa</span></a>
-            <button onclick="navigateTo('community-hub')" class="app-home-quick-link"><i class="fas fa-calendar-days" aria-hidden="true"></i><span>Agenda</span></button>
-            <button onclick="openOfertaModal()" class="app-home-quick-link"><i class="fas fa-hand-holding-heart" aria-hidden="true"></i><span>Ofertas</span></button>
-          </div>
-        </section>
 
+
+        <div id="home-content-status" class="app-home-content-status" role="status" aria-live="polite" hidden>
+          <span id="home-content-status-text"></span>
+          <button type="button" onclick="loadHomeData(true)" class="app-secondary-action" id="home-retry-button" hidden>Tentar novamente</button>
+        </div>
         <div id="home-announcements-section" class="hidden"><div id="news-container"></div></div>
       </div>
 
