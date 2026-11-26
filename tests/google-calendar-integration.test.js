@@ -81,8 +81,8 @@ async function run() {
   assert.doesNotMatch(adminSource, /GOOGLE_CLIENT_SECRET|refresh_token|SERVICE_ROLE/);
 
   const html = read('admin.html');
-  const migration = read('supabase/migrations/20260928183000_google_calendar_integration.sql');
-  const cronMigration = read('supabase/migrations/20260928184500_google_calendar_watch_cron.sql');
+  const migration = read('supabase/migrations/20260928195414_google_calendar_integration.sql');
+  const cronMigration = read('supabase/migrations/20260928195623_google_calendar_watch_cron.sql');
   const shared = read('supabase/functions/_shared/google-calendar.ts');
   const webhook = read('supabase/functions/google-calendar-webhook/index.ts');
   const renew = read('supabase/functions/google-calendar-renew-watches/index.ts');
