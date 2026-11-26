@@ -113,24 +113,35 @@ async function fetchHomeData() {
   }
 }
 
-async function fetchAnnouncements() {
+async function fetchAnnouncements(options) {
   try {
     const { data, error } = await supabase.from('announcements').select('*').eq('is_published', true).order('created_at', { ascending: false });
     if (error) throw error;
     return data || [];
   } catch (e) {
     console.error('Erro ao buscar avisos:', e);
+    if (options && options.strict) throw e;
     return [];
   }
 }
 
-async function fetchEvents() {
+async function fetchEvents(options) {
+  const upcoming = options && options.upcoming === true;
   try {
-    const { data, error } = await supabase.from('events').select('*').order('event_date', { ascending: true });
+    let query = supabase.from('events').select('*');
+    if (upcoming) {
+      // Match the local calendar day used by the existing agenda visibility helper.
+      const now = new Date();
+      const today = [now.getFullYear(), String(now.getMonth()+1).padStart(2,'0'), String(now.getDate()).padStart(2,'0')].join('-');
+      query = query.eq('is_active',true).eq('is_published',true)
+        .or('end_date.gte.' + today + ',and(end_date.is.null,event_date.gte.' + today + ')');
+    }
+    const { data, error } = await query.order('event_date', { ascending: true });
     if (error) throw error;
     return data || [];
   } catch (e) {
     console.error('Erro ao buscar eventos:', e);
+    if (options && options.strict) throw e;
     return [];
   }
 }

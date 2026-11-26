@@ -145,6 +145,7 @@ async function initAuth() {
     } else if (event === 'SIGNED_OUT') {
       currentUser = null;
       currentProfile = null;
+      if (window.ADPELJourney?.resetSession) window.ADPELJourney.resetSession();
       if (typeof hidePushPermissionPrompt === 'function') {
         hidePushPermissionPrompt(false);
       }
