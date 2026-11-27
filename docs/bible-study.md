@@ -70,3 +70,5 @@ A aba Entender é a entrada padrão do Modo Estudo. O botão Estudo abre o capí
 ### Produção editorial
 
 O admin já aceita intervalos: para um estudo de capítulo, use o primeiro e o último versículo da tradução canônica. Crie o conteúdo com resumo, contexto, divisão temática, ensinamento, aplicação, perguntas e referências. Salve como rascunho; revise antes de publicar. A geração automatizada em lote fica para etapa posterior.
+
+Modelos iniciais disponíveis no admin: Gênesis 1, João 3 e Filipenses 4. Carregar um modelo somente preenche o formulário; autor responsável obrigatório, indicação de IA preservada e opção de publicação inicialmente desmarcada. Não são conteúdo publicado e não geram cobrança de IA. Revise as referências, o conteúdo e a interpretação antes de salvar/publicar.
