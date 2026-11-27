@@ -173,6 +173,7 @@
       <div id="bible-selection-menu" class="bible-selection-panel hidden" role="region" aria-labelledby="bible-selection-label">
         <div class="bible-selection-heading"><div><span>Passagem selecionada</span><strong id="bible-selection-label"></strong></div><button type="button" class="bible-selection-dismiss" data-bible-action="clear-selection" aria-label="Fechar ações">×</button></div>
         <div id="bible-highlight-colors" class="bible-color-row hidden">${COLORS.map((color) => `<button data-highlight-color="${color}" class="bible-color-${color}" aria-label="Destaque ${color}"></button>`).join('')}<button data-bible-action="remove-highlight">Remover</button></div>
+        <div class="bible-selection-tutor"><button type="button" data-bible-action="tutor"><i class="fas fa-book-open" aria-hidden="true"></i> Tutor Teológico</button></div>
         <div class="bible-sheet-actions"><button type="button" data-bible-action="highlight"><i class="fas fa-highlighter" aria-hidden="true"></i> Destacar</button><button type="button" data-bible-action="note"><i class="fas fa-note-sticky" aria-hidden="true"></i> Nota</button><button type="button" data-bible-action="bookmark"><i class="far fa-bookmark" aria-hidden="true"></i> Favoritar</button><button type="button" data-bible-action="share"><i class="fas fa-share-nodes" aria-hidden="true"></i> Compartilhar</button></div>
       </div>
       <div id="bible-modal-backdrop" class="bible-modal-backdrop hidden"></div>
@@ -490,6 +491,28 @@
     } catch (error) { if (error.name !== 'AbortError') showMessage('Não foi possível compartilhar.', 'error'); }
   }
 
+  function openTutorForSelection() {
+    const selection = buildSelectionPayload();
+    if (!selection) return;
+    const verseCount = selection.verse_end - selection.verse_start + 1;
+    if (!isTutorVerseCountAllowed(verseCount)) {
+      showMessage('Selecione no máximo 10 versículos para estudar com o Tutor.');
+      return;
+    }
+    const context = {
+      book_id: selection.book_id,
+      book_name: selection.book_name,
+      chapter: selection.chapter,
+      verse_start: selection.verse_start,
+      verse_end: selection.verse_end,
+      translation_code: selection.translation_code
+    };
+    clearSelection();
+    if (window.ADPELTutor?.openWithBibleContext(context)) return;
+    const params = new URLSearchParams({ tutor: '1', ...Object.fromEntries(Object.entries(context).map(([key, value]) => [key, String(value)])) });
+    window.location.href = `index.html?${params.toString()}#tutor`;
+  }
+
   function renderProgress() {
     const summary = $('bible-progress-summary');
     const toggle = $('bible-read-toggle');
@@ -647,7 +670,7 @@
         'font-up': () => savePreferences({ font_size: state.preferences.font_size + 2 }),
         'library-notes': () => openLibrary('notes'), 'library-bookmarks': () => openLibrary('bookmarks'),
         rights: () => openModal('bible-rights-modal'), highlight: () => $('bible-highlight-colors')?.classList.toggle('hidden'),
-        'remove-highlight': removeHighlight, note: () => openNote(), bookmark: toggleBookmark, share: shareSelection,
+        'remove-highlight': removeHighlight, note: () => openNote(), bookmark: toggleBookmark, share: shareSelection, tutor: openTutorForSelection,
         'clear-selection': clearSelection, 'save-note': saveNote, 'delete-note': deleteNote,
         'close-modal': closeModals, 'close-auth': () => $('bible-auth-invite')?.classList.remove('visible')
       };
