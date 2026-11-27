@@ -109,3 +109,12 @@
 .study-external-ref {display:flex;flex-wrap:wrap;justify-content:space-between;gap:6px;padding:10px 12px;min-height:44px;border-radius:8px;background:#1e293b;color:#bfdbfe;border:1px solid #334155;}
 .study-external-ref small {color:#cbd5e1;}
 .study-external button:focus-visible,.study-external-ref:focus-visible {outline:2px solid #60a5fa;outline-offset:2px;}
+
+.study-translation-entry {min-width:0;}
+.study-translation-entry button {min-height:44px;border:1px solid #475569;border-radius:8px;padding:8px 12px;background:#172554;color:#dbeafe;}
+.study-translation-entry button:disabled {opacity:.55;}
+.study-translation-status {font-size:12px;color:#cbd5e1;overflow-wrap:anywhere;}
+.study-translation-status a {color:#93c5fd;text-decoration:underline;}
+.study-translated-text {white-space:pre-wrap;overflow-wrap:anywhere;font-size:15px;line-height:1.75;margin:12px 0;color:#f1f5f9;}
+.study-translation-entry [hidden] {display:none!important;}
+.study-original-language {margin-top:8px;}
