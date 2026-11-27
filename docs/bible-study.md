@@ -1,3 +1,9 @@
+# Arquivo histórico — Modo Estudo desativado
+
+Em 27/11/2026, o responsável solicitou a retirada do módulo. A interface pública e administrativa, código de consulta HelloAO, tradução de comentários, análise linguística e importador dedicado foram removidos. Não há migração destrutiva; as tabelas e o conteúdo importado anteriormente permanecem no Supabase, com as permissões existentes. Este documento preserva as informações de origem/licença e histórico; as instruções abaixo não descrevem funcionalidades atuais e não devem ser executadas. A versão anterior pode ser auditada pelo histórico Git.
+
+---
+
 # Modo Estudo — Bíblia ADPEL
 
 Nas duas telas (`index.html` e `bible.html`), abra Bíblia → Estudo. Escolha o versículo e toque numa palavra original. O painel apresenta lema quando disponível, transliteração, Strong tradicional e identificador STEP, glossa, morfologia e ocorrências paginadas. A nota pessoal reutiliza a autenticação e o RLS de `bible_notes`. Leitura continua como modo inicial. O seletor Leitura/Estudo alterna a area central; em Estudo, navegue pelos versiculos com as setas ou seletor, mantenha a ferramenta ativa ao avancar e volte a Leitura no versiculo estudado. O texto original integral fica em um detalhe expansivel e as palavras em cartoes compactos. As acoes de versiculo (Estudar, Tutor, Destaque, Nota, Favorito e Compartilhar) aparecem no fluxo logo apos a selecao, sem cobrir o texto.
