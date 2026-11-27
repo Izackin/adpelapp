@@ -42,7 +42,11 @@ assert.match(tutorSelectionFlow, /Selecione no máximo 10 versículos para estud
 assert.ok(tutorSelectionFlow.indexOf('isTutorVerseCountAllowed') < tutorSelectionFlow.indexOf('clearSelection()'));
 assert.match(source, /bible_translations/);
 assert.match(source, /translation_id/);
-assert.match(source, /\.eq\('translation_id', state\.translation\.id\)/);
+const searchFlow = source.slice(source.indexOf('async function searchBible'), source.indexOf('function renderSearchResults'));
+assert.match(searchFlow, /const translationId\s*=\s*state\.translation\.id/);
+assert.match(searchFlow, /\.eq\('translation_id', translationId\)/);
+assert.match(searchFlow, /request\s*===\s*searchRequest\s*&&\s*state\.translation\?\.id\s*===\s*translationId/);
+assert.match(source, /async function fetchLocalChapter\(\)[\s\S]*?\.eq\('translation_id', translationId\)/);
 assert.match(source, /savePreferences\(\{ translation_code: state\.translation\.code \}\)/);
 assert.match(source, /resultado\(s\) em \$\{state\.translation\.short_name\}/i);
 assert.match(source, /window\.ADPELBibleProviders/);

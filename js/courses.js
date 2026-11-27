@@ -267,7 +267,7 @@ function createYouTubeIframe(wrapper, iframeId, video, title) {
   return iframe;
 }
 
-async function getLessonProgress(courseId) {
+async function getLessonProgress(courseId,options) {
   const userInfo = getCurrentUserInfo();
   if (!userInfo.isLoggedIn || !userInfo.user) return [];
   try {
@@ -281,6 +281,7 @@ async function getLessonProgress(courseId) {
     return data ? data.map(d => d.lesson_index) : [];
   } catch (e) {
     console.error('Erro ao buscar progresso:', e);
+    if(options?.strict)throw e;
     return [];
   }
 }
@@ -307,61 +308,57 @@ async function getAllLessonProgress(options) {
   }
 }
 
-async function toggleLessonComplete(courseId, index) {
-  const userInfo = getCurrentUserInfo();
-  if (!userInfo.isLoggedIn || !userInfo.user) {
-    showToast('Faça login para salvar seu progresso.', 'warning');
-    return;
-  }
-  try {
-    const { data: existing, error: fetchError } = await window.supabaseClient
-      .from('user_lesson_progress')
-      .select('id')
-      .eq('user_id', userInfo.user.id)
-      .eq('course_id', courseId)
-      .eq('lesson_index', index)
-      .maybeSingle();
-    if (fetchError) throw fetchError;
-
-    if (existing) {
-      const { error: delError } = await window.supabaseClient
-        .from('user_lesson_progress')
-        .delete()
-        .eq('id', existing.id);
-      if (delError) throw delError;
-      showToast('Aula marcada como pendente.', 'info');
-    } else {
-      const totalLessons = currentOpenCourse && currentOpenCourse.id === courseId
-        ? normalizeLessons(currentOpenCourse.lessons).length
-        : 0;
-      const completedBefore = await getLessonProgress(courseId);
-      const { error: insError } = await window.supabaseClient
-        .from('user_lesson_progress')
-        .insert([{
-          user_id: userInfo.user.id,
-          course_id: courseId,
-          lesson_index: index,
-          completed: true,
-          completed_at: new Date().toISOString()
-        }]);
-      if (insError) throw insError;
-      if (window.ADPELJourney && typeof window.ADPELJourney.registerLessonWatched === 'function') {
-        window.ADPELJourney.registerLessonWatched(courseId, index);
+// Automatic completion is idempotent; manual toggle remains available.
+const lessonProgressPending=new Map();
+async function toggleLessonComplete(courseId,index,options={}) {
+  const userInfo=getCurrentUserInfo();
+  if(!userInfo.isLoggedIn||!userInfo.user){showToast('Faça login para salvar seu progresso.','warning');return;}
+  const uid=userInfo.user.id,course=currentOpenCourse;
+  const totalLessons=course?.id===courseId?normalizeLessons(course.lessons).length:0;
+  if(!Number.isInteger(index)||index<0||index>=totalLessons)return;
+  const key=JSON.stringify([uid,courseId,index]);
+  if(lessonProgressPending.has(key))return lessonProgressPending.get(key);
+  const sameUser=()=>getCurrentUserInfo().user?.id===uid;
+  const sameCourse=()=>sameUser()&&currentOpenCourse===course;
+  const completeOnly=options.completeOnly===true;
+  const task=(async()=>{
+    try{
+      const client=window.supabaseClient;
+      const {data:existing,error:fetchError}=await client.from('user_lesson_progress').select('id,completed')
+        .eq('user_id',uid).eq('course_id',courseId).eq('lesson_index',index).maybeSingle();
+      if(fetchError)throw fetchError;
+      if(!sameCourse())return;
+      if(existing?.completed===true){
+        if(completeOnly)return;
+        const {error}=await client.from('user_lesson_progress').delete().eq('id',existing.id).eq('user_id',uid);
+        if(error)throw error;
+        if(sameUser())showToast('Aula marcada como pendente.','info');
+      }else{
+        const before=await getLessonProgress(courseId,{strict:true});
+        if(!sameCourse())return;
+        const payload={user_id:uid,course_id:courseId,lesson_index:index,completed:true,completed_at:new Date().toISOString()};
+        const result=existing
+          ? await client.from('user_lesson_progress').update({completed:true,completed_at:payload.completed_at}).eq('id',existing.id).eq('user_id',uid)
+          : await client.from('user_lesson_progress').insert([payload]);
+        if(result.error)throw result.error;
+        if(!sameUser())return;
+        const done=new Set(before.filter(i=>Number.isInteger(i)&&i>=0&&i<totalLessons));
+        done.add(index);
+        if(window.ADPELJourney?.registerLessonWatched)window.ADPELJourney.registerLessonWatched(courseId,index);
+        if(done.size===totalLessons&&window.ADPELJourney?.registerCourseCompleted)window.ADPELJourney.registerCourseCompleted(courseId);
+        showToast('Aula concluída!','success');
       }
-      if (totalLessons > 0 && completedBefore.length + 1 >= totalLessons && window.ADPELJourney && typeof window.ADPELJourney.registerCourseCompleted === 'function') {
-        window.ADPELJourney.registerCourseCompleted(courseId);
+      if(sameCourse()){
+        await renderCourseLessons(course);
+        if(sameCourse())await updateCertificateButton(courseId,totalLessons);
       }
-      showToast('Aula concluída!', 'success');
+    }catch(error){
+      console.error('Erro ao atualizar progresso:',error);
+      if(sameUser())showToast('Erro ao salvar progresso. Tente novamente.','error');
     }
-
-    if (currentOpenCourse && currentOpenCourse.id === courseId) {
-      await renderCourseLessons(currentOpenCourse);
-      await updateCertificateButton(courseId, normalizeLessons(currentOpenCourse.lessons).length);
-    }
-  } catch (e) {
-    console.error('Erro ao atualizar progresso:', e);
-    showToast('Erro ao salvar progresso.', 'error');
-  }
+  })().finally(()=>{if(lessonProgressPending.get(key)===task)lessonProgressPending.delete(key);});
+  lessonProgressPending.set(key,task);
+  return task;
 }
 
 async function renderCourseLessons(course) {
@@ -533,7 +530,7 @@ async function loadYouTubePlayer(video, courseId, lessonIndex, lessonTitle) {
 function onPlayerStateChange(event) {
   if (event.data === YT.PlayerState.ENDED) {
     if (currentCourseForPlayer !== null && currentLessonIndexForPlayer !== null) {
-      toggleLessonComplete(currentCourseForPlayer, currentLessonIndexForPlayer);
+      toggleLessonComplete(currentCourseForPlayer,currentLessonIndexForPlayer,{completeOnly:true});
     }
   }
 }
