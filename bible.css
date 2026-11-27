@@ -94,10 +94,6 @@
 .bible-selection-heading span {font-size:11px;color:#b4c5dc;}
 .bible-selection-heading strong {font-size:15px;color:#f8fafc;}
 .bible-selection-dismiss {flex:0 0 44px;min-height:44px;border-radius:9px;background:#1e293b;color:#e2e8f0;font-size:22px;}
-.bible-selection-primary {display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:.45rem;}
-.bible-selection-primary button {min-height:44px;border-radius:9px;background:#1d4ed8;color:white;font-size:13px;font-weight:650;padding:.5rem .35rem;}
-.bible-selection-primary button:last-child {background:#1e293b;border:1px solid #475569;}
-.bible-selection-primary i {margin-right:.25rem;}
 .bible-selection-panel .bible-sheet-actions {grid-template-columns:repeat(2,minmax(0,1fr));margin-top:.45rem;gap:.45rem;}
 .bible-selection-panel .bible-sheet-actions button {display:flex;align-items:center;justify-content:center;gap:.35rem;min-height:44px;font-size:12px;padding:.4rem .25rem;}
 .bible-selection-panel .bible-sheet-actions i {display:inline;margin:0;}
