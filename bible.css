@@ -105,3 +105,7 @@
 }
 
 .bible-verse {scroll-margin-top:80px;scroll-margin-bottom:90px;}
+
+/* Independent Tutor shortcut; the removed Study module is not required. */
+.bible-selection-tutor button {width:100%;min-height:44px;border-radius:9px;background:#1d4ed8;color:#fff;font-size:13px;font-weight:650;padding:.5rem .75rem;}
+.bible-selection-tutor i {margin-right:.35rem;}
