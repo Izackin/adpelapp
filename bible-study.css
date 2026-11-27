@@ -101,3 +101,11 @@
 .study-guide-comment p {white-space:pre-wrap;}
 .study-guide-questions {list-style:decimal;padding-left:20px;display:grid;gap:8px;margin:12px 0;}
 @media(max-width:380px){.study-tabs {grid-template-columns:repeat(2,minmax(0,1fr));}}
+
+.study-external {margin:0 0 16px;padding:14px;border:1px solid #334155;border-radius:12px;background:#111e32;min-width:0;}
+.study-external h4 {font-size:16px;color:#f8fafc;font-weight:750;}
+.study-external button[data-ao-source] {min-height:44px;border:1px solid #475569;border-radius:8px;padding:8px 12px;color:#dbeafe;background:#172554;white-space:normal;}
+.study-external .study-external-text {font:14px/1.75 Inter,system-ui,sans-serif;white-space:pre-wrap;overflow-wrap:anywhere;}
+.study-external-ref {display:flex;flex-wrap:wrap;justify-content:space-between;gap:6px;padding:10px 12px;min-height:44px;border-radius:8px;background:#1e293b;color:#bfdbfe;border:1px solid #334155;}
+.study-external-ref small {color:#cbd5e1;}
+.study-external button:focus-visible,.study-external-ref:focus-visible {outline:2px solid #60a5fa;outline-offset:2px;}
