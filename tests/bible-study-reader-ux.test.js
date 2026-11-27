@@ -2,6 +2,12 @@ const assert=require('node:assert/strict'),fs=require('node:fs'),path=require('n
 const read=p=>fs.readFileSync(path.resolve(__dirname,'..',p),'utf8');
 const slice=(s,a,b)=>{const i=s.indexOf(a),j=s.indexOf(b,i);assert.ok(i>=0&&j>i);return s.slice(i,j);};
 const bible=read('js/bible.js'),study=read('js/bible-study.js');
+const guidedContext={document:{addEventListener(){}},window:{},module:{exports:{}}};vm.createContext(guidedContext);vm.runInContext(study,guidedContext);
+const {validRange,guidedMarkup}=guidedContext.module.exports;
+const sample={book:{id:'JHN',name_pt:'João'},chapter:3,translation:{short_name:'ACF'},verses:Array.from({length:21},(_,i)=>({verse:i+1,text:'<texto> '+(i+1)}))};
+assert.equal(validRange(sample,1,21),true);assert.equal(validRange(sample,12,2),false);assert.equal(validRange(sample,1,22),false);
+const overview=guidedMarkup(sample,null,[],[]);assert.match(overview,/Capítulo inteiro/);assert.match(overview,/data-start="1" data-end="10"/);assert.match(overview,/data-start="11" data-end="20"/);assert.match(overview,/data-start="21" data-end="21"/);assert.match(overview,/&lt;texto&gt;/);assert.match(overview,/Ainda não há estudo editorial/);
+const passage=guidedMarkup(sample,{start:4,end:6},[{title:'<título>',content:'<script>',verse_start:3,verse_end:7}],[]);assert.match(passage,/Trecho 4–6/);assert.match(passage,/data-start="4" data-end="6"/);assert.match(passage,/&lt;script&gt;/);assert.doesNotMatch(passage,/<script>/);
 function classes(){const s=new Set();return{add(x){s.add(x)},remove(x){s.delete(x)},contains(x){return s.has(x)},toggle(x,on){if(on)s.add(x);else s.delete(x)}};}
 const nodes=[1,2,3].map(v=>({dataset:{verse:String(v)},classList:classes(),setAttribute(){},insertAdjacentElement(where,menu){assert.equal(where,'afterend');menu.after=v;},scrollIntoView(){this.scrolled=true;}}));
 const menu={classList:classes(),getBoundingClientRect:()=>({top:720})},label={},colors={classList:classes()};
@@ -23,7 +29,7 @@ vm.createContext(studyCtx);vm.runInContext(slice(study,'  function availableVers
  await studyCtx.setEnabled(false);assert.equal(focus,1);assert.equal(els['bible-verses-content'].classList.contains('study-reading-hidden'),false);
  assert.match(read('bible.css'),/\.bible-selection-panel\s*\{\s*position:static/);
  assert.match(read('bible-study.css'),/#bible-verses-content\.study-reading-hidden\s*\{display:none!important;\}/);
- for(const page of ['index.html','bible.html'])assert.match(read(page),/bible-study\.js\?v=2/);
+ for(const page of ['index.html','bible.html'])assert.match(read(page),/bible-study\.js\?v=3/);
  for(const action of ['highlight','note','bookmark','share','study','tutor'])assert.ok(bible.includes('data-bible-action="'+action+'"'));
  console.log('Bible selection layout and study navigation: PASS');
 })().catch(e=>{console.error(e);process.exitCode=1;});
