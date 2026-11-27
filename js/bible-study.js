@@ -24,6 +24,109 @@
     const credit=source.code==='stepbible'?'<a href="https://www.stepbible.org" target="_blank" rel="noopener noreferrer">STEP Bible</a>':escapeHtml(source.attribution||source.name);
     return `<footer class="study-attribution">${credit} · ${escapeHtml(source.license_type)}${url?` · <a href="${escapeHtml(url)}" target="_blank" rel="noopener noreferrer">Fonte e licença</a>`:''}</footer>`;
   }
+
+  const aoBase='https://bible.helloao.org/api/';
+  const aoSources=Object.freeze({
+    'matthew-henry':{label:'Matthew Henry',license:'Domínio público',url:'https://creativecommons.org/publicdomain/mark/1.0/'},
+    'john-gill':{label:'John Gill',license:'Domínio público',url:'https://creativecommons.org/publicdomain/mark/1.0/'},
+    'tyndale':{label:'Tyndale Open Study Notes',license:'CC BY-SA 4.0',url:'https://creativecommons.org/licenses/by-sa/4.0/'},
+    'open-cross-ref':{label:'OpenBible.info',license:'CC BY 4.0',url:'https://creativecommons.org/licenses/by/4.0/'}
+  });
+  const aoCache=new Map(),aoInflight=new Map();
+  let aoRequest=0;
+  const aoKnown=id=>Object.prototype.hasOwnProperty.call(aoSources,id);
+  function aoUrl(id,book,chapter){
+    if(!aoKnown(id)||!/^[A-Z0-9]{3}$/.test(book)||!Number.isInteger(chapter)||chapter<1||chapter>150)throw new Error('Referência inválida.');
+    return aoBase+(id==='open-cross-ref'?'d/':'c/')+id+'/'+book+'/'+chapter+(id==='open-cross-ref'?'.json':'.simple.json');
+  }
+  function aoValidate(p,id,book,chapter){
+    const meta=id==='open-cross-ref'?p?.dataset:p?.commentary;
+    if(!aoKnown(id)||meta?.id!==id||p?.book?.id!==book||p?.chapter?.number!==chapter||!Array.isArray(p.chapter.content)||p.chapter.content.length>1500)throw new Error('Resposta incompatível.');
+    if(String(meta.licenseUrl||'').replace(/\/$/,'')!==aoSources[id].url.replace(/\/$/,''))throw new Error('Licença não confirmada.');
+    if(id!=='open-cross-ref'&&meta.language!=='eng')throw new Error('Idioma incompatível.');
+    return p;
+  }
+  async function aoFetch(id,book,chapter){
+    const url=aoUrl(id,book,chapter),cached=aoCache.get(url);
+    if(cached&&Date.now()-cached.at<300000)return cached.value;
+    if(aoInflight.has(url))return aoInflight.get(url);
+    const task=(async()=>{
+      const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),10000);
+      try{
+        const res=await fetch(url,{signal:controller.signal,credentials:'omit',referrerPolicy:'no-referrer',redirect:'error'});
+        if(res.status===404)return null;
+        if(!res.ok)throw new Error('Fonte indisponível.');
+        const body=await res.text();
+        if(body.length>3500000)throw new Error('Capítulo externo muito grande.');
+        const value=aoValidate(JSON.parse(body),id,book,chapter);
+        aoCache.set(url,{at:Date.now(),value});
+        while(aoCache.size>12)aoCache.delete(aoCache.keys().next().value);
+        return value;
+      }finally{clearTimeout(timer);}
+    })();
+    aoInflight.set(url,task);
+    try{return await task;}finally{aoInflight.delete(url);}
+  }
+  function aoCredit(id,p,url){
+    const info=aoSources[id],meta=id==='open-cross-ref'?p.dataset:p.commentary;
+    return '<footer class="study-attribution">Fonte: '+escapeHtml(info.label)+' · via HelloAO · <a href="'+info.url+'" target="_blank" rel="noopener noreferrer">'+info.license+'</a> · <a href="'+escapeHtml(url)+'" target="_blank" rel="noopener noreferrer">Dados da fonte</a>'+(id==='open-cross-ref'?' · <a href="https://www.openbible.info/labs/cross-references/" target="_blank" rel="noopener noreferrer">OpenBible.info</a> · referências reorganizadas e nomes em português.':' · Texto em inglês, apresentação simplificada. Não é posição doutrinária oficial da ADPEL.')+(meta.licenseNotice?'<p>'+escapeHtml(meta.licenseNotice)+'</p>':'')+(meta.licenseNotes?'<p lang="en">'+escapeHtml(meta.licenseNotes)+'</p>':'')+'</footer>';
+  }
+  function aoCommentMarkup(p,scope){
+    const rows=p.chapter.content.filter(x=>x?.type==='verse'&&Number.isInteger(x.number)&&x.number>=0&&x.number<=200&&typeof x.text==='string'&&x.text.trim());
+    const intro=typeof p.chapter.introduction==='string'?p.chapter.introduction:'';
+    const matching=rows.filter(x=>x.number>=scope.start&&x.number<=scope.end);
+    const other=rows.filter(x=>!matching.includes(x));
+    const render=x=>'<details class="study-original-text"><summary>Entrada da fonte · versículo '+x.number+'</summary><p class="study-external-text" lang="en">'+escapeHtml(x.text)+'</p>'+((Array.isArray(x.footnotes)?x.footnotes:[]).filter(n=>typeof n?.text==='string').map(n=>'<p class="study-help" lang="en">'+escapeHtml(n.text)+'</p>').join(''))+'</details>';
+    return '<p class="study-help">Comentários externos em inglês. Use a tradução de página do navegador, quando disponível. A numeração e as interpretações podem diferir da edição portuguesa. Entradas numeradas podem comentar mais de um versículo.</p>'+
+      (intro?'<details class="study-original-text"><summary>Introdução do capítulo</summary><p class="study-external-text" lang="en">'+escapeHtml(intro)+'</p></details>':'')+
+      (matching.length?'<h4>No intervalo selecionado</h4>'+matching.map(render).join(''):'<p class="study-status">Não há entrada numerada exatamente neste intervalo.</p>')+
+      (other.length?'<details class="study-original-text"><summary>Outras entradas do capítulo ('+other.length+')</summary>'+other.map(render).join('')+'</details>':'')+
+      (!rows.length&&!intro?'<p class="study-status">Nenhum comentário textual nesta resposta.</p>':'');
+  }
+  function aoReferenceRows(p,scope,catalog){
+    const grouped=new Map();
+    for(const entry of p.chapter.content){
+      if(!Number.isInteger(entry?.verse)||entry.verse<scope.start||entry.verse>scope.end||!Array.isArray(entry.references))continue;
+      for(const x of entry.references){
+        const book=catalog.find(b=>b.id===x?.book),end=x?.endVerse??x?.verse;
+        if(!book||!Number.isInteger(x.chapter)||x.chapter<1||x.chapter>book.chapter_count||!Number.isInteger(x.verse)||!Number.isInteger(end)||x.verse<1||end<x.verse||end>200)continue;
+        const key=[book.id,x.chapter,x.verse,end].join(':'),score=Number.isFinite(x.score)?x.score:0;
+        if(!grouped.has(key))grouped.set(key,{book:book.id,name:book.name_pt,chapter:x.chapter,verse:x.verse,end,score,from:new Set()});
+        const row=grouped.get(key);row.score=Math.max(row.score,score);row.from.add(entry.verse);
+      }
+    }
+    return [...grouped.values()].sort((a,b)=>b.score-a.score).map(x=>({...x,from:[...x.from].sort((a,b)=>a-b)}));
+  }
+  function aoReferenceMarkup(p,scope,catalog,translation){
+    const rows=aoReferenceRows(p,scope,catalog),show=rows.slice(0,100);
+    const render=r=>{const url='bible.html?book='+encodeURIComponent(r.book)+'&chapter='+r.chapter+'&verse='+r.verse+(r.end>r.verse?'&end='+r.end:'')+(/^[a-z0-9_-]{2,40}$/i.test(translation||'')?'&translation='+encodeURIComponent(translation):'');
+      return '<a class="study-external-ref" href="'+escapeHtml(url)+'"><strong>'+escapeHtml(reference(r.name,r.chapter,r.verse))+(r.end>r.verse?'–'+r.end:'')+'</strong><small>Relacionado a '+r.from.join(', ')+'</small></a>';};
+    return rows.length?'<p class="study-help">'+rows.length+' passagens relacionadas; '+(rows.length>100?'100 primeiras exibidas por pontuação da fonte. ':'')+'Toque para ler na Bíblia em português. A relação sugerida não determina o sentido do texto.</p><div class="study-reference-list">'+show.slice(0,10).map(render).join('')+'</div>'+(show.length>10?'<details class="study-original-text"><summary>Mais referências ('+(show.length-10)+')</summary><div class="study-reference-list">'+show.slice(10).map(render).join('')+'</div></details>':''):'<p class="study-status">Nenhuma referência externa encontrada para este intervalo.</p>';
+  }
+  function aoPanel(tab){
+    if(!['overview','comments','references'].includes(tab))return;
+    $('study-content').insertAdjacentHTML('afterbegin','<section class="study-comment study-external"><h4>Biblioteca de estudo externa</h4><p class="study-help">Consulta gratuita à HelloAO. Enviamos somente a referência bíblica, sem sessão, notas ou credenciais. Requer internet.</p><div class="study-guide-actions">'+(tab!=='references'?['matthew-henry','john-gill','tyndale'].map(id=>'<button type="button" data-ao-source="'+id+'">'+aoSources[id].label+'</button>').join(''):'')+(tab!=='comments'?'<button type="button" data-ao-source="open-cross-ref">Passagens relacionadas</button>':'')+'</div><div id="study-ao-result" aria-live="polite"></div></section>');
+    if(tab==='references')void loadAo('open-cross-ref');
+  }
+  async function loadAo(id){
+    const host=$('study-ao-result'),c=state.context,tab=state.tab,generation=state.generation,request=++aoRequest;
+    if(!host||!state.enabled||!c?.book||!aoKnown(id))return;
+    const selected=tab==='overview'?state.range:{start:state.verse,end:state.verse};
+    const numbers=c.verses.map(v=>Number(v.verse)).filter(v=>v>=1&&v<=200);
+    if(!numbers.length){host.textContent='Nenhuma referência disponível nesta tradução.';return;}
+    const scope=selected&&validRange(c,selected.start,selected.end)?selected:tab==='overview'?{start:Math.min(...numbers),end:Math.max(...numbers)}:null;
+    if(!scope){host.textContent='Esta numeração da fonte original não está disponível na tradução portuguesa.';return;}
+    host.innerHTML='<p class="study-status" role="status">Carregando '+escapeHtml(aoSources[id].label)+'…</p>';
+    const current=()=>state.enabled&&state.generation===generation&&aoRequest===request&&$('study-ao-result')===host;
+    try{
+      const p=await aoFetch(id,c.book.id,c.chapter);
+      if(!current())return;
+      if(!p){host.textContent='A fonte não possui este capítulo.';return;}
+      const catalog=window.ADPELBibleReferences?.books||[];
+      if(id==='open-cross-ref'&&!catalog.length)throw new Error('Catálogo indisponível.');
+      host.innerHTML='<h4>'+escapeHtml(aoSources[id].label)+'</h4>'+(id==='open-cross-ref'?aoReferenceMarkup(p,scope,catalog,c.translation?.code):aoCommentMarkup(p,scope))+aoCredit(id,p,aoUrl(id,c.book.id,c.chapter));
+    }catch(e){if(current())host.innerHTML='<p class="study-status" role="alert">Não foi possível consultar esta fonte externa agora. Os recursos locais continuam disponíveis.</p><button type="button" data-ao-source="'+id+'">Tentar novamente</button>';}
+  }
   function mount() {
     if($('bible-study-panel') || !$('bible-verses-content'))return;
     const actions=$('bible-experience-actions');
@@ -41,6 +144,8 @@
     $('study-word-dialog').addEventListener('close',()=>state.wordRequest++);
     $('study-word-dialog').addEventListener('click',e=>{if(e.target===$('study-word-dialog')){const rect=e.target.getBoundingClientRect();if(e.clientX<rect.left||e.clientX>rect.right||e.clientY<rect.top||e.clientY>rect.bottom)e.target.close();}});
     document.addEventListener('click',async e=>{
+      const ao=e.target.closest('[data-ao-source]');
+      if(ao){await loadAo(ao.dataset.aoSource);return;}
       const mode=e.target.closest('[data-study-mode]');
       if(mode){if(mode.dataset.studyMode==='study'&&!state.enabled){state.tab='overview';state.range=null;}await setEnabled(mode.dataset.studyMode==='study');return;}
       const tab=e.target.closest('[data-study-tab]');
@@ -245,6 +350,7 @@
         $('study-content').innerHTML=data?.length?`<p class="study-status">Leia as passagens no contexto; a relação temática não torna seus sentidos idênticos.</p><div class="study-reference-list">${data.map(x=>`<button type="button" data-study-jump="${escapeHtml(x.to_book_id)}" data-study-chapter="${x.to_chapter}" data-study-verse="${x.to_verse}">${escapeHtml(reference(names.get(x.to_book_id)||x.to_book_id,x.to_chapter,x.to_verse))}<small>${escapeHtml(x.relation_type)}</small></button>`).join('')}</div>${sources.map(sourceFooter).join('')}`:'<p class="study-status">Nenhuma referência cruzada cadastrada para este versículo.</p>';
       }
     }catch(error){if(request===state.generation)showError($('study-content'),'Não foi possível carregar o estudo. Confira sua conexão e tente novamente.');console.error('Estudo bíblico:',error.message);}
+    if(request===state.generation&&state.enabled)aoPanel(tab);
   }
   function renderOriginal(original,tokens,source) {
     const rtl=original.language!=='grc';
@@ -310,5 +416,5 @@
   });
   document.addEventListener('DOMContentLoaded',()=>{mount();state.context=window.ADPELBible?.getContext();});
   window.ADPELBibleStudy={openVerse,openPassage};
-  if(typeof module!=='undefined'&&module.exports)module.exports={plainStrong,morphologyParts,safeUrl,validRange,guidedMarkup};
+  if(typeof module!=='undefined'&&module.exports)module.exports={plainStrong,morphologyParts,safeUrl,validRange,guidedMarkup,aoUrl,aoValidate,aoReferenceRows,aoReferenceMarkup,aoCommentMarkup,aoFetch};
 })();
