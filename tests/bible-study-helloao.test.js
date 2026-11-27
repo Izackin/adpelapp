@@ -9,7 +9,7 @@ const sample={dataset:{id:'open-cross-ref',licenseUrl:license},book:{id:'JHN'},c
 let calls=0,status=200,requestOptions;
 const env={document:{addEventListener(){}},window:{},module:{exports:{}},AbortController,setTimeout,clearTimeout,fetch:async(url,opts)=>{calls++;requestOptions=opts;return {ok:status===200,status,text:async()=>JSON.stringify(sample)};}};
 vm.createContext(env);vm.runInContext(src,env);
-const {aoUrl,aoValidate,aoReferenceRows,aoReferenceMarkup,aoCommentMarkup,aoFetch}=env.module.exports;
+const {aoUrl,aoValidate,aoReferenceRows,aoReferenceMarkup,aoCommentMarkup,aoFetch,splitTranslationText,translateCommentText}=env.module.exports;
 const scope={start:16,end:17};
 assert.equal(aoUrl('matthew-henry','JHN',3),'https://bible.helloao.org/api/c/matthew-henry/JHN/3.simple.json');
 assert.throws(()=>aoUrl('../bad','JHN',3));assert.throws(()=>aoUrl('open-cross-ref','JHN',0));
@@ -22,7 +22,12 @@ assert.match(html,/Romanos 5:8–9/);assert.match(html,/end=9/);assert.doesNotMa
 const commentary={commentary:{id:'matthew-henry',licenseUrl:'https://creativecommons.org/publicdomain/mark/1.0/',language:'eng'},book:{id:'JHN'},chapter:{number:3,introduction:'<intro>',content:[{type:'verse',number:16,text:'<script>'},{type:'verse',number:1,text:'Other entry'}]}};
 const comment=aoCommentMarkup(aoValidate(commentary,'matthew-henry','JHN',3),scope);
 assert.match(comment,/&lt;script&gt;/);assert.doesNotMatch(comment,/<script>/);assert.match(comment,/Outras entradas do capítulo/);
+assert.match(comment,/Traduzir para português/);assert.match(comment,/Copiar original/);
+const long='a'.repeat(1799)+'😀 '+'b'.repeat(1800);const chunks=splitTranslationText(long);assert.equal(chunks.join(''),long);assert.ok(chunks.every(c=>c.length<=1800));assert.ok(!/[\uD800-\uDBFF]$/.test(chunks[0]));
 (async()=>{
+ assert.equal(await translateCommentText({translate:async()=>'<texto>'},'Hello'),'<texto>');
+ await assert.rejects(translateCommentText({translate:async()=>''},'Hello'),/vazia/);
+ await assert.rejects(translateCommentText({translate:async()=> 'Olá'},'Hello',()=>false),/cancelada/);
  await Promise.all([aoFetch('open-cross-ref','JHN',3),aoFetch('open-cross-ref','JHN',3)]);
  assert.equal(calls,1);assert.equal(requestOptions.credentials,'omit');assert.equal(requestOptions.referrerPolicy,'no-referrer');
  await aoFetch('open-cross-ref','JHN',3);assert.equal(calls,1);
