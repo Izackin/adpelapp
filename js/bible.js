@@ -672,7 +672,7 @@
         'library-notes': () => openLibrary('notes'), 'library-bookmarks': () => openLibrary('bookmarks'),
         rights: () => openModal('bible-rights-modal'), highlight: () => $('bible-highlight-colors')?.classList.toggle('hidden'),
         'remove-highlight': removeHighlight, note: () => openNote(), bookmark: toggleBookmark, share: shareSelection, tutor: openTutorForSelection,
-        study: () => { const verse=state.selection?.verse_start; if(verse!=null){clearSelection();window.ADPELBibleStudy?.openVerse(verse);} },
+        study: () => { const start=state.selection?.verse_start,end=state.selection?.verse_end; if(start!=null){clearSelection();window.ADPELBibleStudy?.openPassage(start,end);} },
         'clear-selection': clearSelection, 'save-note': saveNote, 'delete-note': deleteNote,
         'close-modal': closeModals, 'close-auth': () => $('bible-auth-invite')?.classList.remove('visible')
       };
