@@ -60,7 +60,7 @@ assert.doesNotMatch(source, /service_role|SUPABASE_SERVICE_ROLE_KEY/);
 
 for (const htmlFile of ['index.html', 'bible.html']) {
   const html = read(htmlFile);
-  assert.match(html, /href="bible\.css"/);
+  assert.match(html, /href="bible\.css(?:\?v=[A-Za-z0-9._-]+)?"/);
   assert.match(html, /(?:src=")?js\/bible\.js(?:\?v=bible-2\.0)?/);
   assert.match(html, /id="bible-book-select"/);
   assert.match(html, /id="bible-search-input"/);

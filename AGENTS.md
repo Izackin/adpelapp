@@ -72,8 +72,7 @@ Ajudar igrejas a discipular, informar, engajar e servir seus membros por meio de
 |-- js/
 |   |-- agenda.js                    # Agenda/eventos publicos
 |   |-- app-updates.js               # Novidades e atualizacoes do app
-|   |-- bible.js                     # Biblia 2.0 compartilhada: leitura, busca e estudo pessoal
-|   |-- bible-study.js               # Originais, interlinear, Strong, morfologia e concordancia
+|   |-- bible.js                     # Biblia 2.0 compartilhada: leitura, busca e anotacoes pessoais
 |   |-- tutor.js                     # Tutor Teologico: perguntas autenticadas, fontes e contexto biblico
 |   |-- bootstrap.js                 # Helpers globais iniciais
 |   |-- certificates.js              # Certificados publicos
@@ -290,8 +289,6 @@ O fluxo atual e:
 - Arquitetura biblica multiversao com livros canonicos, seletor e metadados de direitos.
 - Selecao de versiculo/intervalo, destaques, notas privadas, favoritos e compartilhamento.
 - Progresso explicito de leitura, continuacao e preferencia de tamanho de fonte por usuario.
-- Modo Estudo nas duas telas da Biblia, com idiomas originais clicaveis, Strong, interlinear, morfologia e concordancia paginada.
-- Comentarios publicados por referencia e editor de rascunhos exclusivo do master (`admin/crud-bible-study.js`).
 - Harpa Crista em `harpa.html`.
 - Busca de hinos por numero, titulo ou trecho.
 - Cache local da Harpa.
@@ -766,22 +763,10 @@ Nao altere sem necessidade e sem entender impacto:
 - Documentar qualquer funcionalidade nova criada.
 - Atualizar este `AGENTS.md` sempre que a arquitetura mudar.
 
-## Motor de estudo biblico
+## Leitura biblica
 
 `js/bible-references.js` fornece o catalogo canonico dos 66 livros derivado da migration 20260924140312 (sem nova consulta), nomes em portugues, validacao de referencias e URLs de leitura `bible.html?book=JHN&chapter=3&verse=16` (intervalo opcional `end`, traducao opcional `translation`). O devocional e os cartoes de retomada usam a mesma camada. A referencia explicita tem prioridade sobre preferencias salvas; referencia invalida nao gera link ativo. O leitor destaca temporariamente e posiciona o versiculo/intervalo solicitado sem criar nota ou destaque persistente. Falhas de sincronizacao privada nao devem impedir leitura publica. Atualize o catalogo e os testes se os metadados canonicos mudarem.
 
-As acoes da selecao ficam no fluxo do texto, imediatamente depois do ultimo versiculo do intervalo; nunca usar position fixed para esse painel. Ao limpar a selecao o elemento reutilizavel volta oculto ao body antes da substituicao do texto. Estudo tem visual separado da leitura, navegacao anterior/proximo versiculo, abas Palavras/Comentarios/Referencias, retorno ao versiculo estudado e cartoes de palavras originais; dados, fontes e regras linguisticas permanecem os mesmos.
+As acoes da selecao ficam no fluxo do texto apos o ultimo versiculo do intervalo; nunca usar position fixed. Ao limpar a selecao, o elemento reutilizavel volta oculto ao body antes de substituir o texto. A selecao oferece destaque, nota, favorito, compartilhamento e atalho para o Tutor Teologico independente (ate 10 versiculos, com contexto da passagem). O Tutor permanece na aba Palavra; o atalho nao depende do Modo Estudo.
 
-`js/bible.js` emite `adpel:bible-chapter` e expoe `getContext()` e `noteForVerse()` na facade `ADPELBible`. `js/bible-study.js` carrega dados somente ao ativar Estudo, descarta respostas antigas, reutiliza notas privadas e usa dialog nativo para palavras. Os atributos de navegacao do estudo usam `data-study-*` para nao conflitar com os eventos da leitura.
-
-Fontes linguisticas sao globais e somente leitura no navegador. Comentarios locais usam `source_code = adpel-editorial`; somente `is_admin_master()` pode escrever e ler rascunhos. O projeto atual e de uma igreja: adicionar escopo de tenant aos comentarios e policies antes da oferta multi-igrejas. Nao liberar escrita global a pastores/lideres sem um modelo de autorizacao por igreja.
-
-Confira `docs/bible-study.md` para cobertura, licencas especificas, limitacoes de versificacao, importacao reproduzivel e verificacoes. Nao importar a coluna Meaning do TBESH. Nunca associar palavras portuguesas aos originais pela posicao. Pacotes e lotes SQL ficam fora do Git.
-
-A aba Entender e a entrada padrao do Estudo e consulta comentarios publicados por capitulo ou intervalo (intersecao de referencias). A selecao de leitura preserva o intervalo completo. Originais, Comentarios e Referencias permanecem por versiculo. O Tutor so abre mediante clique explicito, com ate dez versiculos; nao ha geracao automatica. O admin permite carregar tres modelos de capitulo assistidos por IA em formulario nao salvo, mantendo metadado de procedencia e revisao antes de publicar. Nao alterar RLS nem publicar automaticamente.
-
-Producao editorial em lote no admin: prompt para IA externa, JSON de ate 12 capitulos, validacao de ACF e duplicidades, previa escapada e INSERT exclusivo de rascunhos com metadados controlados. Sem API de IA, alteracao de schema, publicacao automatica ou garantia de deduplicacao concorrente. Revisao humana obrigatoria antes de publicar.
-
-Biblioteca externa HelloAO somente leitura: Matthew Henry, John Gill, Tyndale e OpenBible.info com allowlist, verificacao de licenca na resposta, escape, referencias com intervalo para leitor portugues, cache limitado e timeout. Comentarios em ingles, traducao de navegador opcional, nao representam posicao oficial ADPEL. Sem alteracao de schema, RLS, automacao ou API paga.
-
-Comentarios HelloAO: traducao opcional por entrada via Translator API nativa en-pt, sem chave ou servidor, com original preservado, aviso de traducao nao revisada, descarte de respostas antigas e alternativa manual de copiar texto em navegador sem suporte. Nao traduzir Escritura ou notas pessoais nem alterar licencas. API nativa nao garante suporte em celular.
+Em 27/11/2026, por decisao do responsavel, o Modo Estudo foi retirado das duas telas, incluindo originais, Strong, concordancia, comentarios, referencias cruzadas, HelloAO, traducao e editor/geracao em lote. Nao reativar sem solicitacao explicita. Migrations historicas, dados e licencas no Supabase foram preservados; nao executar limpeza destrutiva nem importacoes do acervo. O relatorio e manifesto historicos documentam a procedencia. A leitura, traducoes biblicas e dados pessoais continuam ativos.

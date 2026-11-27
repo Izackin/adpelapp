@@ -84,7 +84,7 @@
       await loadPersonalChapterData();
       return true;
     }
-    showMessage('Entre na ADPEL para salvar seu estudo e progresso.', 'info');
+    showMessage('Entre na ADPEL para salvar suas anotações e progresso.', 'info');
     if (typeof window.openModal === 'function' && $('login-modal')) window.openModal('login-modal');
     else $('bible-auth-invite')?.classList.add('visible');
     return false;
@@ -173,7 +173,7 @@
       <div id="bible-selection-menu" class="bible-selection-panel hidden" role="region" aria-labelledby="bible-selection-label">
         <div class="bible-selection-heading"><div><span>Passagem selecionada</span><strong id="bible-selection-label"></strong></div><button type="button" class="bible-selection-dismiss" data-bible-action="clear-selection" aria-label="Fechar ações">×</button></div>
         <div id="bible-highlight-colors" class="bible-color-row hidden">${COLORS.map((color) => `<button data-highlight-color="${color}" class="bible-color-${color}" aria-label="Destaque ${color}"></button>`).join('')}<button data-bible-action="remove-highlight">Remover</button></div>
-        <div class="bible-selection-primary"><button type="button" data-bible-action="study"><i class="fas fa-language" aria-hidden="true"></i> Estudar</button><button type="button" data-bible-action="tutor"><i class="fas fa-book-open" aria-hidden="true"></i> Tutor</button></div>
+        <div class="bible-selection-tutor"><button type="button" data-bible-action="tutor"><i class="fas fa-book-open" aria-hidden="true"></i> Tutor Teológico</button></div>
         <div class="bible-sheet-actions"><button type="button" data-bible-action="highlight"><i class="fas fa-highlighter" aria-hidden="true"></i> Destacar</button><button type="button" data-bible-action="note"><i class="fas fa-note-sticky" aria-hidden="true"></i> Nota</button><button type="button" data-bible-action="bookmark"><i class="far fa-bookmark" aria-hidden="true"></i> Favoritar</button><button type="button" data-bible-action="share"><i class="fas fa-share-nodes" aria-hidden="true"></i> Compartilhar</button></div>
       </div>
       <div id="bible-modal-backdrop" class="bible-modal-backdrop hidden"></div>
@@ -183,7 +183,7 @@
         <div class="bible-modal-actions"><button data-bible-action="delete-note" class="danger">Excluir</button><button data-bible-action="close-modal">Cancelar</button><button data-bible-action="save-note" class="primary">Salvar</button></div>
       </section>
       <section id="bible-library-modal" class="bible-modal bible-library-modal hidden" role="dialog" aria-modal="true" aria-labelledby="bible-library-title">
-        <div class="bible-modal-heading"><h3 id="bible-library-title">Meu estudo bíblico</h3><button data-bible-action="close-modal" aria-label="Fechar">×</button></div>
+        <div class="bible-modal-heading"><h3 id="bible-library-title">Minhas anotações</h3><button data-bible-action="close-modal" aria-label="Fechar">×</button></div>
         <input id="bible-library-search" type="search" placeholder="Buscar nas referências e notas">
         <div id="bible-library-list" class="bible-library-list"></div>
       </section>
@@ -191,7 +191,7 @@
         <div class="bible-modal-heading"><h3 id="bible-rights-title">Versões e direitos</h3><button data-bible-action="close-modal" aria-label="Fechar">×</button></div>
         <div id="bible-rights-list" class="bible-rights-list"></div>
       </section>
-      <div id="bible-auth-invite" class="bible-sheet"><strong>Salve seu estudo</strong><p>Entre na ADPEL para sincronizar notas, destaques, favoritos e progresso.</p><a href="index.html#bible">Ir para o login</a><button class="bible-sheet-close" data-bible-action="close-auth">Continuar lendo</button></div>`);
+      <div id="bible-auth-invite" class="bible-sheet"><strong>Salve sua leitura</strong><p>Entre na ADPEL para sincronizar notas, destaques, favoritos e progresso.</p><a href="index.html#bible">Ir para o login</a><button class="bible-sheet-close" data-bible-action="close-auth">Continuar lendo</button></div>`);
   }
 
   async function loadCatalog() {
@@ -329,7 +329,6 @@
     if (next) next.disabled = state.chapter >= state.book.chapter_count;
     renderChapterButtons();
     renderProgress();
-    document.dispatchEvent(new CustomEvent('adpel:bible-chapter', { detail: getContext() }));
   }
 
   async function loadPersonalData() {
@@ -672,7 +671,6 @@
         'library-notes': () => openLibrary('notes'), 'library-bookmarks': () => openLibrary('bookmarks'),
         rights: () => openModal('bible-rights-modal'), highlight: () => $('bible-highlight-colors')?.classList.toggle('hidden'),
         'remove-highlight': removeHighlight, note: () => openNote(), bookmark: toggleBookmark, share: shareSelection, tutor: openTutorForSelection,
-        study: () => { const start=state.selection?.verse_start,end=state.selection?.verse_end; if(start!=null){clearSelection();window.ADPELBibleStudy?.openPassage(start,end);} },
         'clear-selection': clearSelection, 'save-note': saveNote, 'delete-note': deleteNote,
         'close-modal': closeModals, 'close-auth': () => $('bible-auth-invite')?.classList.remove('visible')
       };
