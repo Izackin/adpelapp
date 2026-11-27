@@ -48,7 +48,7 @@ if (typeof window.formatDate !== 'function') {
 // ============================================================
 
 var adminCurrentView = 'home';
-var adminViewTitles = {home:'Visão geral',church:'Gestão da igreja',agenda:'Agenda e eventos',courses:'Cursos',library:'Biblioteca',verses:'Versículo do dia',certificates:'Certificados de curso',cofres:'Cofres',community:'Comunidade',notifications:'Notificações', 'app-updates':'Atualizações do app',system:'Sistema','bible-study':'Estudo bíblico'};
+var adminViewTitles = {home:'Visão geral',church:'Gestão da igreja',agenda:'Agenda e eventos',courses:'Cursos',library:'Biblioteca',verses:'Versículo do dia',certificates:'Certificados de curso',cofres:'Cofres',community:'Comunidade',notifications:'Notificações', 'app-updates':'Atualizações do app',system:'Sistema'};
 function adminNavigateTo(view) {
   if (view === 'avisos') view = 'agenda';
   if (!document.getElementById('admin-view-' + view)) return;
@@ -251,7 +251,6 @@ async function loadAdminDataPass(view) {
     await Promise.all([task('estatísticas de notificações',typeof loadNotificationStats==='function'?loadNotificationStats:null),task('automações',typeof loadAdminAutomationStatus==='function'?loadAdminAutomationStatus:null)]);
   }
   if(view==='community')await task('comunidade',typeof loadAdminCommunity==='function'?loadAdminCommunity:null);
-  if(view==='bible-study')await task('estudo bíblico',typeof loadAdminBibleStudy==='function'?loadAdminBibleStudy:null);
   if(failures.length){
     if(updated&&(all||home))updated.textContent='Atualização parcial';
     if(typeof showToast==='function')showToast('Algumas áreas não puderam ser atualizadas: '+failures.join(', ')+'. Tente atualizar novamente.','warning');
