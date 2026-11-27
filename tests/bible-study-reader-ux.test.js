@@ -14,13 +14,21 @@ assert.match(read('bible.css'),/\.bible-selection-panel\s*\{\s*position:static/)
 for(const page of ['index.html','bible.html']){
  const html=read(page);
  assert.doesNotMatch(html,/js\/bible-study\.js|bible-study\.css/);
- assert.match(html,/js\/bible\.js\?v=bible-2\.4-reading/);
+ assert.match(html,/js\/bible\.js\?v=bible-2\.4-reading-tutor/);
 }
-for(const action of ['highlight','note','bookmark','share'])assert.ok(bible.includes('data-bible-action="'+action+'"'));
-for(const action of ['study','tutor'])assert.ok(!bible.includes('data-bible-action="'+action+'"'));
-assert.doesNotMatch(bible,/ADPELBibleStudy|openTutorForSelection|adpel:bible-chapter/);
+for(const action of ['highlight','note','bookmark','share','tutor'])assert.ok(bible.includes('data-bible-action="'+action+'"'));
+for(const action of ['study'])assert.ok(!bible.includes('data-bible-action="'+action+'"'));
+assert.doesNotMatch(bible,/ADPELBibleStudy|adpel:bible-chapter/);
 assert.doesNotMatch(read('admin.html'),/crud-bible-study/);
 assert.doesNotMatch(read('admin.js'),/loadAdminBibleStudy|['"]bible-study['"]/);
 assert.match(read('index.html'),/js\/tutor\.js/);
 for(const p of ['js/bible-study.js','bible-study.css','admin/crud-bible-study.js'])assert.ok(!fs.existsSync(path.resolve(__dirname,'..',p)));
-console.log('Bible reading-only selection and removal: PASS');
+const selection={book_id:'JHN',book_name:'João',chapter:3,verse_start:16,verse_end:18,translation_code:'acf'};
+let selected=selection,received=null,cleared=0,warnings=[];
+const tutorCtx={buildSelectionPayload:()=>selected,isTutorVerseCountAllowed:n=>Number.isInteger(n)&&n>=1&&n<=10,showMessage:m=>warnings.push(m),clearSelection:()=>cleared++,window:{ADPELTutor:{openWithBibleContext:p=>{received=p;return true;}},location:{href:''}},URLSearchParams};
+vm.createContext(tutorCtx);vm.runInContext(slice(bible,'  function openTutorForSelection','  function renderProgress'),tutorCtx);
+tutorCtx.openTutorForSelection();assert.equal(received.verse_start,16);assert.equal(received.verse_end,18);assert.equal(received.translation_code,'acf');assert.equal(cleared,1);
+selected={...selection,verse_end:26};tutorCtx.openTutorForSelection();assert.equal(warnings.length,1);assert.equal(cleared,1);
+selected=selection;tutorCtx.window.ADPELTutor=undefined;tutorCtx.openTutorForSelection();assert.match(tutorCtx.window.location.href,/^index\.html\?tutor=1&/);assert.match(tutorCtx.window.location.href,/verse_start=16&verse_end=18/);assert.match(tutorCtx.window.location.href,/#tutor$/);
+selected=null;tutorCtx.openTutorForSelection();assert.equal(cleared,2);
+console.log('Bible reading-only selection and independent Tutor shortcut: PASS');
