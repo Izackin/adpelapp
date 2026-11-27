@@ -2,15 +2,44 @@
   'use strict';
   const $=id=>document.getElementById(id), client=()=>window.supabaseClient;
   const esc=value=>window.escapeHtml(value);
-  const state={books:[],items:[],page:0,total:0,request:0};
+  const state={books:[],items:[],page:0,total:0,request:0,formMetadata:{}};
+  const chapterModels=[
+  {
+    "book_id": "GEN",
+    "chapter": 1,
+    "verse_start": 1,
+    "verse_end": 31,
+    "category": "expositivo",
+    "title": "Gênesis 1 — Deus cria com propósito",
+    "content": "RESUMO\nDeus cria os céus e a terra, organiza a criação e declara que ela é boa. O ser humano é criado à imagem de Deus.\n\nCONTEXTO\nO primeiro capítulo abre a narrativa bíblica apresentando Deus como Criador. O relato continua em Gênesis 2:1–3, com o descanso do sétimo dia.\n\nENTENDA POR PARTES\n1–5: Deus cria a luz e separa luz e trevas.\n6–25: Deus ordena os céus, a terra, os seres vivos e os ciclos do mundo criado.\n26–31: Deus cria a humanidade à sua imagem e lhe atribui responsabilidade sobre a criação.\n\nAPLICAÇÃO\nReconheça a dignidade de cada pessoa e cuide da criação com responsabilidade.\n\nREFLEXÃO\nComo reconhecer Deus como Criador muda a forma como trato as pessoas e o mundo?\n\nLEITURAS RELACIONADAS\nGênesis 2:1–3; Salmos 8:3–8; João 1:1–3."
+  },
+  {
+    "book_id": "JHN",
+    "chapter": 3,
+    "verse_start": 1,
+    "verse_end": 36,
+    "category": "expositivo",
+    "title": "João 3 — Novo nascimento e fé em Cristo",
+    "content": "RESUMO\nJesus ensina a Nicodemos sobre o novo nascimento. O capítulo apresenta o amor de Deus, a fé no Filho e o testemunho de João Batista.\n\nCONTEXTO\nNicodemos era fariseu e autoridade entre os judeus. Ele procura Jesus à noite e ouve que é necessário nascer de novo. O diálogo aponta para uma transformação espiritual, não apenas conhecimento religioso.\n\nENTENDA POR PARTES\n1–8: Jesus fala sobre nascer de novo e a obra do Espírito.\n9–21: o texto apresenta a necessidade de crer no Filho, a salvação e o contraste entre luz e trevas.\n22–36: João Batista aponta para a superioridade de Jesus e a importância de crer nele.\n\nAPLICAÇÃO\nExamine se sua fé está limitada ao conhecimento ou se produz mudança na maneira de viver. Reconheça Cristo como centro da caminhada cristã.\n\nREFLEXÃO\nO que significa viver uma vida transformada pelo Espírito?\n\nLEITURAS RELACIONADAS\nNúmeros 21:4–9; João 1:12–13; Tito 3:4–7."
+  },
+  {
+    "book_id": "PHP",
+    "chapter": 4,
+    "verse_start": 1,
+    "verse_end": 23,
+    "category": "expositivo",
+    "title": "Filipenses 4 — Paz, contentamento e perseverança",
+    "content": "RESUMO\nPaulo incentiva a união, a alegria no Senhor, a oração e o contentamento, agradecendo a ajuda dos filipenses.\n\nCONTEXTO\nPaulo escreve enquanto está preso (Filipenses 1:12–14). O capítulo final mostra como a fé se manifesta mesmo diante de dificuldades.\n\nENTENDA POR PARTES\n1–3: permaneçam firmes e busquem a reconciliação.\n4–9: apresentem suas preocupações a Deus em oração e cultivem pensamentos que honram a Deus.\n10–20: Paulo agradece a ajuda recebida e explica que aprendeu a viver tanto na necessidade quanto na abundância. O versículo 13 trata dessa força em Cristo, não de uma garantia de realizar qualquer desejo.\n21–23: saudações e bênção final.\n\nAPLICAÇÃO\nEm meio às dificuldades, pratique a oração, a gratidão, a generosidade e a confiança em Cristo.\n\nREFLEXÃO\nEm quais situações preciso aprender contentamento sem abandonar a responsabilidade de agir?\n\nLEITURAS RELACIONADAS\nFilipenses 1:12–14; 2 Coríntios 12:9–10; 1 Timóteo 6:6–8."
+  }
+];
   function mount() {
     if($('admin-view-bible-study'))return;
     document.querySelector('[onclick="adminNavigateTo(\'verses\')"]')?.insertAdjacentHTML('afterend',`<button onclick="adminNavigateTo('bible-study')" class="w-full flex items-center px-3 py-2.5 rounded-lg hover:bg-gray-800 text-gray-300 hover:text-white min-h-[44px]"><i class="fas fa-language w-5 text-center"></i><span class="ml-3 font-medium">Comentários bíblicos</span></button>`);
     $('admin-view-verses')?.insertAdjacentHTML('afterend',`<section id="admin-view-bible-study" class="hidden space-y-6">
-      <div><h2 class="text-2xl font-bold text-gray-800">Comentários bíblicos</h2><p class="text-sm text-gray-500">Revise o conteúdo e publique comentários por versículo ou intervalo. Rascunhos ficam visíveis somente ao master.</p></div>
+      <div><h2 class="text-2xl font-bold text-gray-800">Comentários bíblicos</h2><p class="text-sm text-gray-500">Revise e publique estudos de capítulos, passagens ou comentários por versículo. Rascunhos ficam visíveis somente ao master.</p></div>
       <div class="bg-white rounded-xl border border-gray-200 p-4 md:p-6 space-y-4">
         <div class="flex flex-wrap gap-3"><label class="text-sm">Filtrar livro <select id="study-admin-filter" class="border rounded-lg p-2 min-h-[44px]"><option value="">Todos os livros</option></select></label><button type="button" id="study-admin-new" class="bg-blue-600 text-white rounded-lg px-4 min-h-[44px]">Novo comentário</button><button type="button" id="study-admin-reload" class="border rounded-lg px-4 min-h-[44px]">Atualizar</button></div>
-        <p id="study-admin-status" class="text-sm text-gray-500" role="status"></p><div id="study-admin-list" class="space-y-3"></div>
+        <div class="border rounded-xl p-3 space-y-2"><strong>Modelos de estudo por capítulo</strong><p class="text-sm text-gray-600">Preencha um rascunho de demonstração, revise e informe o autor responsável. Nada é salvo nem publicado ao selecionar.</p><label class="block text-sm">Modelo<select id="study-admin-model" class="block w-full border rounded-lg p-2 min-h-[44px]"><option value="">Escolha um capítulo</option>${chapterModels.map((m,i)=>`<option value="${i}">${esc(m.title)}</option>`).join("")}</select></label><button type="button" id="study-admin-use-model" class="border rounded-lg px-4 min-h-[44px]">Carregar modelo para revisão</button></div><p id="study-admin-status" class="text-sm text-gray-500" role="status"></p><div id="study-admin-list" class="space-y-3"></div>
         <div class="flex justify-between items-center"><button type="button" id="study-admin-previous" class="border rounded-lg p-2 min-h-[44px]">Anterior</button><span id="study-admin-pagination" class="text-sm"></span><button type="button" id="study-admin-next" class="border rounded-lg p-2 min-h-[44px]">Próxima</button></div>
       </div>
       <form id="study-admin-form" class="hidden bg-white rounded-xl border border-gray-200 p-4 md:p-6 space-y-4">
@@ -25,6 +54,13 @@
       </form>
     </section>`);
     $('study-admin-new').addEventListener('click',()=>edit());
+    $('study-admin-use-model').addEventListener('click',()=>{
+      const value=$('study-admin-model').value;
+      const model=value===''?null:chapterModels[Number(value)];
+      if(!model||!state.books.some(b=>b.id===model.book_id)){window.showToast?.('Escolha um modelo e aguarde o catálogo de livros.','error');return;}
+      if(!$('study-admin-form').classList.contains('hidden')&&!confirm('Substituir os dados ainda não salvos do formulário?'))return;
+      edit({...model,metadata:{ai_assisted:true,chapter_model:true},is_active:false,author_name:''});
+    });
     $('study-admin-reload').addEventListener('click',load);
     $('study-admin-filter').addEventListener('change',()=>{state.page=0;load();});
     $('study-admin-previous').addEventListener('click',()=>{if(state.page>0){state.page--;load();}});
@@ -50,7 +86,7 @@
     }catch(e){$('study-admin-status').textContent='Não foi possível carregar os comentários. Confirme seu acesso master e tente Atualizar.';console.error('Comentários:',e.message);}
   }
   function edit(item=null) {
-    $('study-admin-form').reset();$('study-admin-id').value=item?.id||'';
+    $('study-admin-form').reset();$('study-admin-id').value=item?.id||'';state.formMetadata={...(item?.metadata||{})};
     for(const [field,key] of [['book','book_id'],['chapter','chapter'],['start','verse_start'],['end','verse_end'],['category','category'],['author','author_name'],['title','title'],['content','content']])if(item)$('study-admin-'+field).value=item[key]||'';
     if(!item)$('study-admin-book').value=$('study-admin-filter').value||state.books[0]?.id;
     $('study-admin-published').checked=Boolean(item?.is_active);
@@ -68,7 +104,7 @@
       const check=await client().from('bible_verses').select('verse').eq('book_id',book.id).eq('chapter',chapter).eq('is_canonical',true).in('verse',[start,end]);if(check.error)throw check.error;
       if(!check.data.some(v=>v.verse===start)||!check.data.some(v=>v.verse===end))throw new Error('O intervalo informado não existe no texto bíblico.');
       const old=state.items.find(x=>x.id===id);
-      const payload={source_code:'adpel-editorial',book_id:book.id,chapter,verse_start:start,verse_end:end,category:$('study-admin-category').value,author_name:$('study-admin-author').value.trim(),title:$('study-admin-title').value.trim(),content:$('study-admin-content').value.trim(),is_active:$('study-admin-published').checked,metadata:old?.metadata||{},updated_at:new Date().toISOString()};
+      const payload={source_code:'adpel-editorial',book_id:book.id,chapter,verse_start:start,verse_end:end,category:$('study-admin-category').value,author_name:$('study-admin-author').value.trim(),title:$('study-admin-title').value.trim(),content:$('study-admin-content').value.trim(),is_active:$('study-admin-published').checked,metadata:old?.metadata||state.formMetadata||{},updated_at:new Date().toISOString()};
       if(!payload.title||!payload.content||!payload.author_name)throw new Error('Preencha título, autor e comentário.');
       const res=id?await client().from('bible_commentaries').update(payload).eq('id',id).eq('source_code','adpel-editorial').select('id'):await client().from('bible_commentaries').insert(payload).select('id');
       if(res.error)throw res.error;if(!res.data?.length)throw new Error('Seu acesso não permite salvar este comentário.');
