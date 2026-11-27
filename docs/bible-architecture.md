@@ -6,7 +6,7 @@
 - `bible_translations` registra versão, provider, licença, atribuição, fonte, status e tipo (`local` ou `external`). Somente uma versão pode ser default.
 - `bible_verses` contém todas as versões locais. A referência canônica é `translation_id + book_id + chapter + verse`; `book` foi mantido para compatibilidade. Linhas históricas repetidas ficam preservadas com `is_canonical = false`.
 - A leitura usa um provider local para `bible_verses`. Um provider externo futuro deve expor `window.ADPELBibleProviders[nome].getChapter({ translation, book, chapter })` e retornar `{ book_id, chapter, verse, text }[]`.
-- A seleção de versículos alimenta notas, destaques, favoritos e compartilhamento. A facade `window.ADPELBible.getSelectionPayload()` retorna tradução, livro, capítulo, intervalo e texto. O Tutor independente permanece disponível na aba Palavra, sem atalho na seleção do leitor.
+- A seleção de versículos alimenta notas, destaques, favoritos e compartilhamento. A facade `window.ADPELBible.getSelectionPayload()` retorna tradução, livro, capítulo, intervalo e texto. O Tutor independente permanece disponível na aba Palavra e pela seleção do leitor (até dez versículos), com contexto da passagem e sem dependência do Modo Estudo.
 
 ## Traduções e direitos
 
