@@ -62,3 +62,11 @@ Reexecuções da mesma revisão são idempotentes. Uma atualização para outra 
 - Consultas reais sob papéis `anon` e `authenticated`: leitura pública, nenhuma escrita linguística e recusa de comentário por usuário sem master.
 - A suíte geral passou em 18 de 19 arquivos. O teste de cursos pagos falha em `status: 'active'` também no checkout anterior, sem relação com esta entrega.
 - A prévia publicada no Netlify foi conferida visualmente em Chrome: leitura, interlinear hebraico, léxico, morfologia e concordância carregaram com dados reais; o diálogo permaneceu legível e rolável. O CSS inclui layout flexível, alvos de toque e regras para telas pequenas. A conferência em aparelho móvel e a gravação editorial em uma sessão master não foram realizadas.
+
+## Estudo guiado por capítulo e intervalo
+
+A aba Entender é a entrada padrão do Modo Estudo. O botão Estudo abre o capítulo; a ação Estudar da seleção abre o intervalo completo. É possível escolher outro intervalo ou voltar ao capítulo inteiro. A consulta usa apenas comentários publicados que interceptam o intervalo, identificando o escopo e as fontes; até 100 comentários por consulta. Ausência de conteúdo é explícita, com guia de leitura genérico separado da interpretação editorial. Originais, Comentários por versículo, Referências e notas permanecem acessíveis nas demais abas. O Tutor recebe somente um intervalo válido de até dez versículos por ação explícita; blocos numéricos não são divisões temáticas. Não há geração automática, alteração de RLS, publicação de rascunhos ou nova API.
+
+### Produção editorial
+
+O admin já aceita intervalos: para um estudo de capítulo, use o primeiro e o último versículo da tradução canônica. Crie o conteúdo com resumo, contexto, divisão temática, ensinamento, aplicação, perguntas e referências. Salve como rascunho; revise antes de publicar. A geração automatizada em lote fica para etapa posterior.
