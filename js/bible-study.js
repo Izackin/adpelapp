@@ -71,14 +71,86 @@
     const info=aoSources[id],meta=id==='open-cross-ref'?p.dataset:p.commentary;
     return '<footer class="study-attribution">Fonte: '+escapeHtml(info.label)+' · via HelloAO · <a href="'+info.url+'" target="_blank" rel="noopener noreferrer">'+info.license+'</a> · <a href="'+escapeHtml(url)+'" target="_blank" rel="noopener noreferrer">Dados da fonte</a>'+(id==='open-cross-ref'?' · <a href="https://www.openbible.info/labs/cross-references/" target="_blank" rel="noopener noreferrer">OpenBible.info</a> · referências reorganizadas e nomes em português.':' · Texto em inglês, apresentação simplificada. Não é posição doutrinária oficial da ADPEL.')+(meta.licenseNotice?'<p>'+escapeHtml(meta.licenseNotice)+'</p>':'')+(meta.licenseNotes?'<p lang="en">'+escapeHtml(meta.licenseNotes)+'</p>':'')+'</footer>';
   }
+
+  // Native on-device translation. No cloud provider, API key or private data.
+  function splitTranslationText(text,max=1800){
+    if(typeof text!=='string'||!Number.isInteger(max)||max<2)throw new Error('Texto inválido.');
+    const chunks=[];
+    let rest=text;
+    while(rest.length>max){
+      let end=rest.lastIndexOf(' ',max);
+      if(end<Math.floor(max/2))end=max;
+      // Preserve UTF-16 surrogate pairs and all original whitespace.
+      if(/[\uD800-\uDBFF]/.test(rest[end-1]))end--;
+      chunks.push(rest.slice(0,end));rest=rest.slice(end);
+    }
+    if(rest.length)chunks.push(rest);
+    return chunks;
+  }
+  async function translateCommentText(translator,text,current=()=>true){
+    const parts=[];
+    for(const chunk of splitTranslationText(text)){
+      if(!current())throw new Error('Tradução cancelada.');
+      if(!chunk.trim()){parts.push(chunk);continue;}
+      const translated=await translator.translate(chunk);
+      if(!current())throw new Error('Tradução cancelada.');
+      if(typeof translated!=='string'||!translated.trim())throw new Error('Tradução vazia.');
+      parts.push(translated.trim());
+    }
+    return parts.join(' ');
+  }
+  function aoTranslationEntry(text,footnotes=[]){
+    const notes=footnotes.filter(n=>typeof n?.text==='string'&&n.text.trim());
+    const full=[text,...notes.map((n,i)=>'Nota '+(i+1)+': '+n.text)].join('\n\n');
+    return '<div class="study-translation-entry"><div class="study-guide-actions"><button type="button" data-ao-translate>Traduzir para português</button><button type="button" data-ao-copy>Copiar original</button></div>'+
+      '<p class="study-translation-status" role="status"></p><div class="study-translated-text" lang="pt-BR" hidden></div>'+
+      '<details class="study-original-language" open><summary>Original em inglês</summary><p class="study-external-text" lang="en">'+escapeHtml(text)+'</p>'+
+      notes.map((n,i)=>'<p class="study-help" lang="en">Nota '+(i+1)+': '+escapeHtml(n.text)+'</p>').join('')+'</details>'+
+      '<span class="study-translation-input" hidden>'+escapeHtml(full)+'</span></div>';
+  }
+  function aoTranslationFallback(status){
+    status.textContent='A tradução interna não está disponível neste navegador. Copie o original e cole no tradutor gratuito de sua preferência. ';
+    const link=document.createElement('a');link.href='https://translate.google.com/?sl=en&tl=pt&op=translate';link.target='_blank';link.rel='noopener noreferrer';link.textContent='Abrir Google Tradutor';status.appendChild(link);
+  }
+  async function aoTranslate(button){
+    const entry=button.closest('.study-translation-entry');
+    if(!entry||button.disabled)return;
+    const host=$('study-ao-result'),generation=state.generation,request=aoRequest;
+    const status=entry.querySelector('.study-translation-status'),out=entry.querySelector('.study-translated-text'),original=entry.querySelector('.study-original-language'),input=entry.querySelector('.study-translation-input');
+    const current=()=>state.enabled&&generation===state.generation&&request===aoRequest&&$('study-ao-result')===host&&entry.isConnected;
+    if(!current()||!input?.textContent.trim())return;
+    if(out.textContent){out.hidden=!out.hidden;original.open=out.hidden;button.textContent=out.hidden?'Ver tradução':'Ocultar tradução';return;}
+    const API=window.Translator;
+    if(typeof API?.create!=='function'){aoTranslationFallback(status);return;}
+    // Explicit click allows first-time language pack download.
+    let translator;
+    button.disabled=true;status.textContent='Preparando tradução local…';
+    try{
+      translator=await API.create({sourceLanguage:'en',targetLanguage:'pt',monitor(m){m.addEventListener('downloadprogress',e=>{if(current())status.textContent='Baixando idioma: '+Math.round(e.loaded*100)+'%';});}});
+      if(!current())return;
+      status.textContent='Traduzindo o comentário…';
+      const translated=await translateCommentText(translator,input.textContent,current);
+      if(!current())return;
+      out.textContent=translated;out.hidden=false;original.open=false;
+      button.textContent='Ocultar tradução';
+      status.textContent='Tradução automática não revisada. Confira o original em caso de dúvida. Mantida a licença da fonte.';
+    }catch(e){if(current())aoTranslationFallback(status);}
+    finally{try{translator?.destroy?.();}catch(_){}if(current())button.disabled=false;}
+  }
+  async function aoCopy(button){
+    const entry=button.closest('.study-translation-entry'),status=entry?.querySelector('.study-translation-status'),text=entry?.querySelector('.study-translation-input')?.textContent;
+    if(!status||!text)return;
+    try{await navigator.clipboard.writeText(text);if(entry.isConnected)status.textContent='Original copiado. Cole no tradutor de sua preferência.';}
+    catch(e){if(entry.isConnected)status.textContent='Não foi possível copiar automaticamente. Selecione o texto original e copie manualmente.';}
+  }
   function aoCommentMarkup(p,scope){
     const rows=p.chapter.content.filter(x=>x?.type==='verse'&&Number.isInteger(x.number)&&x.number>=0&&x.number<=200&&typeof x.text==='string'&&x.text.trim());
     const intro=typeof p.chapter.introduction==='string'?p.chapter.introduction:'';
     const matching=rows.filter(x=>x.number>=scope.start&&x.number<=scope.end);
     const other=rows.filter(x=>!matching.includes(x));
-    const render=x=>'<details class="study-original-text"><summary>Entrada da fonte · versículo '+x.number+'</summary><p class="study-external-text" lang="en">'+escapeHtml(x.text)+'</p>'+((Array.isArray(x.footnotes)?x.footnotes:[]).filter(n=>typeof n?.text==='string').map(n=>'<p class="study-help" lang="en">'+escapeHtml(n.text)+'</p>').join(''))+'</details>';
-    return '<p class="study-help">Comentários externos em inglês. Use a tradução de página do navegador, quando disponível. A numeração e as interpretações podem diferir da edição portuguesa. Entradas numeradas podem comentar mais de um versículo.</p>'+
-      (intro?'<details class="study-original-text"><summary>Introdução do capítulo</summary><p class="study-external-text" lang="en">'+escapeHtml(intro)+'</p></details>':'')+
+    const render=x=>'<details class="study-original-text"><summary>Entrada da fonte · versículo '+x.number+'</summary>'+aoTranslationEntry(x.text,Array.isArray(x.footnotes)?x.footnotes:[])+'</details>';
+    return '<p class="study-help">Abra uma entrada e toque em Traduzir para português. A tradução local depende do navegador; quando indisponível, copie o original para um tradutor gratuito. A numeração e as interpretações podem diferir da edição portuguesa. Entradas numeradas podem comentar mais de um versículo.</p>'+
+      (intro?'<details class="study-original-text"><summary>Introdução do capítulo</summary>'+aoTranslationEntry(intro)+'</details>':'')+
       (matching.length?'<h4>No intervalo selecionado</h4>'+matching.map(render).join(''):'<p class="study-status">Não há entrada numerada exatamente neste intervalo.</p>')+
       (other.length?'<details class="study-original-text"><summary>Outras entradas do capítulo ('+other.length+')</summary>'+other.map(render).join('')+'</details>':'')+
       (!rows.length&&!intro?'<p class="study-status">Nenhum comentário textual nesta resposta.</p>':'');
@@ -144,6 +216,10 @@
     $('study-word-dialog').addEventListener('close',()=>state.wordRequest++);
     $('study-word-dialog').addEventListener('click',e=>{if(e.target===$('study-word-dialog')){const rect=e.target.getBoundingClientRect();if(e.clientX<rect.left||e.clientX>rect.right||e.clientY<rect.top||e.clientY>rect.bottom)e.target.close();}});
     document.addEventListener('click',async e=>{
+      const translate=e.target.closest('[data-ao-translate]');
+      if(translate){await aoTranslate(translate);return;}
+      const copy=e.target.closest('[data-ao-copy]');
+      if(copy){await aoCopy(copy);return;}
       const ao=e.target.closest('[data-ao-source]');
       if(ao){await loadAo(ao.dataset.aoSource);return;}
       const mode=e.target.closest('[data-study-mode]');
@@ -416,5 +492,5 @@
   });
   document.addEventListener('DOMContentLoaded',()=>{mount();state.context=window.ADPELBible?.getContext();});
   window.ADPELBibleStudy={openVerse,openPassage};
-  if(typeof module!=='undefined'&&module.exports)module.exports={plainStrong,morphologyParts,safeUrl,validRange,guidedMarkup,aoUrl,aoValidate,aoReferenceRows,aoReferenceMarkup,aoCommentMarkup,aoFetch};
+  if(typeof module!=='undefined'&&module.exports)module.exports={plainStrong,morphologyParts,safeUrl,validRange,guidedMarkup,aoUrl,aoValidate,aoReferenceRows,aoReferenceMarkup,aoCommentMarkup,aoFetch,splitTranslationText,translateCommentText};
 })();

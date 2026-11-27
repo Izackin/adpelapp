@@ -783,3 +783,5 @@ A aba Entender e a entrada padrao do Estudo e consulta comentarios publicados po
 Producao editorial em lote no admin: prompt para IA externa, JSON de ate 12 capitulos, validacao de ACF e duplicidades, previa escapada e INSERT exclusivo de rascunhos com metadados controlados. Sem API de IA, alteracao de schema, publicacao automatica ou garantia de deduplicacao concorrente. Revisao humana obrigatoria antes de publicar.
 
 Biblioteca externa HelloAO somente leitura: Matthew Henry, John Gill, Tyndale e OpenBible.info com allowlist, verificacao de licenca na resposta, escape, referencias com intervalo para leitor portugues, cache limitado e timeout. Comentarios em ingles, traducao de navegador opcional, nao representam posicao oficial ADPEL. Sem alteracao de schema, RLS, automacao ou API paga.
+
+Comentarios HelloAO: traducao opcional por entrada via Translator API nativa en-pt, sem chave ou servidor, com original preservado, aviso de traducao nao revisada, descarte de respostas antigas e alternativa manual de copiar texto em navegador sem suporte. Nao traduzir Escritura ou notas pessoais nem alterar licencas. API nativa nao garante suporte em celular.
