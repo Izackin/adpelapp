@@ -28,15 +28,16 @@
     if($('bible-study-panel') || !$('bible-verses-content'))return;
     const actions=$('bible-experience-actions');
     if(!actions)return;
-    actions.insertAdjacentHTML('afterbegin',`<div class="study-mode-switch" aria-label="Modo da Bíblia"><button type="button" data-study-mode="read" aria-pressed="true">Leitura</button><button type="button" data-study-mode="study" aria-pressed="false"><i class="fas fa-language"></i> Estudo</button></div>`);
+    actions.insertAdjacentHTML('afterbegin',`<div class="study-mode-switch" role="group" aria-label="Modo da Bíblia"><button type="button" data-study-mode="read" aria-pressed="true"><i class="fas fa-book-open" aria-hidden="true"></i> Leitura</button><button type="button" data-study-mode="study" aria-pressed="false"><i class="fas fa-language" aria-hidden="true"></i> Estudo</button></div>`);
     $('bible-verses-content').insertAdjacentHTML('beforebegin',`<section id="bible-study-panel" class="bible-study-panel hidden" aria-label="Estudo bíblico">
-      <div class="study-heading"><div><span class="study-eyebrow">Estudo da Palavra</span><h3 id="study-reference">Idiomas originais</h3></div><label>Versículo <select id="study-verse-select" aria-label="Versículo para estudo"></select></label></div>
-      <p id="study-portuguese" class="study-portuguese"></p>
-      <nav class="study-tabs" aria-label="Ferramentas de estudo"><button type="button" data-study-tab="original" aria-pressed="true">Interlinear</button><button type="button" data-study-tab="comments" aria-pressed="false">Comentários</button><button type="button" data-study-tab="references" aria-pressed="false">Referências</button><button type="button" data-study-action="note">Minha nota</button></nav>
+      <header class="study-header"><div><span class="study-eyebrow">Bíblia · Modo estudo</span><h3 id="study-reference">Estudo da Palavra</h3></div><button type="button" class="study-back" data-study-mode="read" aria-label="Voltar à leitura"><i class="fas fa-arrow-left" aria-hidden="true"></i> Leitura</button></header>
+      <div class="study-verse-navigation"><button type="button" data-study-action="previous-verse" aria-label="Versículo anterior"><i class="fas fa-chevron-left" aria-hidden="true"></i></button><label>Versículo <select id="study-verse-select" aria-label="Versículo para estudo"></select></label><button type="button" data-study-action="next-verse" aria-label="Próximo versículo"><i class="fas fa-chevron-right" aria-hidden="true"></i></button></div>
+      <article class="study-passage"><span id="study-translation" class="study-eyebrow"></span><p id="study-portuguese" class="study-portuguese"></p><button type="button" data-study-action="note" class="study-note"><i class="fas fa-note-sticky" aria-hidden="true"></i> Minha nota</button></article>
+      <nav class="study-tabs" aria-label="Ferramentas de estudo"><button type="button" data-study-tab="original" aria-pressed="true"><i class="fas fa-language" aria-hidden="true"></i> Palavras</button><button type="button" data-study-tab="comments" aria-pressed="false"><i class="fas fa-book" aria-hidden="true"></i> Comentários</button><button type="button" data-study-tab="references" aria-pressed="false"><i class="fas fa-link" aria-hidden="true"></i> Referências</button></nav>
       <div id="study-content" aria-live="polite"></div>
     </section>`);
     document.body.insertAdjacentHTML('beforeend',`<dialog id="study-word-dialog" class="study-word-dialog" aria-labelledby="study-word-title"><div class="study-heading"><h3 id="study-word-title">Estudo da palavra</h3><button type="button" data-study-action="close-word" aria-label="Fechar estudo da palavra">×</button></div><div id="study-word-content" aria-live="polite"></div></dialog>`);
-    $('study-verse-select').addEventListener('change',e=>openVerse(Number(e.target.value),false));
+    $('study-verse-select').addEventListener('change',e=>openVerse(Number(e.target.value),false,true));
     $('study-word-dialog').addEventListener('close',()=>state.wordRequest++);
     $('study-word-dialog').addEventListener('click',e=>{if(e.target===$('study-word-dialog')){const rect=e.target.getBoundingClientRect();if(e.clientX<rect.left||e.clientX>rect.right||e.clientY<rect.top||e.clientY>rect.bottom)e.target.close();}});
     document.addEventListener('click',async e=>{
@@ -47,7 +48,14 @@
       const token=e.target.closest('[data-study-token]');
       if(token){await openWord(state.tokens.find(t=>String(t.id)===token.dataset.studyToken));return;}
       const jump=e.target.closest('[data-study-jump]');
-      if(jump){$('study-word-dialog').close();await window.ADPELBible.openReference(jump.dataset.studyJump,Number(jump.dataset.studyChapter),Number(jump.dataset.studyVerse));await openVerse(Number(jump.dataset.studyVerse));return;}
+      if(jump){
+        if($('study-word-dialog').open)$('study-word-dialog').close();
+        const book=jump.dataset.studyJump,chapter=Number(jump.dataset.studyChapter),verse=Number(jump.dataset.studyVerse);
+        state.pendingJump={book,chapter,verse};
+        try{await window.ADPELBible.openReference(book,chapter,verse,{linked:true});}
+        finally{state.pendingJump=null;}
+        return;
+      }
       const action=e.target.closest('[data-study-action]')?.dataset.studyAction;
       if(action==='close-word')$('study-word-dialog').close();
       if(action==='reload')await loadView();
@@ -57,29 +65,69 @@
       if(action==='next-occurrences')await loadOccurrences(state.page+1);
       if(action==='retry-occurrences')await loadOccurrences(state.page);
       if(action==='note' && state.verse>0)await window.ADPELBible.noteForVerse(state.verse);
+      if(action==='previous-verse'||action==='next-verse')await stepVerse(action==='previous-verse'?-1:1);
     });
   }
-  async function setEnabled(enabled) {
-    state.enabled=enabled;state.generation++;
-    document.querySelectorAll('[data-study-mode]').forEach(b=>b.setAttribute('aria-pressed',String((b.dataset.studyMode==='study')===enabled)));
+  function availableVerses(c=state.context) {
+    if(!c?.book)return [];
+    return [...new Set([...c.verses.map(v=>v.verse),...(state.catalogs.get(c.book.id+':'+c.chapter)||[])])].sort((a,b)=>a-b);
+  }
+  function syncStudyMode(enabled){
+    document.querySelectorAll('.study-mode-switch [data-study-mode]').forEach(b=>b.setAttribute('aria-pressed',String((b.dataset.studyMode==='study')===enabled)));
     $('bible-study-panel')?.classList.toggle('hidden',!enabled);
-    if(enabled){state.context=window.ADPELBible?.getContext();updateVerseOptions();await loadView();}
-    else $('study-word-dialog')?.close();
+    $('bible-verses-content')?.classList.toggle('study-reading-hidden',enabled);
+  }
+  async function setEnabled(enabled) {
+    if(state.enabled===enabled)return;
+    const context=window.ADPELBible?.getContext();
+    if(enabled&&(!context?.book||!context.verses.length))return;
+    window.ADPELBible?.clearSelection?.();
+    state.enabled=enabled;state.generation++;state.wordRequest++;
+    syncStudyMode(enabled);
+    if(enabled){
+      state.context=context;
+      const available=availableVerses();
+      if(!available.includes(state.verse))state.verse=available[0]??1;
+      updateVerseOptions();
+      $('bible-study-panel')?.scrollIntoView({behavior:'auto',block:'start'});
+      await loadView();
+    }else{
+      if($('study-word-dialog')?.open)$('study-word-dialog').close();
+      window.ADPELBible?.focusReadingVerse?.(state.verse);
+    }
   }
   function updateVerseOptions() {
     const c=state.context;
     if(!c?.book)return;
-    const available=[...new Set([...c.verses.map(v=>v.verse),...(state.catalogs.get(c.book.id+':'+c.chapter)||[])])].sort((a,b)=>a-b);
+    const available=availableVerses(c);
     $('study-verse-select').innerHTML=available.map(v=>`<option value="${v}">${v===0?'Título (fonte original)':v+(c.verses.some(x=>x.verse===v)?'':' (fonte original)')}</option>`).join('');
     $('study-verse-select').value=String(state.verse);
     $('study-reference').textContent=reference(c.book.name_pt,c.chapter,state.verse);
+    $('study-translation').textContent=c.translation?.short_name||'Tradução portuguesa';
     $('study-portuguese').textContent=c.verses.find(v=>v.verse===state.verse)?.text||'Esta referência pertence à numeração da fonte original; compare a numeração da tradução portuguesa.';
     document.querySelector('[data-study-action="note"]').disabled=!c.verses.some(v=>v.verse===state.verse);
+    const position=available.indexOf(state.verse);
+    document.querySelector('[data-study-action="previous-verse"]').disabled=position<=0;
+    document.querySelector('[data-study-action="next-verse"]').disabled=position<0||position>=available.length-1;
   }
-  async function openVerse(verse,scroll=true) {
-    state.verse=verse;state.tab='original';
-    if(!state.enabled)await setEnabled(true);else {updateVerseOptions();await loadView();}
-    if(scroll)$('bible-study-panel')?.scrollIntoView({behavior:'smooth',block:'start'});
+  async function stepVerse(direction){
+    const available=availableVerses(),next=available[available.indexOf(state.verse)+direction];
+    if(next!==undefined)await openVerse(next,false,true);
+  }
+  async function openVerse(verse,scroll=true,keepTab=false) {
+    const number=Number(verse);
+    if(!Number.isInteger(number)||number<0)return;
+    state.context=window.ADPELBible?.getContext()||state.context;
+    if(!availableVerses().includes(number))return;
+    state.verse=number;
+    if(!keepTab)state.tab='original';
+    window.ADPELBible?.clearSelection?.();
+    if(!state.enabled)await setEnabled(true);
+    else {
+      updateVerseOptions();
+      if(scroll)$('bible-study-panel')?.scrollIntoView({behavior:'auto',block:'start'});
+      await loadView();
+    }
   }
   async function getSource(code) {
     if(state.sources.has(code))return state.sources.get(code);
@@ -140,8 +188,9 @@
     const tokenLanguage=t=>original.language==='grc'?'grc':t.morphology_code?.startsWith('A')?'arc':'he';
     const label=[...new Set(tokens.map(t=>languages[tokenLanguage(t)]))].join(' / ');
     $('study-content').innerHTML=`<div class="study-source-label"><strong>${escapeHtml(label||languages[original.language])}</strong><span>${escapeHtml(original.metadata?.basis||source?.name||'Texto original')}</span></div>
-      <p class="study-help">Toque em uma palavra para abrir o léxico, a gramática e as ocorrências.</p>
-      <div class="study-interlinear" dir="${rtl?'rtl':'ltr'}">${tokens.map(t=>`<button type="button" class="study-token" data-study-token="${t.id}" aria-label="Estudar ${escapeHtml(t.surface)}"><span class="study-original-word" lang="${tokenLanguage(t)}" dir="auto">${escapeHtml(t.surface)}</span><span class="study-transliteration" dir="ltr">${escapeHtml(t.transliteration||'—')}</span><span class="study-gloss" dir="ltr">${escapeHtml(t.gloss_pt||t.metadata?.gloss_en||'—')}${!t.gloss_pt&&t.metadata?.gloss_en?'<small> inglês</small>':''}</span><small dir="ltr">${escapeHtml(t.strong_number||'')}</small></button>`).join('')}</div>
+      <details class="study-original-text"><summary>Ver texto original completo</summary><p lang="${escapeHtml(original.language)}" dir="${rtl?'rtl':'ltr'}">${escapeHtml(original.text_original||'')}</p></details>
+      <div class="study-section-heading"><h4>Palavra por palavra</h4><p>Toque para ver o significado, a gramática e as ocorrências.</p></div>
+      <div class="study-interlinear" dir="${rtl?'rtl':'ltr'}">${tokens.map(t=>`<button type="button" class="study-token" data-study-token="${t.id}" aria-label="Estudar ${escapeHtml(t.surface)}"><span class="study-original-word" lang="${tokenLanguage(t)}" dir="auto">${escapeHtml(t.surface)}</span><span class="study-transliteration" dir="ltr">${escapeHtml(t.transliteration||'—')}</span><span class="study-gloss" dir="ltr">${escapeHtml(t.gloss_pt||t.metadata?.gloss_en||'—')}${!t.gloss_pt&&t.metadata?.gloss_en?'<small> inglês</small>':''}</span><small class="study-strong-badge" dir="ltr">${escapeHtml(t.strong_number||'')}</small></button>`).join('')}</div>
       <details class="study-method"><summary>Como interpretar este interlinear</summary><p>As glossas são pistas de sentido, não uma tradução palavra por palavra. A numeração e algumas leituras da fonte STEP podem diferir da ${escapeHtml(state.context.translation?.short_name||'tradução portuguesa')}. ${rtl?'Uma palavra hebraica ou aramaica pode reunir raiz, prefixos e sufixos; o Strong exibido aponta para a raiz selecionada.':'O grego exibido é a seleção principal N do TAGNT, com grafia e pontuação da fonte STEP; não é uma transcrição do Textus Receptus da ACF.'} A etimologia e os possíveis sentidos de um lema não substituem o contexto da passagem.</p></details>${sourceFooter(source)}`;
   }
   async function openWord(token) {
@@ -187,7 +236,14 @@
       host.innerHTML=`<h4>${state.total} ocorrências no acervo importado</h4><p class="study-help">Cada uso conta uma ocorrência. Um versículo pode aparecer mais de uma vez. A pesquisa reúne os sentidos do Strong tradicional.</p><div class="study-reference-list">${(data||[]).map(t=>{const v=t.bible_original_verses;return `<button type="button" data-study-jump="${escapeHtml(v.book_id)}" data-study-chapter="${v.chapter}" data-study-verse="${v.verse}"><span>${escapeHtml(reference(names.get(v.book_id)||v.book_id,v.chapter,v.verse))}</span><small>${escapeHtml(t.surface)} · posição ${t.token_position}</small></button>`;}).join('')||'<p>Nenhuma ocorrência disponível.</p>'}</div><div class="study-pagination"><button type="button" data-study-action="previous-occurrences" ${page===0?'disabled':''}>Anterior</button><span>${page+1} / ${Math.max(1,Math.ceil(state.total/PAGE_SIZE))}</span><button type="button" data-study-action="next-occurrences" ${(page+1)*PAGE_SIZE>=state.total?'disabled':''}>Próxima</button></div>`;
     }catch(error){if(request===state.wordRequest)showError(host,'Não foi possível carregar as ocorrências.','retry-occurrences');console.error('Concordância:',error.message);}
   }
-  document.addEventListener('adpel:bible-chapter',e=>{state.context=e.detail;state.verse=e.detail.verses[0]?.verse||1;state.generation++;$('study-word-dialog')?.close();if(state.enabled){mount();updateVerseOptions();loadView();}});
+  document.addEventListener('adpel:bible-chapter',e=>{
+    state.context=e.detail;
+    const jump=state.pendingJump;
+    state.verse=jump&&jump.book===e.detail.book?.id&&jump.chapter===e.detail.chapter?jump.verse:(e.detail.verses[0]?.verse??1);
+    state.generation++;state.wordRequest++;
+    if($('study-word-dialog')?.open)$('study-word-dialog').close();
+    if(state.enabled){mount();updateVerseOptions();loadView();}
+  });
   document.addEventListener('DOMContentLoaded',()=>{mount();state.context=window.ADPELBible?.getContext();});
   window.ADPELBibleStudy={openVerse};
   if(typeof module!=='undefined'&&module.exports)module.exports={plainStrong,morphologyParts,safeUrl};

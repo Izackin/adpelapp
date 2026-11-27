@@ -79,3 +79,33 @@
 
 /* Linked devotional/resume passage: temporary visual focus, not a saved highlight. */
 .bible-verse.reference-target { outline: 2px solid #2563eb; outline-offset: 1px; background-color: rgba(37,99,235,.12); }
+
+/* Selection actions are part of the reading flow, never a viewport overlay. */
+.bible-selection-panel {
+  position:static; display:block; width:100%; max-width:100%; box-sizing:border-box;
+  margin:.8rem 0 1rem; padding:.9rem; border:1px solid #334155; border-radius:14px;
+  background:#0f172a; color:#e2e8f0; font:14px/1.45 Inter,system-ui,sans-serif;
+  text-align:left; break-inside:avoid; overflow-wrap:anywhere;
+  box-shadow:0 5px 16px rgb(15 23 42 / .13);
+}
+.bible-selection-panel.hidden {display:none!important;}
+.bible-selection-heading {display:flex;align-items:center;justify-content:space-between;gap:.6rem;margin-bottom:.65rem;}
+.bible-selection-heading>div {display:grid;gap:.15rem;min-width:0;}
+.bible-selection-heading span {font-size:11px;color:#b4c5dc;}
+.bible-selection-heading strong {font-size:15px;color:#f8fafc;}
+.bible-selection-dismiss {flex:0 0 44px;min-height:44px;border-radius:9px;background:#1e293b;color:#e2e8f0;font-size:22px;}
+.bible-selection-primary {display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:.45rem;}
+.bible-selection-primary button {min-height:44px;border-radius:9px;background:#1d4ed8;color:white;font-size:13px;font-weight:650;padding:.5rem .35rem;}
+.bible-selection-primary button:last-child {background:#1e293b;border:1px solid #475569;}
+.bible-selection-primary i {margin-right:.25rem;}
+.bible-selection-panel .bible-sheet-actions {grid-template-columns:repeat(2,minmax(0,1fr));margin-top:.45rem;gap:.45rem;}
+.bible-selection-panel .bible-sheet-actions button {display:flex;align-items:center;justify-content:center;gap:.35rem;min-height:44px;font-size:12px;padding:.4rem .25rem;}
+.bible-selection-panel .bible-sheet-actions i {display:inline;margin:0;}
+.bible-selection-panel .bible-color-row {flex-wrap:wrap;padding:.3rem 0 .65rem;}
+.bible-selection-panel .bible-color-row [data-highlight-color] {width:44px;height:44px;flex:0 0 44px;}
+.bible-selection-panel button:focus-visible {outline:2px solid #93c5fd;outline-offset:2px;}
+@media(min-width:480px) and (max-width:767px) {
+  .bible-selection-panel .bible-sheet-actions {grid-template-columns:repeat(4,minmax(0,1fr));}
+}
+
+.bible-verse {scroll-margin-top:80px;scroll-margin-bottom:90px;}

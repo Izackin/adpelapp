@@ -170,13 +170,11 @@
     }
 
     document.body.insertAdjacentHTML('beforeend', `
-      <div id="bible-selection-menu" class="bible-sheet" role="dialog" aria-modal="true" aria-label="Ações da seleção">
-        <div class="bible-sheet-handle"></div><strong id="bible-selection-label"></strong>
+      <div id="bible-selection-menu" class="bible-selection-panel hidden" role="region" aria-labelledby="bible-selection-label">
+        <div class="bible-selection-heading"><div><span>Passagem selecionada</span><strong id="bible-selection-label"></strong></div><button type="button" class="bible-selection-dismiss" data-bible-action="clear-selection" aria-label="Fechar ações">×</button></div>
         <div id="bible-highlight-colors" class="bible-color-row hidden">${COLORS.map((color) => `<button data-highlight-color="${color}" class="bible-color-${color}" aria-label="Destaque ${color}"></button>`).join('')}<button data-bible-action="remove-highlight">Remover</button></div>
-        <button type="button" class="bible-tutor-action" data-bible-action="tutor"><i class="fas fa-book-open"></i><span>Perguntar ao Tutor</span><i class="fas fa-arrow-right"></i></button>
-        <div class="bible-sheet-actions"><button data-bible-action="highlight"><i class="fas fa-highlighter"></i> Destacar</button><button data-bible-action="note"><i class="fas fa-note-sticky"></i> Nota</button><button data-bible-action="bookmark"><i class="far fa-bookmark"></i> Favoritar</button><button data-bible-action="share"><i class="fas fa-share-nodes"></i> Compartilhar</button></div>
-        <button type="button" class="bible-tutor-action" data-bible-action="study"><i class="fas fa-language"></i><span>Estudar nos idiomas originais</span><i class="fas fa-arrow-right"></i></button>
-        <button class="bible-sheet-close" data-bible-action="clear-selection">Fechar</button>
+        <div class="bible-selection-primary"><button type="button" data-bible-action="study"><i class="fas fa-language" aria-hidden="true"></i> Estudar</button><button type="button" data-bible-action="tutor"><i class="fas fa-book-open" aria-hidden="true"></i> Tutor</button></div>
+        <div class="bible-sheet-actions"><button type="button" data-bible-action="highlight"><i class="fas fa-highlighter" aria-hidden="true"></i> Destacar</button><button type="button" data-bible-action="note"><i class="fas fa-note-sticky" aria-hidden="true"></i> Nota</button><button type="button" data-bible-action="bookmark"><i class="far fa-bookmark" aria-hidden="true"></i> Favoritar</button><button type="button" data-bible-action="share"><i class="fas fa-share-nodes" aria-hidden="true"></i> Compartilhar</button></div>
       </div>
       <div id="bible-modal-backdrop" class="bible-modal-backdrop hidden"></div>
       <section id="bible-note-modal" class="bible-modal hidden" role="dialog" aria-modal="true" aria-labelledby="bible-note-title">
@@ -387,7 +385,17 @@
       element.setAttribute('aria-pressed', selected ? 'true' : 'false');
     });
     if ($('bible-selection-label')) $('bible-selection-label').textContent = makeReferenceLabel(state.book.name_pt, state.chapter, start, end);
-    $('bible-selection-menu')?.classList.add('visible');
+    const menu=$('bible-selection-menu');
+    const anchor=document.querySelector('.bible-verse[data-verse="'+end+'"]');
+    if(menu&&anchor){
+      // In-flow placement: the menu occupies its own space, including at the final verse.
+      anchor.insertAdjacentElement('afterend',menu);
+      menu.classList.remove('hidden');
+      // Reveal the actions without scrolling the selected verse behind a fixed bar.
+      const visibleBottom=window.visualViewport?.height||window.innerHeight;
+      if(visibleBottom&&menu.getBoundingClientRect().top>visibleBottom-100)
+        anchor.scrollIntoView({block:'start',inline:'nearest',behavior:'auto'});
+    }
     $('bible-highlight-colors')?.classList.add('hidden');
   }
 
@@ -397,7 +405,12 @@
     document.querySelectorAll('.bible-verse.selected').forEach((element) => {
       element.classList.remove('selected'); element.setAttribute('aria-pressed', 'false');
     });
-    $('bible-selection-menu')?.classList.remove('visible');
+    const menu=$('bible-selection-menu');
+    if(menu){
+      menu.classList.add('hidden');
+      // Preserve the reusable controls before renderChapter replaces verse markup.
+      document.body.appendChild(menu);
+    }
   }
 
   function selectionMatch(item) {
@@ -551,6 +564,7 @@
   async function searchBible() {
     const term = $('bible-search-input')?.value.trim();
     if (!term || !state.translation) return;
+    clearSelection();
     const request=++searchRequest;
     const translationId=state.translation.id;
     const current=()=>request===searchRequest&&state.translation?.id===translationId;
@@ -658,7 +672,7 @@
         'library-notes': () => openLibrary('notes'), 'library-bookmarks': () => openLibrary('bookmarks'),
         rights: () => openModal('bible-rights-modal'), highlight: () => $('bible-highlight-colors')?.classList.toggle('hidden'),
         'remove-highlight': removeHighlight, note: () => openNote(), bookmark: toggleBookmark, share: shareSelection, tutor: openTutorForSelection,
-        study: () => { $('bible-selection-menu')?.classList.remove('visible'); window.ADPELBibleStudy?.openVerse(state.selection?.verse_start || 1); },
+        study: () => { const verse=state.selection?.verse_start; if(verse!=null){clearSelection();window.ADPELBibleStudy?.openVerse(verse);} },
         'clear-selection': clearSelection, 'save-note': saveNote, 'delete-note': deleteNote,
         'close-modal': closeModals, 'close-auth': () => $('bible-auth-invite')?.classList.remove('visible')
       };
@@ -729,7 +743,7 @@
     await loadChapter(state.book.id,state.chapter,saved?.book.id===state.book.id&&saved.chapter===state.chapter?saved.verseStart:null,{linked:true});
     registerBibleOpen();
   }
-  function voltarCapaBiblia() { invalidateBibleSearch(); $('bible-reader')?.classList.add('hidden'); $('bible-cover')?.classList.remove('hidden'); }
+  function voltarCapaBiblia() { clearSelection(); invalidateBibleSearch(); $('bible-reader')?.classList.add('hidden'); $('bible-cover')?.classList.remove('hidden'); }
   function voltarLeituraBiblia() { invalidateBibleSearch(); $('bible-search-results')?.classList.add('hidden'); $('bible-page')?.classList.remove('hidden'); }
   function capituloAnterior() { if (state.chapter > 1) loadChapter(state.book.id, state.chapter - 1); }
   function proximoCapitulo() { if (state.chapter < state.book.chapter_count) loadChapter(state.book.id, state.chapter + 1); }
@@ -742,6 +756,8 @@
   });
   function getContext() { return { book: state.book ? { ...state.book } : null, chapter: state.chapter, translation: state.translation ? { ...state.translation } : null, verses: state.verses.map(v => ({ ...v })) }; }
   window.ADPELBible = { getSelectionPayload: buildSelectionPayload, openReference: loadChapter, parseReference, getContext,
+    clearSelection,
+    focusReadingVerse: number => { clearSelection(); focusLinkedPassage(Number(number)); },
     noteForVerse: (number) => { clearSelection(); selectVerse(Number(number)); return openNote(); }
   };
   if (typeof module !== 'undefined' && module.exports) module.exports = { normalize, parseReference, makeReferenceLabel, clampFontSize, buildSelectionPayload, isTutorVerseCountAllowed };
