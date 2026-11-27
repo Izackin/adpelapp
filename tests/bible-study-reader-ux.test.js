@@ -29,7 +29,7 @@ vm.createContext(studyCtx);vm.runInContext(slice(study,'  function availableVers
  await studyCtx.setEnabled(false);assert.equal(focus,1);assert.equal(els['bible-verses-content'].classList.contains('study-reading-hidden'),false);
  assert.match(read('bible.css'),/\.bible-selection-panel\s*\{\s*position:static/);
  assert.match(read('bible-study.css'),/#bible-verses-content\.study-reading-hidden\s*\{display:none!important;\}/);
- for(const page of ['index.html','bible.html'])assert.match(read(page),/bible-study\.js\?v=3/);
+ for(const page of ['index.html','bible.html'])assert.match(read(page),/bible-study\.js\?v=4/);
  for(const action of ['highlight','note','bookmark','share','study','tutor'])assert.ok(bible.includes('data-bible-action="'+action+'"'));
  console.log('Bible selection layout and study navigation: PASS');
 })().catch(e=>{console.error(e);process.exitCode=1;});
