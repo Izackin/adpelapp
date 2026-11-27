@@ -82,3 +82,22 @@
   .study-header h3 {font-size:18px;}
   .study-tabs button {font-size:10px;}
 }
+
+/* Guided chapter study keeps the language tools available in separate tabs. */
+.study-tabs {grid-template-columns:repeat(4,minmax(0,1fr));}
+.study-guided .study-verse-navigation,.study-guided .study-passage {display:none;}
+.study-guide {display:grid;gap:14px;min-width:0;}
+.study-guide h4 {font-size:16px;font-weight:750;color:#f8fafc;margin:0;}
+.study-guide>p,.study-guide article>p {font-size:14px;line-height:1.7;}
+.study-guide-range {padding:12px;background:#111e32;border:1px solid #334155;border-radius:12px;}
+.study-guide-selects {display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin:10px 0;}
+.study-guide-selects label {display:grid;gap:5px;min-width:0;font-size:13px;}
+.study-guide-selects select {width:100%;min-width:0;min-height:44px;padding:8px;background:#020617;color:#f8fafc;border:1px solid #475569;border-radius:8px;}
+.study-guide-actions {display:flex;flex-wrap:wrap;gap:8px;margin:8px 0;}
+.study-guide .study-guide-actions button {flex:1 1 120px;min-width:0;}
+.study-guide #study-range-error {color:#fca5a5;}
+.study-guide .study-guide-text p {font:15px/1.7 Inter,system-ui,sans-serif;margin:8px 0;}
+.study-guide .study-original-text {margin:0;}
+.study-guide-comment p {white-space:pre-wrap;}
+.study-guide-questions {list-style:decimal;padding-left:20px;display:grid;gap:8px;margin:12px 0;}
+@media(max-width:380px){.study-tabs {grid-template-columns:repeat(2,minmax(0,1fr));}}
