@@ -391,6 +391,10 @@
       // In-flow placement: the menu occupies its own space, including at the final verse.
       anchor.insertAdjacentElement('afterend',menu);
       menu.classList.remove('hidden');
+      // Reveal the actions without scrolling the selected verse behind a fixed bar.
+      const visibleBottom=window.visualViewport?.height||window.innerHeight;
+      if(visibleBottom&&menu.getBoundingClientRect().top>visibleBottom-100)
+        anchor.scrollIntoView({block:'start',inline:'nearest',behavior:'auto'});
     }
     $('bible-highlight-colors')?.classList.add('hidden');
   }
