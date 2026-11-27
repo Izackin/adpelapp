@@ -1,13 +1,7 @@
 const assert=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path'),vm=require('node:vm');
 const read=p=>fs.readFileSync(path.resolve(__dirname,'..',p),'utf8');
 const slice=(s,a,b)=>{const i=s.indexOf(a),j=s.indexOf(b,i);assert.ok(i>=0&&j>i);return s.slice(i,j);};
-const bible=read('js/bible.js'),study=read('js/bible-study.js');
-const guidedContext={document:{addEventListener(){}},window:{},module:{exports:{}}};vm.createContext(guidedContext);vm.runInContext(study,guidedContext);
-const {validRange,guidedMarkup}=guidedContext.module.exports;
-const sample={book:{id:'JHN',name_pt:'João'},chapter:3,translation:{short_name:'ACF'},verses:Array.from({length:21},(_,i)=>({verse:i+1,text:'<texto> '+(i+1)}))};
-assert.equal(validRange(sample,1,21),true);assert.equal(validRange(sample,12,2),false);assert.equal(validRange(sample,1,22),false);
-const overview=guidedMarkup(sample,null,[],[]);assert.match(overview,/Capítulo inteiro/);assert.match(overview,/data-start="1" data-end="10"/);assert.match(overview,/data-start="11" data-end="20"/);assert.match(overview,/data-start="21" data-end="21"/);assert.match(overview,/&lt;texto&gt;/);assert.match(overview,/Ainda não há estudo editorial/);
-const passage=guidedMarkup(sample,{start:4,end:6},[{title:'<título>',content:'<script>',verse_start:3,verse_end:7}],[]);assert.match(passage,/Trecho 4–6/);assert.match(passage,/data-start="4" data-end="6"/);assert.match(passage,/&lt;script&gt;/);assert.doesNotMatch(passage,/<script>/);
+const bible=read('js/bible.js');
 function classes(){const s=new Set();return{add(x){s.add(x)},remove(x){s.delete(x)},contains(x){return s.has(x)},toggle(x,on){if(on)s.add(x);else s.delete(x)}};}
 const nodes=[1,2,3].map(v=>({dataset:{verse:String(v)},classList:classes(),setAttribute(){},insertAdjacentElement(where,menu){assert.equal(where,'afterend');menu.after=v;},scrollIntoView(){this.scrolled=true;}}));
 const menu={classList:classes(),getBoundingClientRect:()=>({top:720})},label={},colors={classList:classes()};
@@ -16,20 +10,17 @@ vm.createContext(context);vm.runInContext(slice(bible,'  function selectVerse','
 context.selectVerse(3);assert.equal(menu.after,3);assert.equal(menu.classList.contains('hidden'),false);assert.equal(nodes[2].scrolled,true);
 context.selectVerse(1);assert.equal(menu.after,3);assert.equal(context.state.selection.verse_start,1);
 context.clearSelection();assert.equal(menu.after,null);assert.equal(menu.classList.contains('hidden'),true);assert.equal(nodes.some(n=>n.classList.contains('selected')),false);
-const els={};for(const id of ['bible-study-panel','bible-verses-content','study-verse-select','study-reference','study-translation','study-portuguese','study-word-dialog'])els[id]={classList:classes(),scrollIntoView(){},open:false};
-const buttons=Object.fromEntries(['note','previous-verse','next-verse'].map(k=>[k,{}]));
-const state={enabled:false,context:null,verse:1,tab:'comments',generation:0,wordRequest:0,catalogs:new Map()};
-const c={book:{id:'JHN',name_pt:'João'},chapter:3,verses:[{verse:1,text:'a'},{verse:2,text:'b'}],translation:{short_name:'ACF'}};
-let calls=0,focus=null;
-const studyCtx={state,$:id=>els[id],window:{ADPELBible:{getContext:()=>c,clearSelection(){},focusReadingVerse:n=>{focus=n;}}},document:{querySelectorAll:()=>[],querySelector:s=>buttons[s.match(/"([^"]+)"/)[1]]},reference:(b,ch,v)=>b+' '+ch+':'+v,loadView:async()=>{calls++;}};
-vm.createContext(studyCtx);vm.runInContext(slice(study,'  function availableVerses','  async function getSource'),studyCtx);
-(async()=>{
- await studyCtx.openVerse(2);assert.equal(state.enabled,true);assert.equal(els['bible-verses-content'].classList.contains('study-reading-hidden'),true);assert.equal(els['study-portuguese'].textContent,'b');assert.equal(buttons['next-verse'].disabled,true);assert.equal(calls,1);
- state.tab='comments';await studyCtx.stepVerse(-1);assert.equal(state.verse,1);assert.equal(state.tab,'comments');assert.equal(buttons['previous-verse'].disabled,true);
- await studyCtx.setEnabled(false);assert.equal(focus,1);assert.equal(els['bible-verses-content'].classList.contains('study-reading-hidden'),false);
- assert.match(read('bible.css'),/\.bible-selection-panel\s*\{\s*position:static/);
- assert.match(read('bible-study.css'),/#bible-verses-content\.study-reading-hidden\s*\{display:none!important;\}/);
- for(const page of ['index.html','bible.html'])assert.match(read(page),/bible-study\.js\?v=5/);
- for(const action of ['highlight','note','bookmark','share','study','tutor'])assert.ok(bible.includes('data-bible-action="'+action+'"'));
- console.log('Bible selection layout and study navigation: PASS');
-})().catch(e=>{console.error(e);process.exitCode=1;});
+assert.match(read('bible.css'),/\.bible-selection-panel\s*\{\s*position:static/);
+for(const page of ['index.html','bible.html']){
+ const html=read(page);
+ assert.doesNotMatch(html,/js\/bible-study\.js|bible-study\.css/);
+ assert.match(html,/js\/bible\.js\?v=bible-2\.4-reading/);
+}
+for(const action of ['highlight','note','bookmark','share'])assert.ok(bible.includes('data-bible-action="'+action+'"'));
+for(const action of ['study','tutor'])assert.ok(!bible.includes('data-bible-action="'+action+'"'));
+assert.doesNotMatch(bible,/ADPELBibleStudy|openTutorForSelection|adpel:bible-chapter/);
+assert.doesNotMatch(read('admin.html'),/crud-bible-study/);
+assert.doesNotMatch(read('admin.js'),/loadAdminBibleStudy|['"]bible-study['"]/);
+assert.match(read('index.html'),/js\/tutor\.js/);
+for(const p of ['js/bible-study.js','bible-study.css','admin/crud-bible-study.js'])assert.ok(!fs.existsSync(path.resolve(__dirname,'..',p)));
+console.log('Bible reading-only selection and removal: PASS');
